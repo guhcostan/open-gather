@@ -67,7 +67,8 @@ export async function run(ctx) {
     check("anonymous profile changes are refused", anon.status === 401);
 
     // ---- desk assignment shows the owner's label
-    const map = await a.page.evaluate(() => JSON.parse(JSON.stringify(window.__og.view.map)));
+    // The world map redacts interactive-object content; editors round-trip through the full map.
+    const map = await (await fetch(API + "/api/admin/map", { headers: { Cookie: "og_session=" + ctx.adminCookie } })).json();
     const desk = map.props.find((p) => p.t === "desk");
     desk.assign = b.id;
     desk.label = "New desk " + t;

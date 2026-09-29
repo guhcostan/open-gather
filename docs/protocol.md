@@ -77,6 +77,7 @@ Clients keep moving the entity with the same rules as the server (speed from `cf
 | `DELETE /api/admin/members/{id}` | admin | remove a member: sessions deleted, socket closed, call ended. Not yourself, not the last admin (409) |
 | `GET /api/admin/audit` | admin | the latest 100 admin actions, newest first |
 | `PUT /api/map` | admin | validate, apply and save a new map |
+| `GET /api/admin/map` | admin | the saved map including hidden interactive-object content (the world map redacts it; editors must round-trip through this endpoint or they will erase object content) |
 | `GET /ws` | cookie | the world WebSocket |
 
 ## WebSocket close codes
