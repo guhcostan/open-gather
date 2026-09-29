@@ -46,7 +46,7 @@ function People({ onDm }: { onDm: (id: number) => void }) {
     <section className="panel" aria-label={t("roster.title")}>
       <h2>{t("roster.title")} <small>{[...roster.values()].filter((p) => p.s !== "offline").length}</small></h2>
       <input className="search" placeholder="🔍" value={q} onChange={(e) => setQ(e.target.value)} aria-label={t("roster.title")} />
-      <ul className="people">
+      <ul className="people" tabIndex={0} aria-label={t("roster.title")}>
         {list.map((p) => (
           <li key={p.id}>
             <AvatarCanvas av={p.av} size={2} />
@@ -100,7 +100,7 @@ function Chat({ scope, setScope }: { scope: Scope; setScope: (s: Scope) => void 
         ))}
         {scope.sc === "d" && !dmPeers.includes(scope.peer) && <button className="chip on">{name(scope.peer)}</button>}
       </div>
-      <div className="msgs" aria-live="polite">
+      <div className="msgs" role="log" tabIndex={0} aria-label={t("chat.title")} aria-live="polite">
         {scope.sc === "g" && !conv && <p className="muted">{t("chat.noConv")}</p>}
         {msgs.map((m) => (
           <div key={m.id} className={"msg" + (m.from === me ? " mine" : "")}>

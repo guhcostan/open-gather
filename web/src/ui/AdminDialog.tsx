@@ -160,7 +160,7 @@ function Activity() {
   if (!rows) return <p className="muted" role="status">{t("admin.loading")}</p>;
   if (rows.length === 0) return <p className="muted">{t("admin.noActivity")}</p>;
   return (
-    <ul className="audit">
+    <ul className="audit" tabIndex={0} aria-label={t("admin.tab.activity")}>
       {rows.map((e) => {
         const key = "admin.audit." + e.action;
         const text = hasKey(key) ? t(key, { actor: e.actor, target: e.target, detail: e.detail }) : `${e.actor}: ${e.action}`;
