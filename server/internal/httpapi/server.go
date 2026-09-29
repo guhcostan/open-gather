@@ -57,6 +57,7 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger, st *store.St
 	s := &Server{cfg: cfg, log: log, st: st, media: md, ctx: ctx, worlds: map[int64]*world.World{},
 		posQ: make(chan posSave, 1024), chatQ: make(chan chatSave, 256), joinLim: newLimiter(float64(cfg.JoinRate), float64(cfg.JoinRate)*2), mapLim: newLimiter(1, 5), profLim: newLimiter(0.5, 5)}
 	go s.savePositions(ctx)
+	go s.reconcileMedia(ctx)
 	return s
 }
 
@@ -393,4 +394,36 @@ func (s *Server) putProfile(w http.ResponseWriter, r *http.Request) {
 		}
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"name": name, "avatar": json.RawMessage(av)})
+}
+
+// reconcileMedia periodically removes from the SFU anyone the world does not consider a member of that room.
+func (s *Server) reconcileMedia(ctx context.Context) {
+	if s.media == nil || !s.media.Enabled() {
+		return
+	}
+	t := time.NewTicker(s.cfg.MediaReconcile)
+	defer t.Stop()
+	for {
+		select {
+		case <-ctx.Done():
+			return
+		case <-t.C:
+			s.mu.Lock()
+			ws := make(map[int64]*world.World, len(s.worlds))
+			for id, w := range s.worlds {
+				ws[id] = w
+			}
+			s.mu.Unlock()
+			for id, w := range ws {
+				rctx, cancel := context.WithTimeout(ctx, 8*time.Second)
+				n, err := s.media.Reconcile(rctx, "o"+strconv.FormatInt(id, 10)+".", w.MediaMembers)
+				cancel()
+				if err != nil {
+					s.log.Warn("media reconcile", "office", id, "err", err)
+				} else if n > 0 {
+					s.log.Warn("removed unauthorised SFU participants", "office", id, "count", n)
+				}
+			}
+		}
+	}
 }

@@ -26,11 +26,13 @@ type Config struct {
 	LiveKitKey    string
 	LiveKitSecret string
 
-	TickHz     int
-	AOICells   int
-	MaxPlayers int
-	MaxGroup   int
-	JoinRate   int // dev /api/join requests per second per IP (raise for load tests only)
+	TickHz         int
+	AOICells       int
+	MaxPlayers     int
+	MaxGroup       int
+	MediaTTL       time.Duration // validity of a media join token
+	MediaReconcile time.Duration // how often SFU rooms are compared with the world's membership
+	JoinRate       int           // dev /api/join requests per second per IP (raise for load tests only)
 }
 
 func env(k, d string) string {
@@ -53,22 +55,24 @@ func (c *Config) Dev() bool { return c.Env != "production" }
 
 func Load() (*Config, error) {
 	c := &Config{
-		Env:           env("OG_ENV", "dev"),
-		Addr:          env("OG_ADDR", ":8080"),
-		DBPath:        env("OG_DB", "data/opengather.db"),
-		StaticDir:     env("OG_STATIC_DIR", ""),
-		OfficeSlug:    env("OG_OFFICE_SLUG", "default"),
-		OfficeName:    env("OG_OFFICE_NAME", "Escritório"),
-		SessionTTL:    time.Duration(envInt("OG_SESSION_DAYS", 30)) * 24 * time.Hour,
-		LiveKitURL:    env("LIVEKIT_URL", ""),
-		LiveKitAPIURL: env("LIVEKIT_API_URL", ""),
-		LiveKitKey:    env("LIVEKIT_API_KEY", ""),
-		LiveKitSecret: env("LIVEKIT_API_SECRET", ""),
-		TickHz:        envInt("OG_TICK_HZ", 15),
-		AOICells:      envInt("OG_AOI_CELLS", 2),
-		MaxPlayers:    envInt("OG_MAX_PLAYERS", 2000),
-		MaxGroup:      envInt("OG_MAX_GROUP", 8),
-		JoinRate:      envInt("OG_JOIN_RATE", 20),
+		Env:            env("OG_ENV", "dev"),
+		Addr:           env("OG_ADDR", ":8080"),
+		DBPath:         env("OG_DB", "data/opengather.db"),
+		StaticDir:      env("OG_STATIC_DIR", ""),
+		OfficeSlug:     env("OG_OFFICE_SLUG", "default"),
+		OfficeName:     env("OG_OFFICE_NAME", "Escritório"),
+		SessionTTL:     time.Duration(envInt("OG_SESSION_DAYS", 30)) * 24 * time.Hour,
+		LiveKitURL:     env("LIVEKIT_URL", ""),
+		LiveKitAPIURL:  env("LIVEKIT_API_URL", ""),
+		LiveKitKey:     env("LIVEKIT_API_KEY", ""),
+		LiveKitSecret:  env("LIVEKIT_API_SECRET", ""),
+		TickHz:         envInt("OG_TICK_HZ", 15),
+		AOICells:       envInt("OG_AOI_CELLS", 2),
+		MaxPlayers:     envInt("OG_MAX_PLAYERS", 2000),
+		MaxGroup:       envInt("OG_MAX_GROUP", 8),
+		JoinRate:       envInt("OG_JOIN_RATE", 20),
+		MediaTTL:       time.Duration(envInt("OG_MEDIA_TOKEN_TTL_SECONDS", 60)) * time.Second,
+		MediaReconcile: time.Duration(envInt("OG_MEDIA_RECONCILE_SECONDS", 10)) * time.Second,
 	}
 	if o := env("OG_ALLOWED_ORIGINS", ""); o != "" {
 		c.AllowedOrigins = strings.Split(o, ",")

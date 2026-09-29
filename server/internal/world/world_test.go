@@ -442,8 +442,8 @@ func TestSyncResendsCurrentStates(t *testing.T) {
 
 func TestReloadMapRelocatesTrappedPlayersAndDissolvesRooms(t *testing.T) {
 	h := newHarness(t)
-	in1 := h.add(1, "member", 50*16, 3*16) // Aurora
-	in2 := h.add(2, "member", 54*16, 5*16)
+	in1 := h.add(1, "member", 46*16+8, 5*16+8) // Aurora, on free floor (the table is solid)
+	in2 := h.add(2, "member", 56*16+8, 5*16+8)
 	stay := h.add(3, "member", 20*16, 28*16)
 	for _, p := range []*Player{in1, in2, stay} {
 		h.consent(p, true)
@@ -472,7 +472,7 @@ func TestReloadMapRelocatesTrappedPlayersAndDissolvesRooms(t *testing.T) {
 	}
 	h.run(2 * time.Second)
 	if in1.group == nil {
-		t.Fatal("people inside a room re-join its call through the normal dwell rules")
+		t.Fatalf("people inside a room re-join its call through the normal dwell rules: area=%d elig=%v pos=%v,%v status=%s roomIn=%v stay=%v,%v", in1.area, in1.eligible(), in1.X, in1.Y, in1.Status, in1.roomIn, stay.X, stay.Y)
 	}
 	bad := gamemap.Default()
 	bad.W = 70

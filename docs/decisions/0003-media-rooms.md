@@ -34,4 +34,4 @@ The SFU room is the boundary of who can hear and see whom. Since each group hold
 ## Consequences
 
 - Distributing offices across instances and splitting out a media server later is natural: the only contract between the two is "issue a token for room X" and "remove participant from room X".
-- Revocation is currently **reactive**: the server removes the participant from the SFU when they leave the group. The token stays valid until it expires (5 minutes); see the limitations in [Privacy and security](privacy-and-security.md).
+- Revocation removes the participant from the SFU when they leave the group. Tokens cannot be revoked, so their lifetime was cut to 60 s and a reconciler evicts unauthorised participants, see [0008](0008-token-lifetime-and-reconciliation.md) and [Privacy and security](privacy-and-security.md).

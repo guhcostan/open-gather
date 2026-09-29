@@ -14,7 +14,7 @@ export const REPO = "https://github.com/guhcostan/open-gather";
 const NAV = [
   { group: "Get started", items: [["overview", "Overview", "overview.md"], ["getting-started", "Getting started", "getting-started.md"]] },
   { group: "Concepts", items: [["architecture", "Architecture", "architecture.md"], ["proximity-and-media", "Proximity and media", "proximity-and-media.md"], ["art-style", "Art style", "art-style.md"], ["protocol", "WebSocket protocol", "protocol.md"]] },
-  { group: "Operate", items: [["privacy-and-security", "Privacy and security", "privacy-and-security.md"], ["efficiency-and-benchmarks", "Efficiency and benchmarks", "efficiency-and-benchmarks.md"], ["status", "Status and roadmap", "status.md"]] },
+  { group: "Operate", items: [["privacy-and-security", "Privacy and security", "privacy-and-security.md"], ["efficiency-and-benchmarks", "Efficiency and benchmarks", "efficiency-and-benchmarks.md"], ["benchmark-results", "Benchmark results", "benchmark-results.md"], ["status", "Status and roadmap", "status.md"]] },
   {
     group: "Decisions",
     items: fs.readdirSync(path.join(DOCS, "decisions")).filter((f) => f.endsWith(".md")).sort().map((f) => {

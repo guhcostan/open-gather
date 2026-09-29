@@ -188,3 +188,10 @@ func (c *Client) removeParticipant(ctx context.Context, room, identity string) e
 	}
 	return nil
 }
+
+// signRaw returns the HS256 signature of an already assembled header.payload string (used by tests).
+func signRaw(c *Client, unsigned string) string {
+	m := hmac.New(sha256.New, []byte(c.cfg.Secret))
+	m.Write([]byte(unsigned))
+	return b64(m.Sum(nil))
+}

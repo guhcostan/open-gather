@@ -8,24 +8,27 @@ import net from "node:net";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
+// OG_EXTERNAL_URL=http://127.0.0.1:8080 runs the scenarios against an already running stack (for example
+// the Docker Compose one). Scenarios that restart the server or spawn the local binary are skipped there.
+const EXTERNAL = process.env.OG_EXTERNAL_URL ?? "";
 const PORT = process.env.OG_TEST_PORT ?? "18080";
-process.env.OG_APP = process.env.OG_API = `http://127.0.0.1:${PORT}`;
+process.env.OG_APP = process.env.OG_API = EXTERNAL || `http://127.0.0.1:${PORT}`;
 process.env.OG_LK_HTTP ??= "http://127.0.0.1:7880";
 
-const all = ["proximity", "consent", "rooms", "access", "editor", "resilience"];
-const wanted = process.argv.slice(2).length ? process.argv.slice(2) : all;
+const all = ["proximity", "consent", "rooms", "access", "editor", "social", "security", "resilience"];
+const wanted = process.argv.slice(2).length ? process.argv.slice(2) : EXTERNAL ? ["proximity", "consent", "rooms"] : all;
 
 const children = [];
 const sleep = (ms) => new Promise((r) => setTimeout(r, ms));
 const portOpen = (p) => new Promise((res) => { const s = net.connect(p, "127.0.0.1"); s.on("connect", () => { s.destroy(); res(true); }); s.on("error", () => res(false)); });
 
-if (!process.env.SKIP_BUILD) {
+if (!process.env.SKIP_BUILD && !EXTERNAL) {
   console.log("# building web + server");
   execFileSync("pnpm", ["build"], { cwd: path.join(root, "web"), stdio: "inherit" });
   execFileSync("go", ["build", "-o", "../bin/opengather", "./cmd/opengather"], { cwd: path.join(root, "server"), stdio: "inherit" });
 }
 
-if (!(await portOpen(7880))) {
+if (!EXTERNAL && !(await portOpen(7880))) {
   console.log("# starting livekit-server --dev");
   children.push(spawn("livekit-server", ["--dev", "--bind", "127.0.0.1"], { stdio: "ignore" }));
   for (let i = 0; i < 50 && !(await portOpen(7880)); i++) await sleep(200);
@@ -35,7 +38,8 @@ const dir = fs.mkdtempSync(path.join(os.tmpdir(), "og-e2e-"));
 const ctx = { dir, server: null, async startServer() {
   const child = spawn(path.join(root, "bin/opengather"), [], {
     env: { ...process.env, OG_ENV: "dev", OG_ADDR: `127.0.0.1:${PORT}`, OG_DB: path.join(dir, "e2e.db"), OG_STATIC_DIR: path.join(root, "web/dist"),
-      OG_ALLOWED_ORIGINS: `127.0.0.1:${PORT}`, LIVEKIT_URL: "ws://127.0.0.1:7880", LIVEKIT_API_KEY: "devkey", LIVEKIT_API_SECRET: "secret" },
+      OG_ALLOWED_ORIGINS: `127.0.0.1:${PORT}`, LIVEKIT_URL: "ws://127.0.0.1:7880", LIVEKIT_API_KEY: "devkey", LIVEKIT_API_SECRET: "secret",
+      OG_MEDIA_TOKEN_TTL_SECONDS: process.env.OG_MEDIA_TOKEN_TTL_SECONDS ?? "45", OG_MEDIA_RECONCILE_SECONDS: process.env.OG_MEDIA_RECONCILE_SECONDS ?? "3" },
     stdio: ["ignore", fs.openSync(path.join(dir, "server.log"), "a"), fs.openSync(path.join(dir, "server.log"), "a")],
   });
   ctx.server = child;
@@ -47,7 +51,7 @@ const ctx = { dir, server: null, async startServer() {
   c.kill("SIGTERM");
   await done;
 } };
-await ctx.startServer();
+if (!EXTERNAL) await ctx.startServer();
 console.log("# server logs:", path.join(dir, "server.log"));
 
 let ok = true;

@@ -43,6 +43,7 @@ const (
 	evSync
 	evMap
 	evProfile
+	evSnapshot
 )
 
 type ev struct {
@@ -58,6 +59,7 @@ type ev struct {
 	kick   func(replaced bool)
 	reply  chan joinResult
 	cm     *gamemap.Compiled
+	snap   chan map[string]map[string]bool
 	errc   chan error
 }
 
@@ -213,6 +215,20 @@ func (w *World) ReloadMap(ctx context.Context, cm *gamemap.Compiled) error {
 	}
 }
 
+// MediaMembers returns, per SFU room, the identities the world currently allows in it.
+func (w *World) MediaMembers(ctx context.Context) (map[string]map[string]bool, error) {
+	ch := make(chan map[string]map[string]bool, 1)
+	if !w.post(ctx, ev{kind: evSnapshot, snap: ch}) {
+		return nil, ctx.Err()
+	}
+	select {
+	case m := <-ch:
+		return m, nil
+	case <-ctx.Done():
+		return nil, ctx.Err()
+	}
+}
+
 // SeedChat loads persisted history. Call before Run.
 func (w *World) SeedChat(h []ChatEntry) {
 	if len(h) > chatHistory {
@@ -242,6 +258,17 @@ func (w *World) handle(e ev, now time.Time) {
 		return
 	case evMap:
 		e.errc <- w.doReloadMap(e.cm, now)
+		return
+	case evSnapshot:
+		out := make(map[string]map[string]bool, len(w.groups))
+		for _, g := range w.groups {
+			ids := make(map[string]bool, len(g.members))
+			for _, m := range g.members {
+				ids[w.identity(m)] = true
+			}
+			out[g.room] = ids
+		}
+		e.snap <- out
 		return
 	case evProfile:
 		if p := w.players[e.id]; p != nil {

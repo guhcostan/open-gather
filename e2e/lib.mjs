@@ -55,7 +55,9 @@ export async function joinAs(browser, name, { path = "/", avatar = null, viewpor
   await page.setViewport(viewport);
   if (avatar) await page.evaluateOnNewDocument((a) => localStorage.setItem("og.avatar", JSON.stringify(a)), avatar);
   const logs = [];
-  page.on("console", (m) => { if (m.type() === "error") logs.push(m.text()); });
+  // livekit-client logs these two as errors when WE close a call on purpose (user-initiated abort of its data channels)
+  const benign = /DataChannel error on (lossy|reliable): User-Initiated Abort|publisher data channel '(LOSSY|RELIABLE)' closed unexpectedly/i;
+  page.on("console", (m) => { if (m.type() === "error" && !benign.test(m.text())) logs.push(m.text()); });
   page.on("pageerror", (e) => logs.push("pageerror: " + e.message));
   await page.goto(APP + path, { waitUntil: "domcontentloaded" });
   if (!cookie) {

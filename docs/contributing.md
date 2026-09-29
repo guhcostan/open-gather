@@ -13,9 +13,9 @@ Thanks for looking. The project is early, so the most useful contributions are c
 
 ~~~bash
 ./scripts/dev.sh                 # full local stack
-cd server && go test -race ./... # server tests
-cd web && pnpm exec tsc --noEmit # type-check the client
-cd e2e && node smoke.mjs         # real-browser smoke test (stack must be running)
+cd server && go vet ./... && go test -race ./...   # server tests
+cd web && pnpm exec tsc --noEmit                   # type-check the client
+cd e2e && pnpm install && node run.mjs             # real-browser suite: own server, fresh database, real LiveKit
 ~~~
 
 ## Invariants worth protecting

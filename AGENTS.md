@@ -30,7 +30,9 @@ It is **not** affiliated with the original Gather product. Never copy its brand,
 | `web/src/media` | LiveKit room management |
 | `web/src/ui` | React UI (panels, dialogs) |
 | `web/src/session.ts` | glue between socket, world view, media and store |
-| `e2e/` | real-browser tests and art generation |
+| `e2e/` | real-browser test suite (`run.mjs` + `scenarios/`) and art generation |
+| `bench/`, `server/cmd/loadgen`, `scripts/bench.sh` | benchmarks: scripts, raw results, WebSocket load generator, cost model |
+| `deploy/` | Dockerfile, Compose (local and production), Caddyfile, production README |
 | `site/` | landing page and docs generator (GitHub Pages) |
 | `docs/` | documentation sources (`docs/decisions/` holds ADRs) |
 
@@ -40,7 +42,8 @@ It is **not** affiliated with the original Gather product. Never copy its brand,
 ./scripts/dev.sh                          # LiveKit (dev) + Go server + Vite; logs in .run/
 cd server && go vet ./... && go test -race ./...
 cd web && pnpm exec tsc --noEmit && pnpm exec vite build
-cd e2e && node smoke.mjs                  # needs the dev stack running
+cd e2e && node run.mjs                    # real Chrome + real LiveKit; builds, starts its own server with a fresh database
+cd e2e && OG_EXTERNAL_URL=http://127.0.0.1:8080 node run.mjs   # same scenarios against a running stack (e.g. Docker Compose)
 cd site && pnpm install && node build.mjs # builds site/dist
 ~~~
 
@@ -69,6 +72,7 @@ Art (output goes to `site/assets/`; details in `docs/art-style.md`):
 - Go: standard library first, `gofmt`, table-driven tests where natural, no dependency for what a few lines do. Keep `internal/media` the only package that speaks to LiveKit.
 - TypeScript: `strict` is on; keep `tsc --noEmit` clean. Prefer small modules; keep hot paths allocation-light.
 - Validate all external input: WebSocket messages, avatars, maps, uploads. Enforce size and rate limits.
+- Media tokens are short (60 s) and the reconciler in `httpapi` removes unknown SFU participants: keep both when touching `internal/media`.
 - Protocol changes: update `web/src/net/protocol.ts`, `docs/protocol.md` and the world tests together.
 - Add or update a decision record in `docs/decisions/` when you change an architectural choice, with the performance, maintenance and install impact.
 

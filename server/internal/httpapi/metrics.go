@@ -5,6 +5,7 @@ import (
 	"net/http"
 	"runtime"
 
+	"opengather/internal/media"
 	"opengather/internal/world"
 )
 
@@ -82,6 +83,7 @@ func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
 		c("og_media_tokens_issued_total", "SFU join tokens issued", s.media.Issued.Load())
 		c("og_media_revocations_total", "SFU participants removed", s.media.Revoked.Load())
 		c("og_media_revoke_errors_total", "SFU revocations that failed", s.media.RevokeErrors.Load())
+		c("og_media_reconcile_removals_total", "SFU participants removed by reconciliation (not members of the room)", media.ReconcileRemovals.Load())
 	}
 	var ms runtime.MemStats
 	runtime.ReadMemStats(&ms)

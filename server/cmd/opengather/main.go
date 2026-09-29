@@ -72,7 +72,7 @@ func main() {
 	ctx, stop := signal.NotifyContext(context.Background(), os.Interrupt, syscall.SIGTERM)
 	defer stop()
 
-	md := media.New(media.Config{PublicURL: cfg.LiveKitURL, APIURL: cfg.LiveKitAPIURL, Key: cfg.LiveKitKey, Secret: cfg.LiveKitSecret}, log)
+	md := media.New(media.Config{PublicURL: cfg.LiveKitURL, APIURL: cfg.LiveKitAPIURL, Key: cfg.LiveKitKey, Secret: cfg.LiveKitSecret, TokenTTL: cfg.MediaTTL}, log)
 	go md.Run(ctx)
 	if !md.Enabled() {
 		log.Warn("LiveKit not configured: audio/video disabled (conversations still form, without media)")

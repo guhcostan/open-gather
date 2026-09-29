@@ -27,19 +27,20 @@ import (
 )
 
 var (
-	base      = flag.String("url", "http://127.0.0.1:18080", "server base URL")
-	nBots     = flag.Int("n", 100, "number of bots")
-	moving    = flag.Float64("moving", 0.3, "fraction of time bots spend walking")
-	region    = flag.String("region", "distributed", "distributed | concentrated")
-	rampRate  = flag.Int("ramp", 50, "joins per second")
-	warmup    = flag.Duration("warmup", 10*time.Second, "warmup after everyone joined")
-	duration  = flag.Duration("duration", 60*time.Second, "measurement window")
-	probes    = flag.Int("probes", 6, "probe pairs measuring propagation latency")
-	consent   = flag.Bool("consent", false, "bots opt in to media (enables proximity grouping work; no real media)")
-	storm     = flag.Bool("storm", false, "after measuring, drop every connection at once and reconnect")
-	serverPID = flag.Int("pid", 0, "server PID for CPU/RSS sampling (only meaningful on the same host)")
-	label     = flag.String("label", "run", "label for the report")
-	out       = flag.String("out", "", "write JSON report to this file")
+	base        = flag.String("url", "http://127.0.0.1:18080", "server base URL")
+	nBots       = flag.Int("n", 100, "number of bots")
+	moving      = flag.Float64("moving", 0.3, "fraction of time bots spend walking")
+	region      = flag.String("region", "distributed", "distributed | concentrated")
+	rampRate    = flag.Int("ramp", 50, "joins per second")
+	warmup      = flag.Duration("warmup", 10*time.Second, "warmup after everyone joined")
+	duration    = flag.Duration("duration", 60*time.Second, "measurement window")
+	probes      = flag.Int("probes", 6, "probe pairs measuring propagation latency")
+	consent     = flag.Bool("consent", false, "bots opt in to media (enables proximity grouping work; no real media)")
+	storm       = flag.Bool("storm", false, "after measuring, drop every connection at once and reconnect")
+	serverPID   = flag.Int("pid", 0, "server PID for CPU/RSS sampling (only meaningful on the same host)")
+	label       = flag.String("label", "run", "label for the report")
+	out         = flag.String("out", "", "write JSON report to this file")
+	sampleEvery = flag.Duration("sample", 0, "record a time series (heap, goroutines, RSS, CPU) at this interval, e.g. 30s")
 )
 
 type mapData struct {
@@ -468,6 +469,11 @@ type report struct {
 	StormMs                               float64
 	StormFailed                           int
 	Note                                  string
+	Series                                []sample
+}
+
+type sample struct {
+	TSec, HeapMB, Goroutines, RSSMB, CPU, Players, FramesOut float64
 }
 
 func main() {
@@ -520,12 +526,21 @@ func main() {
 	var cpus []float64
 	var rssMax float64
 	start := time.Now()
+	var series []sample
+	lastSample := time.Now()
 	for time.Since(start) < *duration {
 		time.Sleep(time.Second)
 		if *serverPID > 0 {
 			c, r := psSample(*serverPID)
 			cpus = append(cpus, c)
 			rssMax = math.Max(rssMax, r)
+			if *sampleEvery > 0 && time.Since(lastSample) >= *sampleEvery {
+				lastSample = time.Now()
+				m := scrape()
+				sm := sample{TSec: time.Since(start).Seconds(), HeapMB: m["go_heap_alloc_bytes"] / 1048576, Goroutines: m["go_goroutines"], RSSMB: r, CPU: c, Players: m["og_players"], FramesOut: m["og_ws_frames_out_total"]}
+				series = append(series, sm)
+				fmt.Fprintf(os.Stderr, "t=%4.0fs heap=%.1fMB goroutines=%.0f rss=%.1fMB cpu=%.1f%% players=%.0f\n", sm.TSec, sm.HeapMB, sm.Goroutines, sm.RSSMB, sm.CPU, sm.Players)
+			}
 		}
 	}
 	el := time.Since(start).Seconds()
@@ -561,6 +576,7 @@ func main() {
 		r.RSSMax = rssMax
 	}
 	r.HeapMB, r.GoSysMB = m1["go_heap_alloc_bytes"]/1048576, m1["go_sys_bytes"]/1048576
+	r.Series = series
 	r.Kicked, r.Skipped, r.Groups = m1["og_clients_kicked_total"], m1["og_flush_skipped_total"], m1["og_conversation_groups"]
 
 	if *storm {

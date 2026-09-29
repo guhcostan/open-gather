@@ -41,11 +41,24 @@ cd server && go test -race ./...
 cd web && pnpm install && pnpm exec tsc --noEmit && pnpm exec vite build
 ~~~
 
-The end-to-end smoke test drives two real Chrome instances with fake camera and microphone devices against the running dev stack:
+The browser suite drives real Chrome instances (fake camera and microphone) against a **real LiveKit server**. It builds the app, starts its own server with a fresh database on port 18080 (and LiveKit in dev mode if nothing listens on 7880), and needs neither the dev stack nor any cleanup:
 
 ~~~bash
-cd e2e && pnpm install && node smoke.mjs
+cd e2e && pnpm install
+node run.mjs                     # all scenarios
+node run.mjs proximity rooms     # some of them
+OG_EXTERNAL_URL=http://127.0.0.1:8080 node run.mjs   # against a running stack, e.g. Docker Compose
 ~~~
+
+Scenarios: proximity, consent, rooms, access, editor, social, security, resilience (see [Status](status.md) for what each proves).
+
+## Run it with Docker
+
+~~~bash
+docker compose -f deploy/docker-compose.local.yml up --build   # http://localhost:8080
+~~~
+
+That stack is for local evaluation only. The production stack, HTTPS, ports, backups and upgrades are described in [deploy/README.md](../deploy/README.md).
 
 ## Configuration
 
@@ -64,17 +77,19 @@ Everything is configured through environment variables.
 | `OG_AOI_CELLS` | `2` | Area-of-interest radius in 128 px cells |
 | `OG_MAX_PLAYERS` | `2000` | Hard cap per office |
 | `OG_MAX_GROUP` | `8` | Maximum people in a proximity group |
+| `OG_JOIN_RATE` | `20` | Join requests per second per IP (raise only for load tests) |
+| `OG_MEDIA_TOKEN_TTL_SECONDS` | `60` | Validity of a media join token |
+| `OG_MEDIA_RECONCILE_SECONDS` | `10` | How often SFU rooms are compared with the world membership |
 | `LIVEKIT_URL` | empty | Public `ws(s)://` URL browsers use; empty disables media |
 | `LIVEKIT_API_URL` | derived | `http(s)://` URL the server uses for admin calls |
 | `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | empty | LiveKit credentials |
 
-## Endpoints
+## Endpoints and command line
 
-| Endpoint | Purpose |
-| --- | --- |
-| `GET /healthz` | liveness |
-| `GET /readyz` | readiness (pings the database) |
-| `GET /metrics` | Prometheus text metrics (players, tick histogram, queues, media counters) |
-| `POST /api/join` | dev-only user creation (returns 403 in production) |
-| `GET /api/me` | current session |
-| `GET /ws` | the world WebSocket |
+See the endpoint table in [WebSocket protocol](protocol.md#http-endpoints). The binary also has three one-shot commands:
+
+~~~bash
+opengather -invite admin       # print a new invite path (bootstrap the first production administrator)
+opengather -backup out.db      # consistent online backup of the SQLite database
+opengather -healthcheck        # exit 0 if /readyz answers (used by the container health check)
+~~~

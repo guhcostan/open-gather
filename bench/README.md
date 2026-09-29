@@ -1,6 +1,6 @@
 # Benchmarks
 
-Everything here is reproducible from this repository. Results are kept in [RESULTS.md](RESULTS.md) with the machine, the exact command and the evidence class of every number:
+Everything here is reproducible from this repository. Results are kept in [docs/benchmark-results.md](../docs/benchmark-results.md) with the machine, the exact command and the evidence class of every number:
 
 - **MEASURED** — produced by the commands below on the recorded machine.
 - **ESTIMATE** — derived from a measurement with a stated assumption.
@@ -44,4 +44,4 @@ Tick time comes from a Prometheus histogram with buckets 0.1, 0.25, 0.5, 1, 2, 5
 
 ## Media scenarios (B, C, D)
 
-See RESULTS.md: they are only reported when they were actually executed, with the topology and the SFU host limits.
+See docs/benchmark-results.md: they are only reported when they were actually executed, with the topology and the SFU host limits.
