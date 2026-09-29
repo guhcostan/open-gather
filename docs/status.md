@@ -19,6 +19,8 @@ Environment: macOS (Apple M1 Pro, arm64), Go 1.26.5, Google Chrome with fake cam
 | `resilience` | WebSocket drop keeps position, call and audio; flooding cannot speed a player up; oversized frames close the socket; session and position survive a server restart |
 | Docker | image builds (24 MB, non-root); the local Compose stack passes `proximity`, `consent` and `rooms`; in the container, production mode returns 403 without an invite, issues a Secure cookie with one, and refuses insecure configuration |
 
+GitHub Actions (`.github/workflows/ci.yml`) runs the Go tests with `-race`, the web typecheck/build and this whole browser suite on an Ubuntu runner (software-rendered Chrome, real LiveKit); the run for the latest commit is green. The runner is much slower than a laptop (10-16 FPS), so the test walker steers frame by frame inside the page.
+
 The exact pass counts of the last full run are in the commit history; rerun `cd e2e && node run.mjs` to reproduce.
 
 ## Measured (local reference, not a capacity claim)
