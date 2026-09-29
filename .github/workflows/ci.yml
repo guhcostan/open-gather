@@ -1,0 +1,92 @@
+name: CI
+
+on:
+  push:
+    branches: [main]
+  pull_request:
+
+permissions:
+  contents: read
+
+jobs:
+  server:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache-dependency-path: |
+            server/go.sum
+            bench/mediagen/go.sum
+      - name: Format
+        working-directory: server
+        run: test -z "$(gofmt -l .)"
+      - name: Vet
+        working-directory: server
+        run: go vet ./...
+      - name: Test (race detector)
+        working-directory: server
+        run: go test -race -count=1 ./...
+      - name: Build binaries
+        working-directory: server
+        run: |
+          go build ./cmd/opengather
+          go build ./cmd/loadgen
+      - name: Build the media benchmark tool
+        working-directory: bench/mediagen
+        run: go vet ./... && go build -o /dev/null .
+
+  web:
+    runs-on: ubuntu-latest
+    steps:
+      - uses: actions/checkout@v4
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+          cache: pnpm
+          cache-dependency-path: web/pnpm-lock.yaml
+      - run: pnpm install --frozen-lockfile
+        working-directory: web
+      - run: pnpm exec tsc --noEmit
+        working-directory: web
+      - run: pnpm exec vite build
+        working-directory: web
+
+  # Real-browser end-to-end suite: Chrome with fake devices against a real LiveKit server.
+  e2e:
+    runs-on: ubuntu-latest
+    timeout-minutes: 25
+    needs: [server, web]
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-go@v5
+        with:
+          go-version: "1.26"
+          cache-dependency-path: server/go.sum
+      - uses: pnpm/action-setup@v4
+        with:
+          version: 11
+      - uses: actions/setup-node@v4
+        with:
+          node-version: 24
+      - name: LiveKit server 1.13.7
+        run: |
+          curl -sSL https://github.com/livekit/livekit/releases/download/v1.13.7/livekit_1.13.7_linux_amd64.tar.gz | tar xz livekit-server
+          sudo mv livekit-server /usr/local/bin/
+          livekit-server --version
+      - name: Chrome
+        uses: browser-actions/setup-chrome@v1
+        id: chrome
+      - run: pnpm install --frozen-lockfile
+        working-directory: web
+      - run: pnpm install
+        working-directory: e2e
+      - name: Suite
+        working-directory: e2e
+        env:
+          CHROME: ${{ steps.chrome.outputs.chrome-path }}
+        run: node run.mjs
