@@ -29,7 +29,7 @@ Scenario A (no media) up to 1,000 bots and a 500-client reconnect storm, with th
 
 - **Scenarios B, C, D** (media under load) and TURN through restrictive networks.
 - **The 2 vCPU / 4 GB reference server** and a load generator on a separate machine. A two-hour soak (a shorter one was started and stopped; no result is claimed).
-- **Browser FPS/CPU** on the reference laptop.
+- **Browser FPS/CPU on the reference laptop.** Measured only on an Apple M1 Pro: 59.9 FPS (normal) and 29.6 FPS (economy, capped) with 300 bots, see [Benchmark results](benchmark-results.md).
 - **The production Compose file with Caddy, real TLS and TURN on a public host.**
 - No UI to list or revoke invites, change roles or remove members; no moderation or audit log.
 - **Cost numbers:** only the formula and `bench/cost.py` exist; no prices were verified.

@@ -55,6 +55,17 @@ Baseline = every moving player's position sent every tick to every observer ([de
 | A-500-concentrated | 500 | concentrated | 500/0 | 34.4/49.4 | 76 | 3.78 | 10 | 11.4 | 2962 | 5.9 | 16 | 39.9/63.9/68.2 | 0/0 |
 | A-500-distributed | 500 | distributed | 500/0 | 27.7/32.9 | 73 | 2.73 | 10 | 11.7 | 1832 | 3.7 | 16 | 32.0/63.8/68.0 | 0/0 |
 
+## Browser under a crowd (real Chrome)
+
+One real Chrome page (headless, GPU through ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version), viewport 1440x900) walking around the map for 30 s per mode, while 300 WebSocket bots walk around too. *Entities / visible* = avatars inside the server's area of interest / drawn on screen. Script: [e2e/scenarios/perf.mjs](../e2e/scenarios/perf.mjs); raw JSON in [bench/results/browser-perf/](../bench/results/browser-perf/).
+
+| Mode | FPS | JS frame ms | Main thread busy % | Script % | JS heap MB | Entities / visible |
+|---|---|---|---|---|---|---|
+| normal | 59.9 (min 58) | 0.17 | 7.6 | 4.4 | 34.8 -> 19.1 | 151 / 35 |
+| economy | 29.6 (min 28) | 0.35 | 6 | 3.4 | 20.1 -> 15.8 | 174 / 35 |
+
+This is an Apple M1 Pro with a fast integrated GPU, **not** the reference laptop (integrated GPU, 8 GB), and a single run per mode. It shows the renderer is far from saturated at this crowd size (economy mode is capped at 30 FPS by design); it does not show what a weaker laptop would do.
+
 ## Reading the numbers
 
 - **Bandwidth was the quadratic cost.** 1,000 concentrated bots wrote 58 MB/s (about 465 Mbit/s) before and 11.5 MB/s (about 92 Mbit/s) after. On a hosting plan with an egress quota or a 100 Mbit/s port this is the number that matters, not CPU.
@@ -73,7 +84,7 @@ Baseline = every moving player's position sent every tick to every observer ([de
 | Any run on the 2 vCPU / 4 GB reference server, or with the generator on another machine | capacity claims need it |
 | TURN-relayed media, restrictive networks | not exercised |
 | Two-hour soak | a 15-minute soak was started and stopped early; **no result is claimed** |
-| Browser FPS, frame time and CPU on the reference laptop | only the debug HUD exists |
+| Browser FPS, frame time and CPU on the **reference** laptop (integrated GPU, 8 GB) | measured only on an M1 Pro, see above |
 | Multiple repetitions per data point | variance unknown |
 
 ## Reproduce

@@ -132,7 +132,7 @@ Last updated 2026-09-29. Everything below was executed on macOS (Apple M1 Pro), 
 | Real-browser suite (Chrome + real LiveKit): proximity calls with real audio/video RTP, consent and busy, private rooms, screen share, invites and admin-only actions, map editor, chat and profile, token replay/tamper/expiry attacks, reconnection and restart persistence | **pass** |
 | Docker: image builds, Compose local stack passes the browser scenarios, production mode in the container refuses insecure config and requires invites | **verified locally**; the production Compose file with Caddy/TLS/TURN on a public host is **not tested** |
 | Load, scenario A (no media, up to 1,000 bots) and a 500-client mass reconnect | **run locally, generator on the same host**: not a capacity claim, see [results](docs/benchmark-results.md) |
-| Media under load (scenarios B, C, D), TURN through restrictive networks, two-hour soak, browser FPS on the reference laptop, the 2 vCPU / 4 GB reference server | **not run** |
+| Media under load (scenarios B, C, D), TURN through restrictive networks, two-hour soak, browser FPS on the *reference* laptop (an M1 Pro reaches 60 FPS with 300 bots around), the 2 vCPU / 4 GB reference server | **not run** |
 | Cost numbers | **formula only** ([bench/cost.py](bench/cost.py)); no prices verified |
 
 ### Targets we want to validate

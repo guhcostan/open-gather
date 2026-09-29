@@ -1,0 +1,37 @@
+{
+  "bots": 300,
+  "seconds": 30,
+  "note": "headless Chrome, GPU through ANGLE/Metal, viewport 1440x900, one run per mode",
+  "runs": [
+    {
+      "mode": "normal",
+      "viewport": "1440x900",
+      "gl": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+      "fps": 59.9,
+      "fpsMin": 58,
+      "frameMs": 0.17,
+      "heapMB": 19.1,
+      "heapStartMB": 34.8,
+      "entities": 151,
+      "visible": 35,
+      "mainThreadBusyPct": 7.6,
+      "scriptPct": 4.4,
+      "worldMsgsPerSec": 14
+    },
+    {
+      "mode": "economy",
+      "viewport": "1440x900",
+      "gl": "ANGLE (Apple, ANGLE Metal Renderer: Apple M1 Pro, Unspecified Version)",
+      "fps": 29.6,
+      "fpsMin": 28,
+      "frameMs": 0.35,
+      "heapMB": 15.8,
+      "heapStartMB": 20.1,
+      "entities": 174,
+      "visible": 35,
+      "mainThreadBusyPct": 6,
+      "scriptPct": 3.4,
+      "worldMsgsPerSec": 15
+    }
+  ]
+}

@@ -18,6 +18,10 @@ def capture(script, *args):
 env = open(os.path.join(here, "results", "dead-reckoning", "environment.txt")).read().strip()
 compare = capture("compare.py")
 full = capture("report.py", "dead-reckoning", "A-")
+import json
+bp = json.load(open(os.path.join(here, "results", "browser-perf", "perf-300bots.json")))
+brows = "\n".join(f"| {r['mode']} | {r['fps']} (min {r['fpsMin']}) | {r['frameMs']} | {r['mainThreadBusyPct']} | {r['scriptPct']} | {r['heapStartMB']} -> {r['heapMB']} | {r['entities']} / {r['visible']} |" for r in bp["runs"])
+gpu = bp["runs"][0]["gl"]
 
 doc = f"""# Benchmark results
 
@@ -50,6 +54,16 @@ Baseline = every moving player's position sent every tick to every observer ([de
 
 {full}
 
+## Browser under a crowd (real Chrome)
+
+One real Chrome page (headless, GPU through {gpu}, viewport 1440x900) walking around the map for {bp['seconds']} s per mode, while {bp['bots']} WebSocket bots walk around too. *Entities / visible* = avatars inside the server's area of interest / drawn on screen. Script: [e2e/scenarios/perf.mjs](../e2e/scenarios/perf.mjs); raw JSON in [bench/results/browser-perf/](../bench/results/browser-perf/).
+
+| Mode | FPS | JS frame ms | Main thread busy % | Script % | JS heap MB | Entities / visible |
+|---|---|---|---|---|---|---|
+{brows}
+
+This is an Apple M1 Pro with a fast integrated GPU, **not** the reference laptop (integrated GPU, 8 GB), and a single run per mode. It shows the renderer is far from saturated at this crowd size (economy mode is capped at 30 FPS by design); it does not show what a weaker laptop would do.
+
 ## Reading the numbers
 
 - **Bandwidth was the quadratic cost.** 1,000 concentrated bots wrote 58 MB/s (about 465 Mbit/s) before and 11.5 MB/s (about 92 Mbit/s) after. On a hosting plan with an egress quota or a 100 Mbit/s port this is the number that matters, not CPU.
@@ -68,7 +82,7 @@ Baseline = every moving player's position sent every tick to every observer ([de
 | Any run on the 2 vCPU / 4 GB reference server, or with the generator on another machine | capacity claims need it |
 | TURN-relayed media, restrictive networks | not exercised |
 | Two-hour soak | a 15-minute soak was started and stopped early; **no result is claimed** |
-| Browser FPS, frame time and CPU on the reference laptop | only the debug HUD exists |
+| Browser FPS, frame time and CPU on the **reference** laptop (integrated GPU, 8 GB) | measured only on an M1 Pro, see above |
 | Multiple repetitions per data point | variance unknown |
 
 ## Reproduce

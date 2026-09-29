@@ -63,7 +63,7 @@ export async function run(ctx) {
   resetChecks();
   const bots = spawn(path.join(root, "bin/loadgen"), ["-url", API, "-n", String(BOTS), "-region", "distributed", "-duration", String(SECONDS * 3 + 60) + "s", "-warmup", "1s", "-probes", "0"], { stdio: "ignore" });
   await sleep(Math.max(8000, BOTS * 40));
-  const browser = await launch(GPU_ARGS);
+  const browser = await launch(GPU_ARGS, { waitEmpty: false });
   const results = [];
   try {
     for (const [name, eco, size] of [["Perf-normal", false, { width: 1440, height: 900 }], ["Perf-eco", true, { width: 1440, height: 900 }]]) {

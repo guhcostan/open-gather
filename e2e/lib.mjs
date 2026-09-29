@@ -27,8 +27,8 @@ export async function waitForEmptyOffice() {
   await waitFor(async () => (await metrics()).og_players === 0, { timeout: 30000, every: 500, what: "empty office" });
 }
 
-export async function launch(extra = []) {
-  await waitForEmptyOffice();
+export async function launch(extra = [], { waitEmpty = true } = {}) {
+  if (waitEmpty) await waitForEmptyOffice();
   return puppeteer.launch({
     executablePath: CHROME,
     headless: true,

@@ -33,6 +33,7 @@
 | B | 100 present, 20 of them in five calls of four | **not run** |
 | C | 100 spread across 25 calls of four | **not run** |
 | D | 20-person meeting with a cap on received videos and one screen share | **not run** |
+| browser | FPS, frame time and CPU with 300 bots around | **run on an M1 Pro** (not the reference laptop) |
 | E | simultaneous join, mass reconnect, two-hour soak | join and 500-client mass reconnect **run locally**; a shorter soak was run instead of the two-hour test; the two-hour test is **not run** |
 
 WebSocket benchmarks do not prove video capacity. Media tests must publish and consume real or representative synthetic media. The end-to-end suite proves the media *path* works (real audio and video RTP, screen share, revocation) but says nothing about capacity.
