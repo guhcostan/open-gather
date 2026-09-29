@@ -104,34 +104,43 @@ export async function walkTo(u, tx, ty, { timeout = 60000 } = {}) {
   if (!prev.has(key(...goal))) throw new Error("no path");
   const t0 = Date.now();
   for (const [cx, cy] of path.slice(1)) {
-    const wx = cx * T + 8, wy = cy * T + 8;
-    let tries = 0;
-    for (;;) {
-      const p = await pos(u);
-      // Normally 2 px (a 1-tile doorway is unforgiving); after ~1.2 s without arriving the window widens,
-      // because a slow software-rendered browser can overshoot 2 px on every input tick and oscillate forever.
-      const tol = Math.min(4, 2 + 0.5 * Math.floor(tries++ / 40));
-      const dx = Math.abs(wx - p.x) > tol ? Math.sign(wx - p.x) : 0;
-      const dy = Math.abs(wy - p.y) > tol ? Math.sign(wy - p.y) : 0;
-      if (!dx && !dy) break;
-      await u.page.evaluate((a, b) => window.__og.view.setDirection(a, b), dx, dy);
-      await sleep(30);
-      if (Date.now() - t0 > timeout) {
-        const d = await u.page.evaluate(() => ({ hidden: document.hidden, conn: window.__og.state.conn, pos: window.__og.view.position(), fps: window.__og.view.stats.fps })).catch(() => ({}));
-        throw new Error("walk timeout to " + [cx, cy] + " (" + u.name + ") " + JSON.stringify(d));
-      }
-    }
+    await steer(u, cx * T + 8, cy * T + 8, Math.max(1000, timeout - (Date.now() - t0)), "walk timeout to " + [cx, cy] + " (" + u.name + ")");
   }
   // land exactly at the requested pixel inside the goal tile
-  for (let i = 0; i < 200; i++) {
-    const p = await pos(u);
-    const dx = Math.abs(tx - p.x) > 2 ? Math.sign(tx - p.x) : 0;
-    const dy = Math.abs(ty - p.y) > 2 ? Math.sign(ty - p.y) : 0;
-    if (!dx && !dy) break;
-    await u.page.evaluate((a, b) => window.__og.view.setDirection(a, b), dx, dy);
-    await sleep(25);
-  }
+  await steer(u, tx, ty, 5000, "landing timeout (" + u.name + ")").catch(() => {});
   await u.page.evaluate(() => window.__og.view.setDirection(0, 0));
+}
+
+/**
+ * Holds a direction until the avatar is at (wx, wy). The control loop runs inside the page on requestAnimationFrame,
+ * so it reacts on the very frame that moves the avatar. Driving it from Node (one CDP round trip per decision)
+ * overshoots on slow software-rendered CI browsers (~10-16 fps, i.e. 4-7 px per frame at 72 px/s).
+ * Each axis stops once within max(1.5 px, half a frame of travel), so accuracy follows the frame rate.
+ */
+async function steer(u, wx, wy, timeoutMs, what) {
+  const r = await u.page.evaluate((wx, wy, timeoutMs) => new Promise((resolve) => {
+    const v = window.__og.view;
+    const speed = 72; // world.Config.Speed, px/s
+    const t0 = performance.now();
+    let last = t0;
+    const frame = (now) => {
+      const dt = Math.min((now - last) / 1000, 0.1);
+      last = now;
+      const tol = Math.max(1.5, speed * dt * 0.5);
+      const p = v.position();
+      const dx = Math.abs(wx - p.x) > tol ? Math.sign(wx - p.x) : 0;
+      const dy = Math.abs(wy - p.y) > tol ? Math.sign(wy - p.y) : 0;
+      if (!dx && !dy) { v.setDirection(0, 0); resolve({ ok: true }); return; }
+      if (now - t0 > timeoutMs) {
+        resolve({ ok: false, hidden: document.hidden, conn: window.__og.state.conn, pos: p, fps: v.stats.fps });
+        return;
+      }
+      v.setDirection(dx, dy);
+      requestAnimationFrame(frame);
+    };
+    requestAnimationFrame(frame);
+  }), wx, wy, timeoutMs);
+  if (!r.ok) throw new Error(what + " " + JSON.stringify(r));
 }
 
 // ---- server-side checks ----
