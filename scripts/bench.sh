@@ -9,7 +9,7 @@ LABEL=${1:?label}; N=${2:?bots}; shift 2
 PORT=${OG_BENCH_PORT:-18090}
 ulimit -n 20000 2>/dev/null || true
 DIR=$(mktemp -d)
-OUT=\${OUT_DIR:-bench/results}
+OUT=${OUT_DIR:-bench/results}
 mkdir -p "$OUT"
 OG_ENV=dev OG_ADDR=127.0.0.1:$PORT OG_DB=$DIR/bench.db OG_JOIN_RATE=100000 OG_MAX_PLAYERS=10000 \
   ${OG_BENCH_ENV:-} ./bin/opengather > $DIR/server.log 2>&1 &

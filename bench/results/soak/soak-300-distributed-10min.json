@@ -1,0 +1,213 @@
+{
+  "Label": "soak-300-distributed-10min",
+  "Region": "distributed",
+  "Bots": 300,
+  "Joined": 300,
+  "Failed": 0,
+  "Disconnects": 0,
+  "Moving": 0.3,
+  "DurationS": 600.403243583,
+  "ServerMsgsPerSec": 4758.715131100099,
+  "ServerKBPerSec": 689.9292796483467,
+  "PosPerSec": 35352.79868464888,
+  "CoalescedPerSec": 420.1193159695682,
+  "InputsPerSec": 300.0167003180066,
+  "ClientKBInPerBot": 2.2997642654944888,
+  "ClientMsgsInPerBot": 15.862383770333663,
+  "TickP50ms": 5,
+  "TickP95ms": 10,
+  "TickP99ms": 10,
+  "TickMaxMs": 16.478917,
+  "TickMeanMs": 3.0611878635354213,
+  "LatStartP50": 38.487,
+  "LatStartP95": 68.1,
+  "LatStartP99": 72.056,
+  "LatStopP50": 40.334,
+  "LatStopP95": 67.783,
+  "LatStopP99": 73.077,
+  "LatSamples": 4792,
+  "CPUAvg": 25.242327150084318,
+  "CPUMax": 39.7,
+  "RSSMax": 56.6875,
+  "HeapMB": 15.385757446289062,
+  "GoSysMB": 55.115501403808594,
+  "Kicked": 0,
+  "Skipped": 0,
+  "Groups": 0,
+  "StormMs": 0,
+  "StormFailed": 0,
+  "Note": "",
+  "Series": [
+    {
+      "TSec": 30.359806375,
+      "HeapMB": 18.860801696777344,
+      "Goroutines": 910,
+      "RSSMB": 53.65625,
+      "CPU": 25.9,
+      "Players": 300,
+      "FramesOut": 224066
+    },
+    {
+      "TSec": 60.7169805,
+      "HeapMB": 21.241424560546875,
+      "Goroutines": 910,
+      "RSSMB": 54.28125,
+      "CPU": 27.1,
+      "Players": 300,
+      "FramesOut": 368421
+    },
+    {
+      "TSec": 91.116338125,
+      "HeapMB": 21.019500732421875,
+      "Goroutines": 910,
+      "RSSMB": 54.359375,
+      "CPU": 25.1,
+      "Players": 300,
+      "FramesOut": 512839
+    },
+    {
+      "TSec": 121.535857,
+      "HeapMB": 21.094505310058594,
+      "Goroutines": 910,
+      "RSSMB": 55.75,
+      "CPU": 25.5,
+      "Players": 300,
+      "FramesOut": 657596
+    },
+    {
+      "TSec": 151.943993833,
+      "HeapMB": 18.617706298828125,
+      "Goroutines": 910,
+      "RSSMB": 56.5625,
+      "CPU": 23.2,
+      "Players": 300,
+      "FramesOut": 801991
+    },
+    {
+      "TSec": 182.28595775,
+      "HeapMB": 16.073097229003906,
+      "Goroutines": 910,
+      "RSSMB": 55.0625,
+      "CPU": 17.6,
+      "Players": 300,
+      "FramesOut": 946173
+    },
+    {
+      "TSec": 212.640207625,
+      "HeapMB": 19.164962768554688,
+      "Goroutines": 910,
+      "RSSMB": 55.140625,
+      "CPU": 24.5,
+      "Players": 300,
+      "FramesOut": 1091685
+    },
+    {
+      "TSec": 243.013849166,
+      "HeapMB": 17.45641326904297,
+      "Goroutines": 910,
+      "RSSMB": 55.15625,
+      "CPU": 19.7,
+      "Players": 300,
+      "FramesOut": 1236215
+    },
+    {
+      "TSec": 273.357965125,
+      "HeapMB": 16.521018981933594,
+      "Goroutines": 910,
+      "RSSMB": 55.6875,
+      "CPU": 26.9,
+      "Players": 300,
+      "FramesOut": 1381204
+    },
+    {
+      "TSec": 303.742418458,
+      "HeapMB": 23.746261596679688,
+      "Goroutines": 910,
+      "RSSMB": 55.953125,
+      "CPU": 25.2,
+      "Players": 300,
+      "FramesOut": 1525525
+    },
+    {
+      "TSec": 334.125527666,
+      "HeapMB": 21.593780517578125,
+      "Goroutines": 910,
+      "RSSMB": 55.90625,
+      "CPU": 28.3,
+      "Players": 300,
+      "FramesOut": 1670496
+    },
+    {
+      "TSec": 364.468939208,
+      "HeapMB": 19.021934509277344,
+      "Goroutines": 910,
+      "RSSMB": 55.359375,
+      "CPU": 28.3,
+      "Players": 300,
+      "FramesOut": 1815389
+    },
+    {
+      "TSec": 394.863741291,
+      "HeapMB": 15.855064392089844,
+      "Goroutines": 910,
+      "RSSMB": 55.671875,
+      "CPU": 23.8,
+      "Players": 300,
+      "FramesOut": 1960030
+    },
+    {
+      "TSec": 425.235223416,
+      "HeapMB": 14.581794738769531,
+      "Goroutines": 910,
+      "RSSMB": 55.671875,
+      "CPU": 22.1,
+      "Players": 300,
+      "FramesOut": 2105119
+    },
+    {
+      "TSec": 455.610757625,
+      "HeapMB": 21.609115600585938,
+      "Goroutines": 910,
+      "RSSMB": 55.390625,
+      "CPU": 26.6,
+      "Players": 300,
+      "FramesOut": 2249201
+    },
+    {
+      "TSec": 485.979863708,
+      "HeapMB": 19.690269470214844,
+      "Goroutines": 910,
+      "RSSMB": 55.6875,
+      "CPU": 24.5,
+      "Players": 300,
+      "FramesOut": 2393865
+    },
+    {
+      "TSec": 516.340352416,
+      "HeapMB": 19.298118591308594,
+      "Goroutines": 910,
+      "RSSMB": 55.703125,
+      "CPU": 17.6,
+      "Players": 300,
+      "FramesOut": 2538955
+    },
+    {
+      "TSec": 546.709443208,
+      "HeapMB": 13.910110473632812,
+      "Goroutines": 910,
+      "RSSMB": 55.015625,
+      "CPU": 23.9,
+      "Players": 300,
+      "FramesOut": 2683028
+    },
+    {
+      "TSec": 577.105687541,
+      "HeapMB": 19.898529052734375,
+      "Goroutines": 910,
+      "RSSMB": 55.265625,
+      "CPU": 24.2,
+      "Players": 300,
+      "FramesOut": 2827235
+    }
+  ]
+}

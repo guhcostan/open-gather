@@ -28,7 +28,7 @@ Scenario A (no media) up to 1,000 bots and a 500-client reconnect storm, with th
 ## Not run / not implemented
 
 - **Scenario C at its full size** (100 people in 25 calls) and any media test with the generator on another machine. B (20 people), a scaled C (40 people) and D (20-person meeting) were run locally with real synthetic media; 60 people and above saturate a single laptop. TURN through restrictive networks is untested.
-- **The 2 vCPU / 4 GB reference server** and a load generator on a separate machine. A two-hour soak (a shorter one was started and stopped; no result is claimed).
+- **The 2 vCPU / 4 GB reference server** and a load generator on a separate machine. A two-hour soak (only a 10-minute, 300-bot presence soak was run: flat goroutines/RSS, see benchmark-results.md).
 - **Browser FPS/CPU on the reference laptop.** Measured only on an Apple M1 Pro: 59.9 FPS (normal) and 29.6 FPS (economy, capped) with 300 bots, see [Benchmark results](benchmark-results.md).
 - **The production Compose file with Caddy, real TLS and TURN on a public host.**
 - No UI to list or revoke invites, change roles or remove members; no moderation or audit log.

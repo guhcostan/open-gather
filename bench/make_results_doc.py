@@ -28,6 +28,10 @@ for name in ["B-5x4-video", "C-10x4-video", "C-15x4-video", "C-25x4-audioonly", 
     m = json.load(open(os.path.join(here, "results", "media", name + ".json")))
     mrows.append(f"| {name} | {m['Connected']}/{m['Participants']} | {m['SubscribedAudio']} / {m['SubscribedVideo']} / {m['SubscribedScr']} | {m['ReceivedMbpsTotal']:.1f} | {m['LossPct']:.1f} | {m['AudioJitterMsP95']:.1f} / {m['VideoJitterMsP95']:.1f} | {m['Stalls500ms']} | {m['FirstMediaMsP95']:.0f} | {m['SFUCPUAvgPct']:.0f} / {m['SFUCPUMaxPct']:.0f} | {m['SFUMemMaxMB']:.0f} | {(str(round(m['SFUNetOutMBps'], 1)) if m['SFUNetOutMBps'] > 0.05 else 'n/a')} |")
 mtable = "\n".join(mrows)
+sk = json.load(open(os.path.join(here, "results", "soak", "soak-300-distributed-10min.json")))
+ss = sk["Series"]
+def _avg(rows, key): return sum(r[key] for r in rows) / len(rows)
+sk_first, sk_last = ss[:6], ss[-6:]
 inv = json.load(open(os.path.join(here, "results", "media-invalid-full-c", "C-25x4-video.json")))
 
 doc = f"""# Benchmark results
@@ -95,6 +99,19 @@ Synthetic but **real** media: [bench/mediagen](../bench/mediagen) publishes an O
 - **ESTIMATE, not measured:** if one vCPU of the 2 vCPU reference server were 2-3x slower than an M1 Pro core (an assumption nobody has verified here), the same ratio would mean ~3-5 % of a vCPU per Mbit/s forwarded, i.e. roughly 40-65 Mbit/s (80-120 forwarded 500 kbit/s video streams) before the SFU alone uses both vCPUs. Treat this as a hypothesis to test on the real server.
 - Not measured: TURN-relayed media, simulcast layer switching under congestion (the test tracks are single-layer, the browser client publishes two layers), a long run, packet loss injected on the network.
 
+## 10-minute soak (presence only)
+
+{sk['Bots']} bots for {sk['DurationS']:.0f} s ({sk['Joined']} joined, {sk['Failed']} failed, {sk['Disconnects']} disconnects, {sk['Kicked']} kicked), server and generator on the same laptop, media disabled, sampled every 30 s ({len(ss)} samples). Raw JSON: [bench/results/soak/](../bench/results/soak/).
+
+| | first 6 samples | last 6 samples |
+|---|---|---|
+| Go heap MB (mean) | {_avg(sk_first, 'HeapMB'):.1f} | {_avg(sk_last, 'HeapMB'):.1f} |
+| RSS MB (mean) | {_avg(sk_first, 'RSSMB'):.1f} | {_avg(sk_last, 'RSSMB'):.1f} |
+| Goroutines | {sk_first[0]['Goroutines']} | {sk_last[-1]['Goroutines']} |
+| Server CPU % of a core (mean) | {_avg(sk_first, 'CPU'):.1f} | {_avg(sk_last, 'CPU'):.1f} |
+
+Tick p50 / p95 / max: {sk['TickP50ms']} / {sk['TickP95ms']} / {sk['TickMaxMs']:.1f} ms; propagation latency p50 / p99: {sk['LatStartP50']:.0f} / {sk['LatStartP99']:.0f} ms. Goroutines and RSS stayed flat and the heap oscillated around a stable level, so **no leak showed up in ten minutes** on this workload. Ten minutes cannot show a slow leak (hours) and this is not the two-hour soak.
+
 ## Not run
 
 | Item | Why it matters |
@@ -102,7 +119,7 @@ Synthetic but **real** media: [bench/mediagen](../bench/mediagen) publishes an O
 | Scenario C at full size (100 people in 25 calls) | attempted, invalid on one laptop (see above); needs a separate generator machine |
 | Any run on the 2 vCPU / 4 GB reference server, or with the generator on another machine | capacity claims need it |
 | TURN-relayed media, restrictive networks | not exercised |
-| Two-hour soak | a 15-minute soak was started and stopped early; **no result is claimed** |
+| Two-hour soak | only a 10-minute soak was run (above); the two-hour run is **not run** |
 | Browser FPS, frame time and CPU on the **reference** laptop (integrated GPU, 8 GB) | measured only on an M1 Pro, see above |
 | Multiple repetitions per data point | variance unknown |
 

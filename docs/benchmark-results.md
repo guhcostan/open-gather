@@ -94,6 +94,19 @@ Synthetic but **real** media: [bench/mediagen](../bench/mediagen) publishes an O
 - **ESTIMATE, not measured:** if one vCPU of the 2 vCPU reference server were 2-3x slower than an M1 Pro core (an assumption nobody has verified here), the same ratio would mean ~3-5 % of a vCPU per Mbit/s forwarded, i.e. roughly 40-65 Mbit/s (80-120 forwarded 500 kbit/s video streams) before the SFU alone uses both vCPUs. Treat this as a hypothesis to test on the real server.
 - Not measured: TURN-relayed media, simulcast layer switching under congestion (the test tracks are single-layer, the browser client publishes two layers), a long run, packet loss injected on the network.
 
+## 10-minute soak (presence only)
+
+300 bots for 600 s (300 joined, 0 failed, 0 disconnects, 0 kicked), server and generator on the same laptop, media disabled, sampled every 30 s (19 samples). Raw JSON: [bench/results/soak/](../bench/results/soak/).
+
+| | first 6 samples | last 6 samples |
+|---|---|---|
+| Go heap MB (mean) | 19.5 | 18.2 |
+| RSS MB (mean) | 54.9 | 55.5 |
+| Goroutines | 910 | 910 |
+| Server CPU % of a core (mean) | 24.1 | 23.2 |
+
+Tick p50 / p95 / max: 5 / 10 / 16.5 ms; propagation latency p50 / p99: 38 / 72 ms. Goroutines and RSS stayed flat and the heap oscillated around a stable level, so **no leak showed up in ten minutes** on this workload. Ten minutes cannot show a slow leak (hours) and this is not the two-hour soak.
+
 ## Not run
 
 | Item | Why it matters |
@@ -101,7 +114,7 @@ Synthetic but **real** media: [bench/mediagen](../bench/mediagen) publishes an O
 | Scenario C at full size (100 people in 25 calls) | attempted, invalid on one laptop (see above); needs a separate generator machine |
 | Any run on the 2 vCPU / 4 GB reference server, or with the generator on another machine | capacity claims need it |
 | TURN-relayed media, restrictive networks | not exercised |
-| Two-hour soak | a 15-minute soak was started and stopped early; **no result is claimed** |
+| Two-hour soak | only a 10-minute soak was run (above); the two-hour run is **not run** |
 | Browser FPS, frame time and CPU on the **reference** laptop (integrated GPU, 8 GB) | measured only on an M1 Pro, see above |
 | Multiple repetitions per data point | variance unknown |
 
