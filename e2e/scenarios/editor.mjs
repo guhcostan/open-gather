@@ -30,6 +30,10 @@ export async function run(ctx) {
     // non-admins and invalid maps are refused by the server
     const memCookie = (await mem.ctx.cookies()).find((c) => c.name === "og_session").value;
     const map = await admin.page.evaluate(() => JSON.parse(JSON.stringify(window.__og.view.map)));
+    // The world map redacts interactive-object content; round-trip the full map so later
+    // scenarios (and real offices) do not lose note text, embed URLs or portal destinations.
+    const full = await (await fetch(API + "/api/admin/map", { headers: { Cookie: "og_session=" + ctx.adminCookie } })).json();
+    Object.assign(map, { props: full.props });
     const put = (cookie, body) => fetch(API + "/api/map", { method: "PUT", headers: { "Content-Type": "application/json", Cookie: "og_session=" + cookie }, body: JSON.stringify(body) });
     check("a member cannot replace the map (admin-only endpoint)", (await put(memCookie, map)).status === 403);
     const badSpawn = { ...map, spawn: { x: 0, y: 0 } }; // (0,0) is a wall
