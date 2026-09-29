@@ -53,7 +53,8 @@ export async function waitFor(fn, { timeout = 15000, every = 100, what = "condit
 }
 
 /** Opens an isolated browser context (own cookies) and joins as name. */
-export async function joinAs(browser, name, { path = "/", avatar = null, viewport = { width: 1280, height: 720 }, cookie = null } = {}) {
+export async function joinAs(browser, name, { path = "/", avatar = null, viewport = process.env.CI ? { width: 800, height: 450 } : { width: 1280, height: 720 }, cookie = null } = {}) {
+  // CI runners render in software (SwiftShader) on 2 cores; a smaller canvas keeps the browsers near 30 fps.
   const ctx = await browser.createBrowserContext();
   const page = await ctx.newPage();
   if (cookie) await ctx.setCookie({ name: "og_session", value: cookie, url: APP, httpOnly: true, sameSite: "Lax" });
