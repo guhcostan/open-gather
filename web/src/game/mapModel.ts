@@ -1,4 +1,5 @@
 import type { MapData, Prop } from "../net/protocol";
+import { t } from "../i18n";
 
 export const PROP_TYPES: { t: string; w: number; h: number; solid: boolean; label: string }[] = [
   { t: "desk", w: 2, h: 1, solid: true, label: "Desk" },
@@ -12,6 +13,11 @@ export const PROP_TYPES: { t: string; w: number; h: number; solid: boolean; labe
   { t: "rug", w: 4, h: 3, solid: false, label: "Rug" },
   { t: "lamp", w: 1, h: 1, solid: true, label: "Lamp" },
   { t: "reception_desk", w: 6, h: 1, solid: true, label: "Reception desk" },
+  { t: "note", w: 1, h: 1, solid: true, label: t("prop.note") },
+  { t: "embed", w: 2, h: 1, solid: true, label: t("prop.embed") },
+  { t: "image", w: 1, h: 1, solid: true, label: t("prop.image") },
+  { t: "portal", w: 1, h: 1, solid: false, label: t("prop.portal") },
+  { t: "spotlight", w: 1, h: 1, solid: false, label: t("prop.spotlight") },
 ];
 const byType = new Map(PROP_TYPES.map((p) => [p.t, p]));
 

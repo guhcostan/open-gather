@@ -55,7 +55,9 @@ export class MediaManager {
   onSpeaking: (ids: Set<number>) => void = () => {};
   onNeedToken: () => void = () => {};
 
-  constructor() {
+  private publishing = true;
+  constructor(private target: "conversation" | "spotlight" = "conversation") {
+    this.publishing = target === "conversation";
     this.audioHost = document.createElement("div");
     this.audioHost.style.display = "none";
     document.body.appendChild(this.audioHost);
@@ -74,13 +76,14 @@ export class MediaManager {
     return this.roomName;
   }
 
-  async join(info: JoinInfo) {
+  async join(info: JoinInfo, publish = true) {
     if (this.room && this.roomName === info.room && this.room.state !== ConnectionState.Disconnected) {
       // Same group after a signalling reconnect: keep the media session, just refresh UI state.
-      if (this.room.state === ConnectionState.Connected) setConvState("live");
+      if (this.room.state === ConnectionState.Connected) this.setPlaybackState("live");
       return;
     }
     await this.leave(false);
+    this.publishing = publish;
     const gen = ++this.gen;
     const prefs = getState().prefs;
     const room = new Room({
@@ -96,13 +99,13 @@ export class MediaManager {
     this.roomName = info.room;
     this.leaving = false;
     this.bind(room, gen);
-    setState({ mic: false, cam: false, sharing: false, deviceError: "" });
-    setConvState("connecting");
+    if (publish) setState({ mic: false, cam: false, sharing: false, deviceError: "" });
+    this.setPlaybackState("connecting");
     try {
       await room.connect(info.url, info.token, { autoSubscribe: false });
     } catch (e) {
       if (gen === this.gen) {
-        setConvState("failed");
+        this.setPlaybackState("failed");
         this.room = null;
         this.roomName = "";
       }
@@ -112,12 +115,12 @@ export class MediaManager {
       room.disconnect(true);
       return;
     }
-    setConvState("live");
+    this.setPlaybackState("live");
     if (prefs.spkId) await room.switchActiveDevice("audiooutput", prefs.spkId).catch(() => {});
     this.applySubscriptions();
     this.refresh();
-    if (prefs.micOn) await this.setMic(true);
-    if (prefs.camOn && !getState().settings.audioOnly) await this.setCam(true);
+    if (publish && prefs.micOn) await this.setMic(true);
+    if (publish && prefs.camOn && !getState().settings.audioOnly) await this.setCam(true);
   }
 
   async leave(intentional = true) {
@@ -135,7 +138,7 @@ export class MediaManager {
     this.vEls.forEach((e) => (e.srcObject = null));
     this.vEls.clear();
     this.tiles = [];
-    setState({ mic: false, cam: false, sharing: false });
+    if (this.publishing && (this.target === "spotlight" || !getState().spotlight?.me)) setState({ mic: false, cam: false, sharing: false });
     this.onSpeaking(new Set());
     this.emit();
   }
@@ -164,13 +167,13 @@ export class MediaManager {
       clearTimeout(this.speakingTimer);
       this.speakingTimer = window.setTimeout(() => this.applySubscriptions(), 500);
     }));
-    on(RoomEvent.Reconnecting, guard(() => setConvState("reconnecting")));
-    on(RoomEvent.Reconnected, guard(() => { setConvState("live"); this.refresh(); }));
+    on(RoomEvent.Reconnecting, guard(() => this.setPlaybackState("reconnecting")));
+    on(RoomEvent.Reconnected, guard(() => { this.setPlaybackState("live"); this.refresh(); }));
     on(RoomEvent.MediaDevicesError, ((e: unknown) => setState({ deviceError: describeMediaError(e) })) as never);
     on(RoomEvent.Disconnected, guard(() => {
       if (this.leaving) return;
       // Unexpected drop: the server keeps the membership, so ask for a fresh token and rejoin.
-      setConvState("reconnecting");
+      this.setPlaybackState("reconnecting");
       this.room = null;
       this.roomName = "";
       this.onNeedToken();
@@ -234,7 +237,7 @@ export class MediaManager {
         screen: el(scr),
       };
     };
-    const list: Tile[] = [mk(room.localParticipant, true)];
+    const list: Tile[] = this.publishing ? [mk(room.localParticipant, true)] : [];
     room.remoteParticipants.forEach((p: RemoteParticipant) => list.push(mk(p, false)));
     // remote audio elements
     room.remoteParticipants.forEach((p) => {
@@ -259,7 +262,7 @@ export class MediaManager {
     const st = getState();
     const lp = room.localParticipant;
     const sharing = lp.isScreenShareEnabled;
-    if (st.mic !== lp.isMicrophoneEnabled || st.cam !== lp.isCameraEnabled || st.sharing !== sharing)
+    if (this.publishing && (this.target === "spotlight" || !st.spotlight?.me) && (st.mic !== lp.isMicrophoneEnabled || st.cam !== lp.isCameraEnabled || st.sharing !== sharing))
       setState({ mic: lp.isMicrophoneEnabled, cam: lp.isCameraEnabled, sharing });
     this.emit();
   }
@@ -269,7 +272,7 @@ export class MediaManager {
 
   // ---- local controls ----
   async setMic(on: boolean) {
-    if (!this.room) return;
+    if (!this.room || !this.publishing) return;
     try {
       await this.room.localParticipant.setMicrophoneEnabled(on);
       setState({ deviceError: "" });
@@ -280,7 +283,7 @@ export class MediaManager {
   }
 
   async setCam(on: boolean) {
-    if (!this.room) return;
+    if (!this.room || !this.publishing) return;
     try {
       await this.room.localParticipant.setCameraEnabled(on);
       setState({ deviceError: "" });
@@ -291,7 +294,7 @@ export class MediaManager {
   }
 
   async setShare(on: boolean) {
-    if (!this.room) return;
+    if (!this.room || !this.publishing) return;
     try {
       await this.room.localParticipant.setScreenShareEnabled(on, on ? { audio: true, contentHint: "detail", resolution: { width: 1280, height: 720, frameRate: 15 } } : undefined);
     } catch (e) {
@@ -305,6 +308,12 @@ export class MediaManager {
     if (!this.room) return;
     await this.room.switchActiveDevice(kind, id).catch((e) => setState({ deviceError: describeMediaError(e) }));
   }
+  private setPlaybackState(state: "connecting" | "live" | "reconnecting" | "failed") {
+    if (this.target === "spotlight") {
+      const s = getState().spotlight;
+      if (s) setState({ spotlight: { ...s, state } });
+    } else setConvState(state);
+  }
 }
 
 function setConvState(state: "connecting" | "live" | "reconnecting" | "failed") {
@@ -313,3 +322,5 @@ function setConvState(state: "connecting" | "live" | "reconnecting" | "failed") 
 }
 
 export const media = new MediaManager();
+export const spotlightMedia = new MediaManager("spotlight");
+export const activeMedia = () => getState().spotlight?.me ? spotlightMedia : media;

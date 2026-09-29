@@ -25,6 +25,10 @@ func (p *Player) eligible() bool {
 	return p.consent && p.Status == StatusAvailable
 }
 
+func (w *World) conversationEligible(p *Player) bool {
+	return p.eligible() && w.spot.speaker != p
+}
+
 func (w *World) inRoomArea(p *Player) bool {
 	return p.area >= 0 && w.m.Map.Areas[p.area].Kind == gamemap.KindRoom
 }
@@ -173,7 +177,7 @@ func (w *World) proximityPass(now time.Time) {
 		if p.group == nil {
 			continue
 		}
-		if !p.eligible() {
+		if !w.conversationEligible(p) {
 			w.leaveGroup(p)
 			continue
 		}
@@ -196,7 +200,7 @@ func (w *World) proximityPass(now time.Time) {
 
 	// 2. Room membership (meeting rooms), after a short dwell inside the area.
 	for _, p := range w.list {
-		if p.group != nil || !p.eligible() || !w.inRoomArea(p) {
+		if p.group != nil || !w.conversationEligible(p) || !w.inRoomArea(p) {
 			p.roomIn = time.Time{}
 			continue
 		}
@@ -260,7 +264,7 @@ func (w *World) proximityPass(now time.Time) {
 
 	// 4. Joins and new pairs for free, eligible players outside meeting rooms.
 	for _, p := range w.list {
-		if p.group != nil || !p.eligible() || w.inRoomArea(p) || !p.inGrid {
+		if p.group != nil || !w.conversationEligible(p) || w.inRoomArea(p) || !p.inGrid {
 			p.candKind = 0
 			continue
 		}
@@ -275,7 +279,7 @@ func (w *World) proximityPass(now time.Time) {
 					continue
 				}
 				for _, o := range w.cells[cy*w.cols+cx].ents {
-					if o == p || !o.eligible() || w.inRoomArea(o) {
+					if o == p || !w.conversationEligible(o) || w.inRoomArea(o) {
 						continue
 					}
 					d := dist(p.X, p.Y, o.X, o.Y)

@@ -3,7 +3,7 @@
 // substitute for testing with a screen reader (see docs/status.md).
 import fs from "node:fs";
 import { createRequire } from "node:module";
-import { check, summary, resetChecks, launch, joinAs, waitFor, sleep, APP } from "../lib.mjs";
+import { check, summary, resetChecks, launch, joinAs, waitFor, walkTo, sleep, APP } from "../lib.mjs";
 
 const require = createRequire(import.meta.url);
 const AXE = fs.readFileSync(require.resolve("axe-core/axe.min.js"), "utf8");
@@ -89,6 +89,22 @@ export async function run(ctx) {
     await audit(p, "the audio and video consent dialog");
     await p.keyboard.press("Escape");
     await waitFor(async () => !(await p.$(".modal")), { what: "media closed" });
+
+    await walkTo(admin, 4 * 16 + 8, 6 * 16 + 8);
+    await waitFor(() => p.evaluate(() => window.__og.state.nearby?.t === "note"), { what: "nearby note" });
+    await p.keyboard.press("x");
+    await waitFor(() => p.$(".object-note"), { what: "note dialog" });
+    await audit(p, "the interactive note dialog");
+    await p.keyboard.press("Escape");
+    await waitFor(async () => !(await p.$(".modal")), { what: "note closed" });
+
+    await walkTo(admin, 49 * 16 + 8, 16 * 16 + 8);
+    await waitFor(() => p.evaluate(() => window.__og.state.nearby?.t === "whiteboard"), { what: "nearby whiteboard" });
+    await p.keyboard.press("x");
+    await waitFor(() => p.$("canvas.whiteboard"), { what: "whiteboard" });
+    await audit(p, "the shared whiteboard");
+    await p.keyboard.press("Escape");
+    await waitFor(async () => !(await p.$("canvas.whiteboard")), { what: "whiteboard closed" });
 
     await click(p, ".topbar button", "Edit office");
     await waitFor(() => p.$(".editor"), { what: "editor" });

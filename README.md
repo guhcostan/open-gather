@@ -57,6 +57,12 @@ Virtual offices are usually heavy on the browser, the server and the bill. Open 
 | **Proximity conversations** | Audio and video start when you get close and stop when you leave, with hysteresis and small groups. |
 | **Consent and status** | Nothing is captured before you opt in. Available, busy, away and invisible; busy never joins a call automatically. |
 | **Meeting rooms** | Map areas with explicit access rules (open, members, admins, list) enforced by the server. |
+| **Lockable rooms and knocking** | Anyone inside can lock a room; outsiders knock and are let in one at a time; empty rooms unlock themselves. |
+| **Reactions** | Seven quick emotes over your avatar, keys 1-7. |
+| **Interactive objects** | Notes, embedded sites and images (press X nearby), drawn by code and editable by admins. |
+| **Follow and portals** | Server-guided following with request-to-lead, and portals that teleport across the office. |
+| **Spotlight** | Step on the pad to broadcast audio, video and screen share to the whole office. |
+| **Shared whiteboards** | Collaborative pen and text boards that persist and survive restarts. |
 | **Chat** | Office (last messages are kept), conversation and direct messages (never stored). |
 | **Invites, roles and administration** | Administrators mint, list and revoke invite links, promote or demote members, remove people and read an activity log; production joins require an invite. |
 | **Office editor** | Administrators paint walls, place objects, draw meeting rooms with access rules and assign desks; changes go live for everyone and persist. |
@@ -129,7 +135,7 @@ Last updated 2026-09-29. Everything below was executed on macOS (Apple M1 Pro), 
 | Area | State |
 | --- | --- |
 | Go tests (world rules, proximity groups, dead reckoning, map reload, store, media tokens and reconciliation), also with the race detector | **pass** |
-| Real-browser suite (Chrome + real LiveKit): proximity calls with real audio/video RTP, consent and busy, private rooms, screen share, invites and admin-only actions, map editor, chat and profile, token replay/tamper/expiry attacks, reconnection and restart persistence, member administration and an automated accessibility audit (axe-core) | **pass** |
+| Real-browser suite (Chrome + real LiveKit): proximity calls with real audio/video RTP, consent and busy, private rooms, screen share, invites and admin-only actions, map editor, chat and profile, token replay/tamper/expiry attacks, reconnection and restart persistence, member administration, an automated accessibility audit (axe-core), reactions/objects/follow/portals/lockable rooms/whiteboards, and spotlight broadcasts with real RTP | **pass** |
 | Docker: image builds, Compose local stack passes the browser scenarios, production mode in the container refuses insecure config and requires invites | **verified locally**; the production Compose file with Caddy/TLS/TURN on a public host is **not tested** |
 | Load, scenario A (no media, up to 1,000 bots) and a 500-client mass reconnect | **run locally, generator on the same host**: not a capacity claim, see [results](docs/benchmark-results.md) |
 | Media through a real SFU with synthetic Opus/VP8 (scenarios B and D, a scaled C): clean up to 40 people in calls, 20-person meeting with 6-video cap and a screen share, all 0 % loss | **run locally, generator on the same laptop**; full-size C (100 people) attempted and **invalid** on one machine |

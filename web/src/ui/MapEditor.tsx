@@ -5,7 +5,7 @@ import type { MapData } from "../net/protocol";
 import { toast, useStore } from "../store";
 import { t } from "../i18n";
 
-type Tool = "wall" | "prop" | "erase" | "room" | "unroom" | "desk";
+type Tool = "wall" | "prop" | "erase" | "room" | "unroom" | "desk" | "content";
 
 export function MapEditor({ onClose }: { onClose: () => void }) {
   const roster = useStore((s) => s.roster);
@@ -13,6 +13,10 @@ export function MapEditor({ onClose }: { onClose: () => void }) {
   const [propType, setPropType] = useState("plant");
   const [assignTo, setAssignTo] = useState(0);
   const [dirty, setDirty] = useState(false);
+  const [ready, setReady] = useState(false);
+  const [content, setContent] = useState<{ index: number; label: string; data: string; toX: number; toY: number } | null>(null);
+  const [portalX, setPortalX] = useState(9);
+  const [portalY, setPortalY] = useState(7);
   const [pending, setPending] = useState<{ x: number; y: number; w: number; h: number } | null>(null);
   const [roomName, setRoomName] = useState("");
   const [access, setAccess] = useState("open");
@@ -22,12 +26,20 @@ export function MapEditor({ onClose }: { onClose: () => void }) {
   const layer = useRef<HTMLDivElement>(null);
 
   useEffect(() => {
+    let cancelled = false;
     const m = session.view?.currentMap();
     if (m) {
-      draft.current = cloneMap(m);
       original.current = cloneMap(m);
+      void fetch("/api/admin/map").then(async (r) => {
+        if (!r.ok) throw new Error("map unavailable");
+        const full = await r.json() as MapData;
+        if (cancelled) return;
+        draft.current = { ...cloneMap(m), ...full, tile: 16, solid: m.solid };
+        setReady(true);
+      }).catch(() => { if (!cancelled) toast(t("editor.loadError")); });
     }
     return () => {
+      cancelled = true;
       session.view?.setHover(null);
       if (original.current) session.view?.previewMap(original.current); // discard unsaved edits
     };
@@ -54,7 +66,7 @@ export function MapEditor({ onClose }: { onClose: () => void }) {
       setWall(x, y, on);
     } else if (tool === "prop") {
       if (!d.props.some((p) => p.t === propType && p.x === x && p.y === y)) {
-        d.props.push({ t: propType, x, y });
+        d.props.push({ t: propType, x, y, ...(propType === "portal" ? { to: { x: portalX, y: portalY } } : {}) });
         apply();
       }
     } else if (tool === "erase") {
@@ -76,6 +88,12 @@ export function MapEditor({ onClose }: { onClose: () => void }) {
         d.areas.splice(i, 1);
         apply();
       }
+    } else if (tool === "content") {
+      const index = d.props.findIndex((p) => {
+        const [w, h] = propSize(p);
+        return ["note", "embed", "image", "portal", "whiteboard", "spotlight"].includes(p.t) && x >= p.x && x < p.x + w && y >= p.y && y < p.y + h;
+      });
+      if (index >= 0) { const p = d.props[index]; setContent({ index, label: p.label ?? "", data: p.data ?? "", toX: p.to?.x ?? 9, toY: p.to?.y ?? 7 }); }
     } else if (tool === "desk") {
       const p = d.props.find((q) => {
         if (q.t !== "desk") return false;
@@ -153,7 +171,7 @@ export function MapEditor({ onClose }: { onClose: () => void }) {
       <aside className="editor" aria-label={t("editor.title")}>
         <h3>{t("editor.title")}</h3>
         <div className="chips">
-          {(["wall", "prop", "erase", "room", "unroom", "desk"] as Tool[]).map((k) => (
+          {(["wall", "prop", "erase", "room", "unroom", "desk", "content"] as Tool[]).map((k) => (
             <button key={k} className={"chip" + (tool === k ? " on" : "")} onClick={() => { setTool(k); setPending(null); }}>{t(`editor.tool.${k}` as never)}</button>
           ))}
         </div>
@@ -164,6 +182,27 @@ export function MapEditor({ onClose }: { onClose: () => void }) {
             </select>
           </label>
         )}
+        {tool === "prop" && propType === "portal" && <>
+          <label className="field"><span>{t("editor.portalX")}</span><input type="number" value={portalX} min={0} max={(draft.current?.w ?? 60) - 1} onChange={(e) => setPortalX(Number(e.target.value))} /></label>
+          <label className="field"><span>{t("editor.portalY")}</span><input type="number" value={portalY} min={0} max={(draft.current?.h ?? 36) - 1} onChange={(e) => setPortalY(Number(e.target.value))} /></label>
+        </>}
+        {tool === "content" && <div className="field">
+          <span>{t("editor.contentHint")}</span>
+          {content && <>
+            <label className="field"><span>{t("editor.objectLabel")}</span><input maxLength={40} value={content.label} onChange={(e) => setContent({ ...content, label: e.target.value })} /></label>
+            {["note", "embed", "image"].includes(draft.current!.props[content.index].t) && <label className="field"><span>{t("editor.objectData")}</span><textarea maxLength={draft.current!.props[content.index].t === "note" ? 500 : 300} value={content.data} onChange={(e) => setContent({ ...content, data: e.target.value })} /></label>}
+            {draft.current!.props[content.index].t === "portal" && <>
+              <label className="field"><span>{t("editor.portalX")}</span><input type="number" value={content.toX} onChange={(e) => setContent({ ...content, toX: Number(e.target.value) })} /></label>
+              <label className="field"><span>{t("editor.portalY")}</span><input type="number" value={content.toY} onChange={(e) => setContent({ ...content, toY: Number(e.target.value) })} /></label>
+            </>}
+            <button className="btn" onClick={() => {
+              const p = draft.current!.props[content.index]; p.label = content.label;
+              if (["note", "embed", "image"].includes(p.t)) p.data = content.data;
+              if (p.t === "portal") p.to = { x: content.toX, y: content.toY };
+              apply();
+            }}>{t("editor.applyContent")}</button>
+          </>}
+        </div>}
         {tool === "desk" && (
           <label className="field"><span>{t("editor.assign")}</span>
             <select value={assignTo} onChange={(e) => setAssignTo(Number(e.target.value))}>
@@ -190,7 +229,7 @@ export function MapEditor({ onClose }: { onClose: () => void }) {
         )}
         <div className="modal-actions">
           <button className="btn" onClick={onClose}>{t("editor.close")}</button>
-          <button className="primary" onClick={save} disabled={!dirty}>{t("editor.save")}</button>
+          <button className="primary" onClick={save} disabled={!dirty || !ready}>{t("editor.save")}</button>
         </div>
       </aside>
     </>

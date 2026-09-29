@@ -38,6 +38,8 @@ export interface Prop {
   h?: number;
   assign?: number;
   label?: string;
+  data?: string; // available only in the admin editor or an authorized interaction reply
+  to?: { x: number; y: number };
 }
 export interface MapData {
   version: number;
@@ -57,7 +59,7 @@ export interface Hello {
   role: Role;
   status: Status;
   office: string;
-  cfg: { speed: number; tick: number; media: boolean; x: number; y: number; deny: number[] };
+  cfg: { speed: number; tick: number; media: boolean; x: number; y: number; deny: number[]; lk?: number[] };
   map: MapData;
   roster: Person[];
   chat?: { f: number; n: string; x: string; ts: number }[];
@@ -97,4 +99,22 @@ export interface Pong { t: "pong"; c: number }
 
 export interface MapUpdate { t: "map"; deny: number[]; x?: number; y?: number; map: MapData }
 
-export type ServerMsg = MapUpdate | Hello | WorldDelta | Ack | RosterDelta | ChatIn | ConvJoin | ConvMembers | ConvLeave | Loc | Pong;
+export interface Emote { t: "e"; id: number; v: number }
+export interface ObjectReply { t: "obj"; k: "note" | "embed" | "image"; l: string; d: string }
+export interface Follow { t: "fol"; id: number; n: string }
+export interface SelfPosition { t: "self"; x: number; y: number; dx: number; dy: number; d: number; tp: boolean }
+export interface LeadRequest { t: "lreq"; from: number; n: string }
+export interface DoorState { t: "deny"; d: number[]; lk: number[] }
+export interface Knock { t: "knk"; id: number; n?: string; a?: string; done?: boolean }
+export interface KnockResult { t: "knr"; st: "wait" | "ok" | "no" | "empty"; a: string }
+export interface BoardStroke { o: number; i: number; k: number; c: number; w: number; p: number[]; tx?: string }
+export type BoardEvent =
+  | { t: "wb"; op: "state"; bk: string; w: number; h: number; s: BoardStroke[] }
+  | ({ t: "wb"; op: "draw"; bk: string } & BoardStroke)
+  | { t: "wb"; op: "del"; bk: string; o: number; i: number }
+  | { t: "wb"; op: "clear"; bk: string }
+  | { t: "wb"; op: "closed" };
+export type BoardCommand = { op: "draw" | "del" | "undo" | "clear" | "close"; bk: string; i?: number; o?: number; k?: number; c?: number; w?: number; p?: number[]; tx?: string };
+export type Spotlight = { t: "spot"; op: "off" } | { t: "spot"; op: "on"; sid: number; n: string; me: boolean; room?: string; url?: string; tok?: string };
+
+export type ServerMsg = MapUpdate | Hello | WorldDelta | Ack | RosterDelta | ChatIn | ConvJoin | ConvMembers | ConvLeave | Loc | Pong | Emote | ObjectReply | Follow | SelfPosition | LeadRequest | DoorState | Knock | KnockResult | BoardEvent | Spotlight;

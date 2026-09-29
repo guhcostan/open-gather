@@ -56,6 +56,8 @@ function People({ onDm }: { onDm: (id: number) => void }) {
             </div>
             {p.id !== me && p.s !== "offline" && (
               <div className="acts">
+                <button title={t("follow.action")} aria-label={`${t("follow.action")} ${p.n}`} onClick={() => session.follow(p.id)}>↗</button>
+                <button title={t("follow.lead")} aria-label={`${t("follow.lead")} ${p.n}`} onClick={() => session.lead(p.id)}>→</button>
                 <button title={t("roster.locate")} aria-label={t("roster.locate")} onClick={() => session.locate(p.id)}><PinIcon /></button>
                 <button title={t("roster.dm")} aria-label={t("roster.dm")} onClick={() => onDm(p.id)}><ChatIcon /></button>
               </div>

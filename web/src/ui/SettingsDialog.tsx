@@ -1,5 +1,5 @@
 import { useState } from "react";
-import { media } from "../media/MediaManager";
+import { activeMedia, media, spotlightMedia } from "../media/MediaManager";
 import { session } from "../session";
 import { saveAvatar, saveSettings, toast, useStore } from "../store";
 import type { AvatarSpec } from "../net/protocol";
@@ -36,7 +36,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
         <span>{t("settings.eco")}<small className="muted"> — {t("settings.ecoHint")}</small></span>
       </label>
       <label className="check">
-        <input type="checkbox" checked={s.audioOnly} onChange={(e) => { saveSettings({ audioOnly: e.target.checked }); if (e.target.checked) void media.setCam(false); media.applySubscriptions(); }} />
+        <input type="checkbox" checked={s.audioOnly} onChange={(e) => { saveSettings({ audioOnly: e.target.checked }); if (e.target.checked) void activeMedia().setCam(false); media.applySubscriptions(); spotlightMedia.applySubscriptions(); }} />
         <span>{t("media.audioOnly")}</span>
       </label>
       <label className="field">

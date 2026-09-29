@@ -25,6 +25,7 @@ type inMsg struct {
 	Scope string `json:"sc"`
 	Text  string `json:"text"`
 	C     int64  `json:"c"`
+	N     int    `json:"n"`
 }
 
 const maxFrame = 2048
@@ -129,6 +130,7 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request) {
 	inputRL := newConnBucket(40, 80)
 	ctrlRL := newConnBucket(10, 30)
 	chatRL := newConnBucket(3, 8)
+	boardRL := newConnBucket(60, 120)
 	strikes := 0
 	var m inMsg
 	for {
@@ -155,6 +157,8 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request) {
 			rl = inputRL
 		case "chat":
 			rl = chatRL
+		case "wb":
+			rl = boardRL
 		}
 		if !rl.allow(now) {
 			strikes++
@@ -181,6 +185,25 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request) {
 			conn.Chat(ctx, m.Scope, m.ID, m.Text)
 		case "loc":
 			conn.Locate(ctx, m.ID)
+		case "emo":
+			conn.Emote(ctx, m.N)
+		case "use":
+			conn.Use(ctx, m.X, m.Y)
+		case "fol":
+			conn.Follow(ctx, m.ID)
+		case "lead":
+			conn.Lead(ctx, m.ID)
+		case "lock":
+			conn.Lock(ctx, m.B)
+		case "knock":
+			conn.Knock(ctx, m.N)
+		case "kans":
+			conn.KnockAnswer(ctx, m.ID, m.B)
+		case "wb":
+			var wb world.BoardMsg
+			if json.Unmarshal(data, &wb) == nil {
+				conn.Board(ctx, &wb)
+			}
 		case "sync":
 			conn.Sync(ctx)
 		case "tok":

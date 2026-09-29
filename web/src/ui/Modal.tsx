@@ -4,11 +4,13 @@ const FOCUSABLE = "button:not(:disabled), input:not(:disabled), select:not(:disa
 
 export function Modal({ title, onClose, children, wide }: { title: string; onClose: () => void; children: ReactNode; wide?: boolean }) {
   const ref = useRef<HTMLDivElement>(null);
+  const close = useRef(onClose);
+  close.current = onClose;
   useEffect(() => {
     const prev = document.activeElement as HTMLElement | null;
     ref.current?.querySelector<HTMLElement>(FOCUSABLE)?.focus();
     const k = (e: KeyboardEvent) => {
-      if (e.key === "Escape") return onClose();
+      if (e.key === "Escape") return close.current();
       if (e.key !== "Tab" || !ref.current) return;
       // keep keyboard focus inside the dialog
       const items = [...ref.current.querySelectorAll<HTMLElement>(FOCUSABLE)];
@@ -22,7 +24,7 @@ export function Modal({ title, onClose, children, wide }: { title: string; onClo
       window.removeEventListener("keydown", k);
       prev?.focus?.();
     };
-  }, [onClose]);
+  }, []); // typing or changing tools must not reset focus in an already-open dialog
   return (
     <div className="scrim" onMouseDown={(e) => e.target === e.currentTarget && onClose()}>
       <div className={"modal" + (wide ? " wide" : "")} role="dialog" aria-modal="true" aria-label={title} ref={ref}>

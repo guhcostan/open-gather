@@ -67,6 +67,15 @@ func Default() *Map {
 	add("couch", 2, 12)
 	add("couch", 13, 12)
 	add("lamp", 1, 8)
+	props = append(props,
+		Prop{T: PropNote, X: 4, Y: 5, Label: "Welcome", Data: "Welcome to Open Gather! Walk up to people to talk, press X next to objects like this one, and use the number keys 1-7 for emotes."},
+		Prop{T: PropEmbed, X: 13, Y: 3, Label: "Example site", Data: "https://example.com/"},
+		// a pair of portals between the reception and the social area
+		Prop{T: PropPortal, X: 16, Y: 12, Label: "To the social area", To: &Point{X: 36, Y: 32}},
+		Prop{T: PropPortal, X: 37, Y: 32, Label: "To the reception", To: &Point{X: 16, Y: 11}},
+		// stand here (with audio and video on) to speak to the whole office
+		Prop{T: PropSpotlight, X: 34, Y: 19, Label: "Spotlight"},
+	)
 
 	// Individual desks: 2 rows x 6
 	n := 1

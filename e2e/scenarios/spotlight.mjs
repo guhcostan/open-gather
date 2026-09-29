@@ -1,0 +1,61 @@
+// A real speaker and listeners in different private calls: the extra SFU room permits publishing only for the speaker.
+import { check, summary, resetChecks, launch, joinAs, waitFor, walkTo, sleep, lkParticipants } from "../lib.mjs";
+
+const state = (u) => u.page.evaluate(() => window.__og.state.spotlight);
+const rtp = (u, kind) => u.page.evaluate(async (kind) => {
+  const pm = window.__og.spotlightMedia.room.engine.pcManager;
+  const pc = pm.subscriber?.pc ?? pm.publisher.pc;
+  let bytes = 0;
+  (await pc.getStats()).forEach((s) => { if (s.type === "inbound-rtp" && s.kind === kind) bytes += s.bytesReceived; });
+  return bytes;
+}, kind);
+
+export async function run(ctx) {
+  resetChecks();
+  const browser = await launch(["--auto-select-desktop-capture-source=Entire screen", "--enable-features=GetDisplayMediaSetAutoSelectAllScreens"]);
+  try {
+    const speaker = await joinAs(browser, "Speaker" + Date.now() % 10000);
+    const listener = await joinAs(browser, "Admin", { cookie: ctx.adminCookie });
+    const quiet = await joinAs(browser, "Quiet" + Date.now() % 10000);
+    for (const u of [speaker, listener]) await u.page.evaluate(() => {
+      const m = window.__og.spotlightMedia, join = m.join.bind(m);
+      m.join = (info, publish) => { window.__spotInfo = info; return join(info, publish); };
+    });
+    await walkTo(listener, 47 * 16 + 8, 12 * 16 + 8); // admins-only room
+    await listener.page.evaluate(() => window.__og.session.setConsent(true));
+    await waitFor(() => listener.page.evaluate(() => window.__og.state.conv?.state === "live"), { what: "private room call" });
+    const privateRoom = await listener.page.evaluate(() => window.__og.media.currentRoom);
+    await walkTo(speaker, 34 * 16 + 8, 18 * 16 + 8);
+    await speaker.page.evaluate(() => window.__og.session.setConsent(true));
+    await speaker.page.evaluate(() => window.__og.view.setDirection(0, 1));
+    await waitFor(async () => (await state(speaker))?.state === "live" && (await state(listener))?.state === "live", { timeout: 30000, what: "spotlight speaker and listener connected" });
+    await speaker.page.evaluate(() => window.__og.view.setDirection(0, 0));
+    check("stepping onto the pad goes on air only with consent", (await state(speaker)).me === true);
+    check("listener keeps their isolated private call", await listener.page.evaluate((r) => window.__og.media.currentRoom === r && window.__og.state.conv.state === "live", privateRoom));
+    const room = await speaker.page.evaluate(() => window.__og.spotlightMedia.currentRoom);
+    const claims = await listener.page.evaluate(() => JSON.parse(atob(window.__spotInfo.token.split(".")[1].replace(/-/g, "+").replace(/_/g, "/"))));
+    check("the audience token is subscribe-only and scoped to the broadcast", claims.video.canPublish === false && claims.video.room === room && claims.video.canSubscribe === true);
+    await waitFor(async () => await rtp(listener, "audio") > 0, { timeout: 15000, what: "real broadcast audio RTP" });
+    check("a listener in a private room receives broadcast audio RTP", await rtp(listener, "audio") > 0);
+    await speaker.page.evaluate(() => window.__og.spotlightMedia.setCam(true));
+    await waitFor(async () => await rtp(listener, "video") > 0, { timeout: 15000, what: "real broadcast video RTP" });
+    check("the speaker's camera reaches the listener", await rtp(listener, "video") > 0);
+    check("no consent means no extra connection and no local capture", await quiet.page.evaluate(() => window.__og.state.spotlight !== null && window.__og.spotlightMedia.currentRoom === "" && !window.__og.state.mic && !window.__og.state.cam));
+    await speaker.page.evaluate(() => window.__og.spotlightMedia.setShare(true));
+    await waitFor(() => listener.page.evaluate(() => window.__og.spotlightMedia.tiles.some((t) => !!t.screen)), { timeout: 15000, what: "broadcast screen share" });
+    check("screen sharing is received in the broadcast", true);
+    await speaker.page.evaluate(() => window.__og.spotlightMedia.setShare(false));
+    await listener.page.evaluate(() => window.__og.session.setConsent(false));
+    await waitFor(() => listener.page.evaluate(() => window.__og.spotlightMedia.currentRoom === ""), { what: "withdraw broadcast consent" });
+    await waitFor(async () => !(await lkParticipants(room)).includes(String(listener.id)), { what: "audience SFU access revoked" });
+    check("withdrawing consent disconnects and revokes the audience", true);
+    await speaker.page.evaluate(() => window.__og.view.setDirection(-1, 0));
+    await waitFor(async () => await state(speaker) === null && await state(quiet) === null, { timeout: 10000, what: "spotlight ends on exit" });
+    await speaker.page.evaluate(() => window.__og.view.setDirection(0, 0));
+    await waitFor(async () => (await lkParticipants(room)).length === 0, { what: "broadcast SFU room is empty" });
+    check("stepping off revokes the speaker and stops broadcast capture", await speaker.page.evaluate(() => window.__og.spotlightMedia.currentRoom === ""));
+    const errors = [speaker, listener, quiet].flatMap((u) => u.logs).filter((x) => !/getDisplayMedia|display-capture/.test(x));
+    check("broadcast flows have no browser errors", errors.length === 0, errors.join(" | "));
+    return summary();
+  } finally { await browser.close(); }
+}

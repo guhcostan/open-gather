@@ -305,6 +305,7 @@ function rug(ctx: Ctx, x: number, y: number, w: number, h: number) {
 const DIMS: Record<string, [number, number]> = {
   desk: [2, 1], chair: [1, 1], plant: [1, 1], couch: [3, 1], table: [3, 2], reception_desk: [6, 1],
   bookshelf: [2, 1], coffee: [1, 1], whiteboard: [3, 1], rug: [4, 3], lamp: [1, 1],
+  note: [1, 1], image: [1, 1], embed: [2, 1], portal: [1, 1], spotlight: [1, 1],
 };
 export function propRect(p: Prop) {
   const d = DIMS[p.t] ?? [1, 1];
@@ -324,6 +325,32 @@ function drawProp(ctx: Ctx, p: Prop) {
     case "coffee": return coffee(ctx, x, y);
     case "whiteboard": return whiteboard(ctx, x, y, w);
     case "lamp": return lamp(ctx, x, y);
+    case "note":
+      px(ctx, x + 3, y + 1, 10, 14, OUT);
+      px(ctx, x + 4, y + 2, 8, 10, "#fff4d0");
+      for (let row = 4; row < 11; row += 3) px(ctx, x + 5, y + row, 6, 1, "#847754");
+      return;
+    case "image":
+    case "embed":
+      px(ctx, x + 1, y + 1, w - 2, 12, OUT);
+      px(ctx, x + 2, y + 2, w - 4, 9, "#78c8dc");
+      px(ctx, x + 4, y + 5, w - 8, 5, "#297854");
+      px(ctx, x + 4, y + 3, 3, 2, "#fff4b0");
+      px(ctx, x + w / 2 - 1, y + 13, 2, 2, OUT);
+      return;
+    case "portal":
+      for (let ring = 0; ring < 3; ring++) {
+        const inset = 1 + ring * 2;
+        px(ctx, x + inset, y + inset, 16 - inset * 2, 16 - inset * 2, [OUT, "#8860c8", "#92e8e0"][ring]);
+      }
+      return;
+    case "spotlight":
+      px(ctx, x + 1, y + 2, 14, 12, OUT);
+      px(ctx, x + 2, y + 3, 12, 10, "#ffdb66");
+      px(ctx, x + 7, y + 4, 2, 5, "#785028");
+      px(ctx, x + 4, y + 7, 8, 2, "#785028");
+      px(ctx, x + 6, y + 9, 4, 2, "#785028");
+      return;
   }
 }
 

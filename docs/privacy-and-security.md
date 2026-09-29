@@ -13,6 +13,10 @@ This page states what the current code does and, just as important, what it does
 - **Input validation:** WebSocket frames are size- and rate-limited; avatars are re-serialised from validated fields; names are bounded; maps are validated and compiled before being accepted; request bodies are size-limited.
 - **Production guard rails:** `OG_ENV=production` refuses to start without a real LiveKit key and a secret of at least 32 characters, a `wss://` media URL and an explicit allowed-origins list. Verified with the built container image.
 - **Logs:** structured JSON. Chat text, tokens and secrets are not logged (invite creation logs who and how many uses, never the token).
+- **Interactive objects:** note/site/image content is validated at map save (notes bounded, only absolute https URLs without credentials) and stripped from the public map; it is sent only to a player standing next to the object and allowed in its area. Embedded sites and images load only after an explicit click, in a sandboxed iframe or referrerless image.
+- **Lockable rooms:** locks are in-memory door state; movement refuses outsiders (admins bypass, admitted visitors pass), so a locked call cannot be joined from outside and media isolation follows automatically. Knocks reach only people inside and expire.
+- **Spotlight:** one extra SFU room with a single speaker; the audience gets subscribe-only tokens scoped to that room, revoked on step-off or consent withdrawal; the room is covered by the reconciler.
+- **Whiteboards:** strokes are bounded and relayed to viewers only; deletes require stroke ownership (admins may delete any), clearing requires admin; boards persist per office in SQLite.
 
 ## What is stored
 

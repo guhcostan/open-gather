@@ -1,5 +1,5 @@
 import { useSyncExternalStore } from "react";
-import type { AvatarSpec, Person, Role, Status } from "./net/protocol";
+import type { AvatarSpec, ObjectReply, Person, Prop, Role, Status } from "./net/protocol";
 
 export interface ChatMsg {
   id: number;
@@ -58,6 +58,14 @@ export interface State {
   myAvatar: AvatarSpec;
   /** One-off message shown on the join screen (for example after being removed). */
   notice: string;
+  nearby: Prop | null;
+  object: ObjectReply | null;
+  following: { id: number; name: string } | null;
+  leadRequest: { id: number; name: string } | null;
+  locked: number[];
+  knock: { id: number; name: string; area: string } | null;
+  boardKey: string;
+  spotlight: { id: number; name: string; me: boolean; state: ConvState } | null;
 }
 
 const load = <T,>(k: string, d: T): T => {
@@ -92,6 +100,14 @@ const initial: State = {
   toast: "",
   myAvatar: load<AvatarSpec>("og.avatar", { sk: 1, hs: 0, hc: 1, sh: 4, pa: 1 }),
   notice: "",
+  nearby: null,
+  object: null,
+  following: null,
+  leadRequest: null,
+  locked: [],
+  knock: null,
+  boardKey: "",
+  spotlight: null,
 };
 
 let state = initial;

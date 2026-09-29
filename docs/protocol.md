@@ -15,6 +15,14 @@ Every connection starts with a full `hello`; the same happens on every reconnect
 | `loc` | `id` | ask where a person is |
 | `sync` | none | ask for the current state of everything in view (sent when a hidden tab becomes visible) |
 | `tok` | none | request a fresh media token for the current conversation |
+| `emo` | `n` 1-7 | show a reaction above your avatar (700 ms server cooldown) |
+| `use` | `x`, `y` tile | interact with the object at that tile (note, site, image, whiteboard); the server checks distance and area access |
+| `fol` | `id` (0 stops) | follow that player; any movement key stops it |
+| `lead` | `id` | ask that player to follow you (they decide) |
+| `lock` | `b` | lock or unlock the meeting room you are standing in |
+| `knock` | `n` area index | knock on a locked room you stand close to |
+| `kans` | `id`, `b` | admit or decline a knock (only from inside the room) |
+| `wb` | drawing ops | whiteboard edits: `draw` (batched pen points or one text), `del`, `undo`, `clear` (admin), `close`; all bounded, see decision 0010 |
 | `ping` | `c` | round-trip probe |
 
 ## Server to client
@@ -29,6 +37,16 @@ Every connection starts with a full `hello`; the same happens on every reconnect
 | `conv` | `op` = `join` / `m` / `leave` | conversation lifecycle, including room name and token on `join` |
 | `map` | `map`, `deny`, optional `x`/`y` | the office map changed (admin edit); `x`/`y` present if you were moved |
 | `loc` | `id`, `ok`, `x`, `y`, `a` | answer to a locate request |
+| `e` | `id`, `v` 1-7 | somebody's reaction; rendered above their avatar |
+| `obj` | `k` note/embed/image, `l` label, `d` content | object content, only after a nearby authorised `use` (never in the map) |
+| `fol` | `id`, `n` | you are now following (or stopped, `id` 0) |
+| `self` | `x`, `y`, `dx`, `dy`, `d`, `tp` | your authoritative position while following or after a portal (`tp`) |
+| `lreq` | `from`, `n` | somebody asks you to follow them |
+| `deny` | `d` denied areas, `lk` locked rooms | your blocked-area list (locks change it for everyone) |
+| `knk` | `id`, `n`, `a` | somebody knocks on the room you are in (`done` dismisses) |
+| `knr` | `st` wait/ok/no/empty, `a` | the answer to your knock |
+| `wb` | `op` state/draw/del/clear/closed | whiteboard state and live strokes; deletes carry owner+id |
+| `spot` | `op` on/off | office broadcast: speaker, room and token (subscribe-only unless you are the speaker) |
 | `pong` | `c` | reply to `ping` |
 
 ### State records (`w`)

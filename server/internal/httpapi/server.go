@@ -34,8 +34,11 @@ type Server struct {
 	mu     sync.Mutex
 	worlds map[int64]*world.World
 
-	posQ  chan posSave
-	chatQ chan chatSave
+	posQ    chan posSave
+	chatQ   chan chatSave
+	boardQ  chan boardSave
+	auditQ  chan actionSave
+	workers sync.WaitGroup
 
 	inst     string // installation id, namespaces SFU rooms
 	joinLim  *limiter
@@ -50,6 +53,17 @@ type chatSave struct {
 	ts           int64
 }
 
+type boardSave struct {
+	office int64
+	key    string
+	data   []byte
+}
+
+type actionSave struct {
+	office, actor  int64
+	action, target string
+}
+
 type posSave struct {
 	office, user int64
 	x, y         float64
@@ -57,13 +71,15 @@ type posSave struct {
 
 func New(ctx context.Context, cfg *config.Config, log *slog.Logger, st *store.Store, md *media.Client) *Server {
 	s := &Server{cfg: cfg, log: log, st: st, media: md, ctx: ctx, worlds: map[int64]*world.World{},
-		posQ: make(chan posSave, 1024), chatQ: make(chan chatSave, 256), joinLim: newLimiter(float64(cfg.JoinRate), float64(cfg.JoinRate)*2), mapLim: newLimiter(1, 5), profLim: newLimiter(0.5, 5), adminLim: newLimiter(5, 20)}
+		posQ: make(chan posSave, 1024), chatQ: make(chan chatSave, 256), boardQ: make(chan boardSave, 64), joinLim: newLimiter(float64(cfg.JoinRate), float64(cfg.JoinRate)*2), mapLim: newLimiter(1, 5), profLim: newLimiter(0.5, 5), adminLim: newLimiter(5, 20)}
 	if id, err := st.InstanceID(ctx); err == nil {
 		s.inst = id
 	} else {
 		log.Error("instance id", "err", err)
 	}
-	go s.savePositions(ctx)
+	s.auditQ = make(chan actionSave, 128)
+	s.workers.Add(1)
+	go func() { defer s.workers.Done(); s.savePositions(ctx) }()
 	go s.reconcileMedia(ctx)
 	return s
 }
@@ -73,6 +89,14 @@ func (s *Server) savePositions(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
+		case b := <-s.boardQ:
+			if err := s.st.SaveBoard(ctx, b.office, b.key, b.data); err != nil {
+				s.log.Error("save whiteboard", "err", err) // never log the strokes
+			}
+		case a := <-s.auditQ:
+			if err := s.st.Audit(ctx, a.office, a.actor, a.action, 0, a.target, ""); err != nil {
+				s.log.Error("audit action", "err", err)
+			}
 		case c := <-s.chatQ:
 			if err := s.st.AppendChat(ctx, c.office, c.user, c.text, c.ts); err != nil {
 				s.log.Error("save chat", "err", err) // never log the message text
@@ -89,6 +113,9 @@ func (s *Server) savePositions(ctx context.Context) {
 func (s *Server) worldFor(o *store.Office) (*world.World, error) {
 	s.mu.Lock()
 	defer s.mu.Unlock()
+	if s.ctx.Err() != nil {
+		return nil, s.ctx.Err()
+	}
 	if w, ok := s.worlds[o.ID]; ok {
 		return w, nil
 	}
@@ -116,10 +143,35 @@ func (s *Server) worldFor(o *store.Office) (*world.World, error) {
 	} else {
 		s.log.Error("load chat history", "err", err)
 	}
+	if boards, err := s.st.LoadBoards(s.ctx, o.ID); err == nil {
+		w.SeedBoards(boards)
+	} else {
+		s.log.Error("load whiteboards", "err", err)
+	}
+	w.OnBoardSave = func(office int64, key string, data []byte, final bool) bool {
+		if final { // shutting down: the writer goroutine is gone, write here
+			ctx, cancel := context.WithTimeout(context.Background(), 3*time.Second)
+			defer cancel()
+			return s.st.SaveBoard(ctx, office, key, data) == nil
+		}
+		select {
+		case s.boardQ <- boardSave{office, key, data}:
+			return true
+		default:
+			return false // busy: the world keeps the board dirty and tries again
+		}
+	}
 	w.OnChat = func(office int64, from uint32, text string, ts int64) {
 		select {
 		case s.chatQ <- chatSave{office, int64(from), text, ts}:
 		default: // history is best effort; never block the world loop
+		}
+	}
+	w.OnAction = func(office int64, actor uint32, action, target string) {
+		select {
+		case s.auditQ <- actionSave{office, int64(actor), action, target}:
+		default:
+			s.log.Error("audit queue full")
 		}
 	}
 	w.OnLeave = func(office int64, user uint32, x, y float64) {
@@ -128,9 +180,22 @@ func (s *Server) worldFor(o *store.Office) (*world.World, error) {
 		default:
 		}
 	}
-	go w.Run(s.ctx)
+	s.workers.Add(1)
+	go func() { defer s.workers.Done(); w.Run(s.ctx) }()
 	s.worlds[o.ID] = w
 	return w, nil
+}
+
+// Wait waits for world final snapshots after cancellation, before the database is closed or the process exits.
+func (s *Server) Wait(ctx context.Context) error {
+	done := make(chan struct{})
+	go func() { s.workers.Wait(); close(done) }()
+	select {
+	case <-done:
+		return nil
+	case <-ctx.Done():
+		return ctx.Err()
+	}
 }
 
 func (s *Server) Handler() http.Handler {
@@ -146,6 +211,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/admin/invites", s.listInvites)
 	mux.HandleFunc("DELETE /api/admin/invites/{id}", s.revokeInvite)
 	mux.HandleFunc("GET /api/admin/audit", s.listAudit)
+	mux.HandleFunc("GET /api/admin/map", s.getFullMap)
 	mux.HandleFunc("PUT /api/map", s.putMap)
 	mux.HandleFunc("PUT /api/profile", s.putProfile)
 	mux.HandleFunc("GET /api/me", s.me)

@@ -131,7 +131,23 @@ type Player struct {
 
 	// input bookkeeping
 	chatTokens float64
+
+	// social features
+	emoAt     time.Time // last emote (cooldown)
+	leadAt    time.Time // last "request to lead"
+	knockAt   time.Time // last knock on a door
+	follow    uint32    // id of the player being followed (0 = none)
+	fpath     []tile    // remaining tiles to the followed player
+	fgoal     tile      // tile of the followed player when fpath was computed
+	fcalc     time.Time // do not recompute the path before this time
+	portalOn  int       // tile index of the portal the player last arrived on (-1 = none)
+	onSpot    bool      // standing on a spotlight pad
+	spotSince time.Time
+	board     string // key of the whiteboard the player has open ("" = none)
 }
+
+// tile is a map cell coordinate.
+type tile struct{ x, y int16 }
 
 func (p *Player) connected() bool { return p.out != nil }
 

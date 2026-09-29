@@ -61,7 +61,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .menu button { width: 100%; text-align: left; background: none; border: 0; padding: 7px 9px; border-radius: 6px; display: flex; align-items: center; }
 .menu button:hover, .menu button[aria-pressed="true"] { background: #2d2752; }
 
-.side { position: absolute; top: 12px; right: 12px; bottom: 96px; display: flex; gap: 8px; align-items: flex-start; pointer-events: none; }
+.side { position: absolute; top: 64px; right: 12px; bottom: 96px; display: flex; gap: 8px; align-items: flex-start; pointer-events: none; }
 .side > * { pointer-events: auto; }
 .tabs { display: grid; gap: 8px; }
 .tabs button { position: relative; width: 44px; height: 44px; border-radius: 12px; background: var(--panel); border: 1px solid var(--line); display: grid; place-items: center; }
@@ -144,6 +144,19 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .admin-table select { max-width: 130px; }
 .admin-form { display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 8px; align-items: end; }
 .inline { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.social-controls { position: absolute; left: 50%; top: 58px; transform: translateX(-50%); display: grid; justify-items: center; gap: 6px; max-width: calc(100vw - 24px); z-index: 5; }
+.reaction-row { display: flex; gap: 4px; padding: 4px; background: #ffffffdf; border-radius: 12px; }
+.reaction-row .chip { padding: 3px 7px; font-family: system-ui; font-size: 19px; }
+.follow-hint { background: #fff; padding: 4px 8px; border-radius: 8px; display: flex; gap: 8px; align-items: center; }
+.object-note { white-space: pre-wrap; overflow-wrap: anywhere; }
+.spotlight-dock { position: absolute; left: 12px; bottom: 120px; width: min(300px, 40vw); padding: 8px; background: #fff; border: 3px solid #b77908; border-radius: 10px; max-height: 50vh; overflow: auto; z-index: 5; }
+.spotlight-dock p { margin: 0 0 8px; color: #484850; }
+.object-embed { width: 100%; height: min(50vh, 420px); border: 1px solid #aaa; background: #fff; }
+.object-image { max-width: 100%; max-height: 55vh; object-fit: contain; }
+.board-palette { display: flex; flex-wrap: wrap; align-items: center; gap: 8px; }
+.whiteboard { width: 100%; aspect-ratio: 5 / 3; background: white; touch-action: none; border: 2px solid #484850; }
+.editor { max-height: calc(100vh - 180px); overflow: auto; }
+.field textarea { min-height: 90px; resize: vertical; background: white; color: #202032; padding: 8px; }
 .btn.danger { background: #b3261e; color: #fff; }
 .audit { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 50vh; overflow: auto; font-size: 13px; }
 .audit time { color: var(--muted); margin-right: 6px; font-size: 12px; }

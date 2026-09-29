@@ -92,6 +92,12 @@ func main() {
 		log.Error("server", "err", err)
 		os.Exit(1)
 	}
+	stop()
+	shutdown, cancel := context.WithTimeout(context.Background(), 10*time.Second)
+	defer cancel()
+	if err := srv.Wait(shutdown); err != nil {
+		log.Error("final snapshot timeout", "err", err)
+	}
 }
 
 func probe(addr string) int {

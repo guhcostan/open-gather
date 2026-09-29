@@ -45,6 +45,14 @@ const (
 	evProfile
 	evSnapshot
 	evEvict
+	evEmote
+	evUse
+	evFollow
+	evLead
+	evLock
+	evKnock
+	evKnockAns
+	evBoard
 )
 
 type ev struct {
@@ -62,6 +70,8 @@ type ev struct {
 	cm     *gamemap.Compiled
 	snap   chan map[string]map[string]bool
 	errc   chan error
+	x, y   int
+	wb     *BoardMsg
 }
 
 type joinResult struct {
@@ -86,6 +96,19 @@ type World struct {
 	OnLeave    func(officeID int64, userID uint32, x, y float64)
 	OnChat     func(officeID int64, from uint32, text string, tsMillis int64) // persistence hook, must not block
 	hist       []ChatEntry
+	OnAction   func(officeID int64, actor uint32, action, target string) // metadata only, must not block
+
+	// social features (world goroutine only)
+	followers map[*Player]struct{}
+	locks     map[string]*lockState // by area id
+	knocks    map[uint32]knockReq   // pending knocks by requester
+	spot      spotState
+	onSpotSet map[*Player]struct{}
+	boards    map[string]*board
+	// OnBoardSave persists a whiteboard and reports whether it was accepted (a refused save is retried on
+	// the next pass). final is true on shutdown: write synchronously.
+	OnBoardSave func(officeID int64, key string, data []byte, final bool) bool
+	bfs         bfsScratch
 
 	players map[uint32]*Player
 	list    []*Player
@@ -112,6 +135,8 @@ type World struct {
 func New(cfg Config, officeID int64, name string, m *gamemap.Compiled, md Media, log *slog.Logger) *World {
 	w := &World{cfg: cfg, OfficeID: officeID, Name: name, m: m, media: md, log: log,
 		players: map[uint32]*Player{}, movers: map[*Player]struct{}{},
+		followers: map[*Player]struct{}{}, locks: map[string]*lockState{}, knocks: map[uint32]knockReq{},
+		onSpotSet: map[*Player]struct{}{}, boards: map[string]*board{},
 		groups: map[uint32]*group{}, roomGrp: map[int]*group{},
 		rAdd: map[uint32]struct{}{}, rUpd: map[uint32]struct{}{},
 		inbox: make(chan ev, 8192)}
@@ -130,6 +155,7 @@ func (w *World) Run(ctx context.Context) {
 	for {
 		select {
 		case <-ctx.Done():
+			w.flushBoards(true)
 			return
 		case e := <-w.inbox:
 			w.handle(e, time.Now())
@@ -206,6 +232,31 @@ func (c *Conn) Locate(ctx context.Context, id uint32) {
 	c.w.post(ctx, ev{kind: evLocate, p: c.P, gen: c.Gen, id: id})
 }
 
+func (c *Conn) Emote(ctx context.Context, kind int) {
+	c.w.post(ctx, ev{kind: evEmote, p: c.P, gen: c.Gen, x: kind})
+}
+func (c *Conn) Use(ctx context.Context, x, y int) {
+	c.w.post(ctx, ev{kind: evUse, p: c.P, gen: c.Gen, x: x, y: y})
+}
+func (c *Conn) Follow(ctx context.Context, id uint32) {
+	c.w.post(ctx, ev{kind: evFollow, p: c.P, gen: c.Gen, id: id})
+}
+func (c *Conn) Lead(ctx context.Context, id uint32) {
+	c.w.post(ctx, ev{kind: evLead, p: c.P, gen: c.Gen, id: id})
+}
+func (c *Conn) Lock(ctx context.Context, on bool) {
+	c.w.post(ctx, ev{kind: evLock, p: c.P, gen: c.Gen, b: on})
+}
+func (c *Conn) Knock(ctx context.Context, area int) {
+	c.w.post(ctx, ev{kind: evKnock, p: c.P, gen: c.Gen, x: area})
+}
+func (c *Conn) KnockAnswer(ctx context.Context, id uint32, allow bool) {
+	c.w.post(ctx, ev{kind: evKnockAns, p: c.P, gen: c.Gen, id: id, b: allow})
+}
+func (c *Conn) Board(ctx context.Context, m *BoardMsg) {
+	c.w.post(ctx, ev{kind: evBoard, p: c.P, gen: c.Gen, wb: m})
+}
+
 // ReloadMap swaps the office map at runtime (admin edits). The map size cannot change on the fly.
 func (w *World) ReloadMap(ctx context.Context, cm *gamemap.Compiled) error {
 	errc := make(chan error, 1)
@@ -272,7 +323,7 @@ func (w *World) handle(e ev, now time.Time) {
 		e.errc <- w.doReloadMap(e.cm, now)
 		return
 	case evSnapshot:
-		out := make(map[string]map[string]bool, len(w.groups))
+		out := make(map[string]map[string]bool, len(w.groups)+1)
 		for _, g := range w.groups {
 			ids := make(map[string]bool, len(g.members))
 			for _, m := range g.members {
@@ -280,6 +331,7 @@ func (w *World) handle(e ev, now time.Time) {
 			}
 			out[g.room] = ids
 		}
+		w.spotMembers(out)
 		e.snap <- out
 		return
 	case evEvict:
@@ -311,6 +363,7 @@ func (w *World) handle(e ev, now time.Time) {
 		if !e.b {
 			w.leaveGroup(p)
 		}
+		w.sendSpot(p) // gain or lose the spotlight audience token
 	case evChat:
 		w.doChat(p, e.s, e.id, e.info.Name, now)
 	case evLocate:
@@ -325,6 +378,23 @@ func (w *World) handle(e ev, now time.Time) {
 		if p.group != nil {
 			w.sendConvJoin(p, p.group)
 		}
+		w.sendSpot(p)
+	case evEmote:
+		w.doEmote(p, e.x, now)
+	case evUse:
+		w.doUse(p, e.x, e.y, now)
+	case evFollow:
+		w.doFollow(p, e.id, now)
+	case evLead:
+		w.doLead(p, e.id, now)
+	case evLock:
+		w.doLock(p, e.b)
+	case evKnock:
+		w.doKnock(p, e.x, now)
+	case evKnockAns:
+		w.doKnockAns(p, e.id, e.b, now)
+	case evBoard:
+		w.doBoard(p, e.wb, now)
 	}
 }
 
@@ -338,7 +408,7 @@ func (w *World) doJoin(e ev, now time.Time) {
 			return
 		}
 		p = &Player{ID: info.ID, Name: info.Name, Avatar: info.Avatar, Role: info.Role, Status: StatusAvailable,
-			area: -1, pendPos: map[uint32]posRec{}, pendLeave: map[uint32]struct{}{}, chatTokens: 5}
+			area: -1, pendPos: map[uint32]posRec{}, pendLeave: map[uint32]struct{}{}, chatTokens: 5, portalOn: -1}
 		p.sx0, p.sy0, p.sx1, p.sy1 = 0, 0, -1, -1
 		p.X, p.Y = w.spawnFor(p, info)
 		p.lastAdv = now
@@ -379,6 +449,8 @@ func (w *World) doJoin(e ev, now time.Time) {
 	if p.group != nil {
 		w.sendConvJoin(p, p.group)
 	}
+	w.updateSpot(p, now)
+	w.sendSpot(p)
 	e.reply <- joinResult{p: p, out: out, gen: p.gen}
 }
 
@@ -387,6 +459,7 @@ func (w *World) doReloadMap(cm *gamemap.Compiled, now time.Time) error {
 		return errors.New("changing the map size requires a restart")
 	}
 	w.m = cm
+	w.pruneLocks(true, now)
 	// Room groups are keyed by area index, which may have changed: dissolve them; people re-enter
 	// through the normal dwell rules.
 	for _, g := range w.groups {
@@ -407,7 +480,10 @@ func (w *World) doReloadMap(cm *gamemap.Compiled, now time.Time) error {
 		}
 		w.sendState(p, now)
 		w.sendMap(p, moved)
+		w.updateSpot(p, now)
 	}
+	w.broadcastDeny()
+	w.checkBoards()
 	return nil
 }
 
@@ -424,6 +500,7 @@ func (w *World) doDetach(p *Player, now time.Time) {
 }
 
 func (w *World) removePlayer(p *Player) {
+	w.dropSocial(p)
 	w.leaveGroup(p)
 	w.hide(p)
 	w.unsubAll(p)
@@ -446,6 +523,12 @@ func (w *World) removePlayer(p *Player) {
 func (w *World) doInput(p *Player, seq uint32, dx, dy int8, now time.Time) {
 	if dx < -1 || dx > 1 || dy < -1 || dy > 1 {
 		return
+	}
+	if p.follow != 0 {
+		if dx == 0 && dy == 0 {
+			return // a released key must not stop the guided walk; only a movement key does
+		}
+		w.stopFollow(p, now, true, false)
 	}
 	w.advance(p, now)
 	changed := dx != p.Dx || dy != p.Dy
@@ -602,7 +685,15 @@ func (w *World) canEnterArea(p *Player, ai int) bool {
 	if a.Kind != gamemap.KindRoom {
 		return true
 	}
-	return AllowedIn(a, p.ID, p.Role)
+	if !AllowedIn(a, p.ID, p.Role) {
+		return false
+	}
+	// A door locked from the inside stays closed for everybody who was not let in (admins bypass it).
+	if ls := w.locks[a.ID]; ls != nil && p.Role != "admin" {
+		_, ok := ls.admitted[p.ID]
+		return ok
+	}
+	return true
 }
 
 // AllowedIn evaluates a room's access rule. Roles: admin, member, guest.
@@ -816,6 +907,9 @@ func (w *World) sendState(p *Player, now time.Time) {
 	p.ix, p.iy = float64(p.last.x), float64(p.last.y)
 	p.sentAt = now
 	w.publish(p, true)
+	if p.follow != 0 {
+		w.sendSelf(p, false) // the guided player is moved by the server: tell its own client
+	}
 }
 
 const shadowStep = 1.0 / 60.0

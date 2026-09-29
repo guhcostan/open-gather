@@ -1,5 +1,7 @@
-import { Application, BitmapText, Container, Graphics, Sprite } from "pixi.js";
-import type { Ack, AvatarSpec, MapData, Person, WorldDelta } from "../net/protocol";
+import { Application, BitmapText, Container, Graphics, Sprite, Text } from "pixi.js";
+import type { Ack, AvatarSpec, MapData, Person, Prop, SelfPosition, WorldDelta } from "../net/protocol";
+import { EMOTES } from "./emotes";
+import { propSize } from "./mapModel";
 import { avatarFrames, FEET_Y, CELL_H, type AvatarFrames } from "./avatars";
 import { bakeMap } from "./mapArt";
 
@@ -50,6 +52,9 @@ export interface ViewHooks {
   sendInput(seq: number, dx: number, dy: number): void;
   onArea(name: string): void;
   onResume(): void;
+  onEmote?(kind: number): void;
+  onInteract?(prop: Prop): void;
+  onNearby?(prop: Prop | null): void;
 }
 
 export interface ViewStats {
@@ -111,6 +116,10 @@ export class WorldView {
   private locate: { x: number; y: number; until: number } | null = null;
   private hover: { x: number; y: number; w: number; h: number } | null = null;
   private eco = false;
+  private guided = false;
+  private nearby: Prop | null = null;
+  private nearbyAt = 0;
+  private emotes = new Map<number, { text: Text; until: number }>();
   private cleanup: (() => void)[] = [];
 
   constructor(private hooks: ViewHooks) {}
@@ -190,6 +199,18 @@ export class WorldView {
     if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return;
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key.toLowerCase();
+    // Modal controls and the editor own their keyboard interaction.
+    if (document.querySelector(".scrim, .editor")) return;
+    if (down && !e.repeat && /^[1-7]$/.test(k)) {
+      e.preventDefault();
+      this.hooks.onEmote?.(Number(k));
+      return;
+    }
+    if (down && !e.repeat && k === "x") {
+      e.preventDefault();
+      this.interact();
+      return;
+    }
     const map: Record<string, string> = { arrowleft: "l", a: "l", arrowright: "r", d: "r", arrowup: "u", w: "u", arrowdown: "d", s: "d" };
     const m = map[k];
     if (!m) return;
@@ -212,6 +233,7 @@ export class WorldView {
 
   /** Public so tests can drive movement without synthesising key events. */
   setDirection(dx: number, dy: number) {
+    if (dx || dy) this.guided = false;
     if (dx === this.dx && dy === this.dy) return;
     this.dx = dx;
     this.dy = dy;
@@ -277,6 +299,7 @@ export class WorldView {
     this.my = y;
     this.speed = speed;
     this.mArea = this.areaIndex(x, y);
+    this.hooks.onArea(this.map && this.mArea >= 0 ? this.map.areas[this.mArea].name : "");
     if (this.map && this.mArea >= 0) this.showBanner(this.map.areas[this.mArea].name);
     if (!this.meEnt) {
       this.meEnt = this.makeEnt(id);
@@ -323,7 +346,60 @@ export class WorldView {
     this.mx = x;
     this.my = y;
     this.dx = this.dy = 0;
+    this.hist.clear();
+    this.keys.clear();
     this.mArea = this.areaIndex(x, y);
+    this.hooks.onArea(this.map && this.mArea >= 0 ? this.map.areas[this.mArea].name : "");
+  }
+
+  setGuided(on: boolean) {
+    this.guided = on;
+    this.releaseKeys();
+  }
+
+  applySelf(m: SelfPosition) {
+    this.mx = m.x;
+    this.my = m.y;
+    this.mdir = m.d;
+    if (m.tp) this.teleport(m.x, m.y);
+    else {
+      this.dx = m.dx;
+      this.dy = m.dy;
+      this.mArea = this.areaIndex(m.x, m.y);
+      this.hooks.onArea(this.map && this.mArea >= 0 ? this.map.areas[this.mArea].name : "");
+    }
+  }
+
+  setDeny(deny: number[]) {
+    this.deny = new Set(deny);
+    for (const l of this.areaLabels) l.text.text = this.map!.areas[l.ai].name + (this.deny.has(l.ai) ? " 🔒" : "");
+  }
+
+  showEmote(id: number, kind: number) {
+    const emoji = EMOTES[kind - 1];
+    if (!emoji || !this.ents.has(id)) return;
+    this.emotes.get(id)?.text.destroy();
+    const text = new Text({ text: emoji, style: { fontSize: 32 } });
+    text.anchor.set(0.5, 1);
+    this.hud.addChild(text);
+    this.emotes.set(id, { text, until: performance.now() + 2500 });
+  }
+
+  interact() {
+    this.updateNearby();
+    if (this.nearby) this.hooks.onInteract?.(this.nearby);
+  }
+
+  private updateNearby() {
+    let best: Prop | null = null;
+    let bestD = 20;
+    for (const p of this.map?.props ?? []) {
+      if (!["note", "embed", "image", "whiteboard"].includes(p.t)) continue;
+      const [w, h] = propSize(p);
+      const d = Math.hypot(Math.max(p.x * T - this.mx, 0, this.mx - (p.x + w) * T), Math.max(p.y * T - this.my, 0, this.my - (p.y + h) * T));
+      if (d <= bestD) { bestD = d; best = p; }
+    }
+    if (best !== this.nearby) { this.nearby = best; this.hooks.onNearby?.(best); }
   }
 
   showLocation(x: number, y: number) {
@@ -440,6 +516,8 @@ export class WorldView {
     e.label.destroy({ children: true });
     e.ring?.destroy();
     this.ents.delete(id);
+    this.emotes.get(id)?.text.destroy();
+    this.emotes.delete(id);
   }
 
   /** Location signboard that slides in from the top when entering an area (handheld-RPG style). */
@@ -539,8 +617,11 @@ export class WorldView {
     const S = this.S;
     const { width: W, height: H } = this.app.screen;
 
-    this.stepLocal(dt);
-    if ((this.dx || this.dy) && now - this.lastBeat > HEARTBEAT_MS) this.sendDir();
+    if (!this.guided) {
+      this.stepLocal(dt);
+      if ((this.dx || this.dy) && now - this.lastBeat > HEARTBEAT_MS) this.sendDir();
+    }
+    if (now - this.nearbyAt > 150) { this.nearbyAt = now; this.updateNearby(); }
 
     const mw = this.map.w * T * S, mh = this.map.h * T * S;
     let cx = W / 2 - this.mx * S, cy = H / 2 - this.my * S;
@@ -584,6 +665,14 @@ export class WorldView {
         e.ring.position.set(Math.round(e.x), Math.round(e.y) - 1);
         e.ring.visible = true;
       }
+    }
+
+    // area labels
+    for (const [id, bubble] of this.emotes) {
+      const e = this.ents.get(id);
+      if (!e || now >= bubble.until) { bubble.text.destroy(); this.emotes.delete(id); continue; }
+      bubble.text.visible = e.label.visible;
+      bubble.text.position.set(e.x * S + this.camX, e.y * S + this.camY - CELL_H * S - 28);
     }
 
     // area labels

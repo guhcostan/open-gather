@@ -1,16 +1,19 @@
 import { useEffect, useRef, useState } from "react";
 import { session } from "../session";
-import { useStore } from "../store";
+import { setState, useStore } from "../store";
 import { t } from "../i18n";
 import { SidePanel } from "./SidePanel";
 import { MediaBar } from "./MediaBar";
-import { VideoDock } from "./VideoDock";
+import { VideoDock, SpotlightDock } from "./VideoDock";
 import { MediaDialog } from "./MediaDialog";
 import { SettingsDialog } from "./SettingsDialog";
 import { DebugHud } from "./DebugHud";
 import { StatusMenu } from "./StatusMenu";
 import { MapEditor } from "./MapEditor";
 import { AdminButton, AdminDialog } from "./AdminDialog";
+import { SocialControls } from "./SocialControls";
+import { ObjectDialog } from "./ObjectDialog";
+import { WhiteboardDialog } from "./WhiteboardDialog";
 
 export function OfficeScreen() {
   const host = useRef<HTMLDivElement>(null);
@@ -20,6 +23,8 @@ export function OfficeScreen() {
   const toastMsg = useStore((s) => s.toast);
   const debug = useStore((s) => s.settings.debug);
   const role = useStore((s) => s.role);
+  const object = useStore((s) => s.object);
+  const boardKey = useStore((s) => s.boardKey);
   const [editing, setEditing] = useState(false);
   const [dialog, setDialog] = useState<"" | "media" | "settings" | "admin">("");
 
@@ -42,14 +47,18 @@ export function OfficeScreen() {
         <StatusMenu />
       </header>
       <SidePanel />
+      {!editing && <SocialControls />}
       {editing && <MapEditor onClose={() => setEditing(false)} />}
       <VideoDock />
+      <SpotlightDock />
       <MediaBar onEnable={() => setDialog("media")} onSettings={() => setDialog("settings")} />
       {toastMsg && <div className="toast" role="status">{toastMsg}</div>}
       {debug && <DebugHud />}
       {dialog === "media" && <MediaDialog onClose={() => setDialog("")} />}
       {dialog === "settings" && <SettingsDialog onClose={() => setDialog("")} />}
       {dialog === "admin" && <AdminDialog onClose={() => setDialog("")} />}
+      {object && <ObjectDialog object={object} onClose={() => setState({ object: null })} />}
+      {boardKey && <WhiteboardDialog onClose={() => { session.board({ bk: boardKey, op: "close" }); setState({ boardKey: "" }); }} />}
     </div>
   );
 }

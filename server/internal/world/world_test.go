@@ -63,6 +63,7 @@ func (h *harness) teleport(p *Player, x, y float64) {
 	p.X, p.Y = x, y
 	p.area = h.w.m.AreaIndexAt(int(x)/gamemap.TilePx, int(y)/gamemap.TilePx)
 	h.w.sendState(p, h.now)
+	h.w.updateSpot(p, h.now)
 }
 
 // run advances virtual time by d in tick-sized steps.

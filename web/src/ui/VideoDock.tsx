@@ -1,5 +1,5 @@
 import { useEffect, useRef, useSyncExternalStore } from "react";
-import { media, type Tile } from "../media/MediaManager";
+import { media, spotlightMedia, type Tile } from "../media/MediaManager";
 import { useStore } from "../store";
 import { t } from "../i18n";
 import { MicOffIcon } from "./Icons";
@@ -17,7 +17,7 @@ function Video({ el, mirror }: { el: HTMLVideoElement | null; mirror?: boolean }
   return <div ref={ref} className={"vid" + (mirror ? " mirror" : "")} />;
 }
 
-function TileView({ tile, big }: { tile: Tile; big?: boolean }) {
+export function TileView({ tile, big }: { tile: Tile; big?: boolean }) {
   const roster = useStore((s) => s.roster);
   const p = roster.get(Number(tile.identity));
   return (
@@ -29,6 +29,21 @@ function TileView({ tile, big }: { tile: Tile; big?: boolean }) {
       </span>
     </div>
   );
+}
+
+export function SpotlightDock() {
+  const tiles = useSyncExternalStore(spotlightMedia.subscribe, spotlightMedia.getTiles);
+  const spot = useStore((s) => s.spotlight);
+  const consent = useStore((s) => s.consent);
+  if (!spot) return null;
+  return <section className="spotlight-dock" aria-label={t("spot.title")}>
+    <p role="status">{spot.me ? t("spot.onAir") : t("spot.speaker", { name: spot.name })}</p>
+    {!consent && <p>{t("spot.listen")}</p>}
+    {tiles.filter((tile) => Number(tile.identity) === spot.id).map((tile) => <div key={tile.identity}>
+      <TileView tile={tile} />
+      {tile.screen && <TileView tile={tile} big />}
+    </div>)}
+  </section>;
 }
 
 export function VideoDock() {

@@ -131,6 +131,8 @@ func (w *World) sendHello(p *Player) {
 	b = strconv.AppendFloat(b, p.Y, 'f', 1, 64)
 	b = append(b, `,"deny":`...)
 	b = w.appendDeny(b, p)
+	b = append(b, `,"lk":`...)
+	b = w.appendLocked(b)
 	b = append(b, `},"map":`...)
 	b = append(b, w.m.JSON...)
 	b = append(b, `,"roster":[`...)
@@ -269,8 +271,13 @@ func (w *World) flush(p *Player) {
 func (w *World) tick(now time.Time) {
 	t0 := time.Now()
 	w.tickN++
+	w.driveFollowers(now)
 	for p := range w.movers {
 		w.advance(p, now)
+		if w.checkPortal(p, now) {
+			continue // teleported: state was published by the teleport
+		}
+		w.updateSpot(p, now)
 		w.advanceShadow(p, now)
 		// Clients extrapolate from the last record. Publish only when reality diverges from
 		// that extrapolation (a door that is locked for this player, a capacity limit...)
@@ -279,6 +286,9 @@ func (w *World) tick(now time.Time) {
 			w.sendState(p, now)
 		} else {
 			w.publish(p, false)
+		}
+		if p.follow != 0 {
+			w.sendSelf(p, false) // authoritative guided movement, bounded by the 15 Hz world tick
 		}
 	}
 	var expired []*Player
@@ -295,8 +305,12 @@ func (w *World) tick(now time.Time) {
 	}
 	if !now.Before(w.nextProx) {
 		w.proximityPass(now)
+		w.pruneLocks(false, now)
+		w.checkBoards()
+		w.saveBoards(now)
 		w.nextProx = now.Add(w.cfg.ProxEvery)
 	}
+	w.reconcileSpot(now)
 	w.flushRoster()
 	for _, p := range w.list {
 		w.flush(p)

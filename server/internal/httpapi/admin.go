@@ -185,3 +185,20 @@ func (s *Server) listAudit(w http.ResponseWriter, r *http.Request) {
 	}
 	writeJSON(w, http.StatusOK, map[string]any{"entries": es})
 }
+
+// getFullMap returns the saved map INCLUDING the hidden content of interactive objects. The public wire
+// map (hello) leaves that content out; the editor needs it to avoid erasing it on save.
+func (s *Server) getFullMap(w http.ResponseWriter, r *http.Request) {
+	se := s.adminSession(w, r)
+	if se == nil {
+		return
+	}
+	office, err := s.st.OfficeByID(r.Context(), se.OfficeID)
+	if err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
+		return
+	}
+	w.Header().Set("Content-Type", "application/json")
+	w.Header().Set("Cache-Control", "no-store")
+	w.Write([]byte(office.MapJSON))
+}
