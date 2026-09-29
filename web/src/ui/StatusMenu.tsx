@@ -12,15 +12,15 @@ export function StatusMenu() {
   const [open, setOpen] = useState(false);
   return (
     <div className="status-menu">
-      <button className="btn" aria-haspopup="listbox" aria-expanded={open} onClick={() => setOpen(!open)}>
+      <button className="btn" aria-expanded={open} aria-controls="status-menu" onClick={() => setOpen(!open)}>
         <i className="dot" style={{ background: statusColor[status] }} />
         {t(("status." + status) as Key)}
       </button>
       {open && (
-        <ul className="menu" role="listbox">
+        <ul className="menu" id="status-menu" onKeyDown={(e) => e.key === "Escape" && setOpen(false)}>
           {OPTIONS.map((o) => (
             <li key={o}>
-              <button role="option" aria-selected={o === status} onClick={() => { session.setStatus(o); setOpen(false); }}>
+              <button aria-pressed={o === status} onClick={() => { session.setStatus(o); setOpen(false); }}>
                 <i className="dot" style={{ background: statusColor[o] }} />
                 {t(("status." + o) as Key)}
               </button>

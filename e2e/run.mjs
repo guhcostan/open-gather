@@ -15,7 +15,7 @@ const PORT = process.env.OG_TEST_PORT ?? "18080";
 process.env.OG_APP = process.env.OG_API = EXTERNAL || `http://127.0.0.1:${PORT}`;
 process.env.OG_LK_HTTP ??= "http://127.0.0.1:7880";
 
-const all = ["proximity", "consent", "rooms", "access", "editor", "social", "admin", "security", "resilience"];
+const all = ["proximity", "consent", "rooms", "access", "editor", "social", "admin", "a11y", "security", "resilience"];
 const wanted = process.argv.slice(2).length ? process.argv.slice(2) : EXTERNAL ? ["proximity", "consent", "rooms"] : all;
 
 const children = [];

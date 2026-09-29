@@ -73,8 +73,8 @@ h1, h2, h3 { font-weight: 700; }
 
 /* menu cursor: a black triangle */
 .menu button { color: var(--ink); border-radius: 4px; }
-.menu button:hover, .menu button[aria-selected="true"] { background: var(--cream); }
-.menu button:hover::before, .menu button[aria-selected="true"]::before {
+.menu button:hover, .menu button[aria-pressed="true"] { background: var(--cream); }
+.menu button:hover::before, .menu button[aria-pressed="true"]::before {
   content: ""; border-left: 8px solid var(--dark); border-top: 5px solid transparent; border-bottom: 5px solid transparent; margin-right: 6px; margin-left: -6px;
 }
 .acts button { color: var(--muted); } .acts button:hover { background: #fff; color: var(--ink); }
@@ -100,3 +100,7 @@ h1, h2, h3 { font-weight: 700; }
 .ae-label { color: var(--muted); }
 
 .debug { font-family: ui-monospace, Menlo, monospace; text-shadow: none; }
+
+/* administration table controls follow the same window skin as the other fields */
+.admin-table select { background: #fff; color: var(--ink); border: 3px solid var(--dark); border-radius: 6px; padding: 4px 6px; font: inherit; }
+.admin-table th { color: var(--ink); }

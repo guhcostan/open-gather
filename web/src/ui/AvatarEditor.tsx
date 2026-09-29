@@ -18,7 +18,7 @@ function Swatches({ label, colors, value, onPick }: { label: string; colors: str
       <span className="ae-label">{label}</span>
       <div className="swatches" role="radiogroup" aria-label={label}>
         {colors.map((c, i) => (
-          <button key={c} type="button" role="radio" aria-checked={value === i} className={"sw" + (value === i ? " on" : "")} style={{ background: c }} onClick={() => onPick(i)} />
+          <button key={c} type="button" role="radio" aria-checked={value === i} aria-label={label + " " + (i + 1)} title={label + " " + (i + 1)} className={"sw" + (value === i ? " on" : "")} style={{ background: c }} onClick={() => onPick(i)} />
         ))}
       </div>
     </div>
