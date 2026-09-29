@@ -45,10 +45,10 @@ func (w *World) newGroup(isRoom bool, area int) *group {
 	w.nextGID++
 	g := &group{id: w.nextGID, isRoom: isRoom, area: area}
 	if isRoom {
-		g.room = "o" + strconv.FormatInt(w.OfficeID, 10) + ".r." + w.m.Map.Areas[area].ID
+		g.room = w.MediaPrefix() + ".r." + w.m.Map.Areas[area].ID
 		w.roomGrp[area] = g
 	} else {
-		g.room = "o" + strconv.FormatInt(w.OfficeID, 10) + ".g" + strconv.FormatUint(uint64(g.id), 10)
+		g.room = w.MediaPrefix() + ".g" + strconv.FormatUint(uint64(g.id), 10)
 	}
 	w.groups[g.id] = g
 	return g
@@ -318,4 +318,12 @@ func (w *World) proximityPass(now time.Time) {
 			p.candKind = 0
 		}
 	}
+}
+
+// MediaPrefix is the namespace of every SFU room of this office.
+func (w *World) MediaPrefix() string {
+	if w.RoomPrefix != "" {
+		return w.RoomPrefix
+	}
+	return "o" + strconv.FormatInt(w.OfficeID, 10)
 }

@@ -71,7 +71,7 @@ func Load() (*Config, error) {
 		MaxPlayers:     envInt("OG_MAX_PLAYERS", 2000),
 		MaxGroup:       envInt("OG_MAX_GROUP", 8),
 		JoinRate:       envInt("OG_JOIN_RATE", 20),
-		MediaTTL:       time.Duration(envInt("OG_MEDIA_TOKEN_TTL_SECONDS", 60)) * time.Second,
+		MediaTTL:       time.Duration(envInt("OG_MEDIA_TOKEN_TTL_SECONDS", 30)) * time.Second,
 		MediaReconcile: time.Duration(envInt("OG_MEDIA_RECONCILE_SECONDS", 10)) * time.Second,
 	}
 	if o := env("OG_ALLOWED_ORIGINS", ""); o != "" {

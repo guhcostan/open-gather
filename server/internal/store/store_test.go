@@ -148,3 +148,18 @@ func TestMigrationsAreIdempotentAndBackupWorks(t *testing.T) {
 		t.Fatalf("backup must contain the data: %v", err)
 	}
 }
+
+func TestInstanceIDIsStablePerDatabaseAndDiffersBetweenDatabases(t *testing.T) {
+	s1, _ := open(t)
+	s2, _ := open(t)
+	a, err := s1.InstanceID(context.Background())
+	if err != nil || len(a) != 8 {
+		t.Fatalf("instance id: %q %v", a, err)
+	}
+	if again, _ := s1.InstanceID(context.Background()); again != a {
+		t.Fatal("the id must be stable")
+	}
+	if b, _ := s2.InstanceID(context.Background()); b == a {
+		t.Fatal("two installations must not share an id")
+	}
+}

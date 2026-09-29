@@ -15,7 +15,7 @@ Environment: macOS (Apple M1 Pro, arm64), Go 1.26.5, Google Chrome with fake cam
 | `access` | only admins mint invites; invite use limits; production refuses insecure configuration; CLI invite and online backup |
 | `editor` | real UI clicks paint walls and create a room; others get it live; the server enforces it; it persists across a restart |
 | `social` | office/direct/conversation chat scopes and privacy, rate limit, 500-character cut, persisted office history, profile change, desk owner label |
-| `security` | replayed (evicted by the reconciler), edited (rejected) and expired (rejected) media tokens |
+| `security` | replayed token connects but is evicted by the reconciler within seconds; edited token rejected; expired token rejected only after LiveKit's 60 s clock-skew tolerance (found by this test, now documented) |
 | `resilience` | WebSocket drop keeps position, call and audio; flooding cannot speed a player up; oversized frames close the socket; session and position survive a server restart |
 | Docker | image builds (24 MB, non-root); the local Compose stack passes `proximity`, `consent` and `rooms`; in the container, production mode returns 403 without an invite, issues a Secure cookie with one, and refuses insecure configuration |
 
@@ -34,7 +34,6 @@ Scenario A (no media) up to 1,000 bots and a 500-client reconnect storm, with th
 - No UI to list or revoke invites, change roles or remove members; no moderation or audit log.
 - **Cost numbers:** only the formula and `bench/cost.py` exist; no prices were verified.
 - Internationalisation beyond the pt-BR dictionary mechanism; accessibility audit.
-- The new `security` scenario and the media reconciler were written last and their first full end-to-end run is still pending; unit tests for them pass.
 
 ## Roadmap
 

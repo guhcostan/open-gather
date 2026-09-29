@@ -17,7 +17,7 @@ livekit-server --dev --bind 127.0.0.1 > $LOG/livekit.log 2>&1 &
 pids+=($!)
 
 ( cd server && go build -o ../bin/opengather ./cmd/opengather )
-OG_ENV=dev OG_ADDR=127.0.0.1:8080 OG_DB=server/data/dev.db \
+OG_ENV=dev OG_ADDR=127.0.0.1:8080 OG_DB="${OG_DB:-server/data/dev.db}" \
   OG_ALLOWED_ORIGINS="localhost:*,127.0.0.1:*" \
   LIVEKIT_URL=ws://127.0.0.1:7880 LIVEKIT_API_KEY=devkey LIVEKIT_API_SECRET=secret \
   ./bin/opengather > $LOG/server.log 2>&1 &

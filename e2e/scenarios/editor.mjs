@@ -84,6 +84,9 @@ export async function run(ctx) {
     const again = await joinAs(browser, "Ed", { cookie: memCookie });
     const persisted = await again.page.evaluate(() => ({ wall: window.__og.view.map.walls[22][35], room: window.__og.view.map.areas.some((a) => a.name === "Sala Teste" && a.access.mode === "admins") }));
     check("edited walls and rooms persist across a server restart", persisted.wall === "#" && persisted.room, JSON.stringify(persisted));
+    // Leave the shared office as we found it so later scenarios do not depend on this one.
+    const restore = await put(ctx.adminCookie, map);
+    check("the original map can be restored by the administrator", restore.status === 200);
     const errs = [admin, mem, again].flatMap((u) => u.logs).filter((l) => !/WebSocket|ERR_|net::|closed/.test(l));
     check("no unexpected console errors", errs.length === 0, errs.slice(0, 2).join(" | "));
   } finally {

@@ -76,13 +76,15 @@ type World struct {
 	cfg      Config
 	OfficeID int64
 	Name     string
-	m        *gamemap.Compiled
-	media    Media
-	log      *slog.Logger
-	St       Stats
-	OnLeave  func(officeID int64, userID uint32, x, y float64)
-	OnChat   func(officeID int64, from uint32, text string, tsMillis int64) // persistence hook, must not block
-	hist     []ChatEntry
+	// RoomPrefix namespaces SFU room names, e.g. "3fa9c1d2.o1". Empty means "o<office id>".
+	RoomPrefix string
+	m          *gamemap.Compiled
+	media      Media
+	log        *slog.Logger
+	St         Stats
+	OnLeave    func(officeID int64, userID uint32, x, y float64)
+	OnChat     func(officeID int64, from uint32, text string, tsMillis int64) // persistence hook, must not block
+	hist       []ChatEntry
 
 	players map[uint32]*Player
 	list    []*Player

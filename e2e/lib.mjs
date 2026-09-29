@@ -106,7 +106,10 @@ export async function walkTo(u, tx, ty, { timeout = 60000 } = {}) {
       if (!dx && !dy) break;
       await u.page.evaluate((a, b) => window.__og.view.setDirection(a, b), dx, dy);
       await sleep(30);
-      if (Date.now() - t0 > timeout) throw new Error("walk timeout");
+      if (Date.now() - t0 > timeout) {
+        const d = await u.page.evaluate(() => ({ hidden: document.hidden, conn: window.__og.state.conn, pos: window.__og.view.position(), fps: window.__og.view.stats.fps })).catch(() => ({}));
+        throw new Error("walk timeout to " + [cx, cy] + " (" + u.name + ") " + JSON.stringify(d));
+      }
     }
   }
   // land exactly at the requested pixel inside the goal tile

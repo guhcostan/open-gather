@@ -10,8 +10,8 @@ Putting everyone in the office into one WebRTC room would expose each person to 
 
 There are two kinds of SFU room, both **small and created on demand**:
 
-1. **Meeting room**: one per map area of kind `room`, with an explicit access rule (open, members only, admins only, or a list). Name: `o<office>.r.<area>`.
-2. **Proximity group**: an ephemeral room of at most 8 people (`OG_MAX_GROUP`). Name: `o<office>.g<id>`.
+1. **Meeting room**: one per map area of kind `room`, with an explicit access rule (open, members only, admins only, or a list). Name: `<instance>.o<office>.r.<area>`.
+2. **Proximity group**: an ephemeral room of at most 8 people (`OG_MAX_GROUP`). Name: `<instance>.o<office>.g<id>`. The `<instance>` part is a random id created once per database, so two installations can share one LiveKit server without touching each other's rooms (see [0008](0008-token-lifetime-and-reconciliation.md)).
 
 A person is in at most one group at a time. The world server decides the composition and only then issues an SFU token for that room.
 
@@ -34,4 +34,4 @@ The SFU room is the boundary of who can hear and see whom. Since each group hold
 ## Consequences
 
 - Distributing offices across instances and splitting out a media server later is natural: the only contract between the two is "issue a token for room X" and "remove participant from room X".
-- Revocation removes the participant from the SFU when they leave the group. Tokens cannot be revoked, so their lifetime was cut to 60 s and a reconciler evicts unauthorised participants, see [0008](0008-token-lifetime-and-reconciliation.md) and [Privacy and security](privacy-and-security.md).
+- Revocation removes the participant from the SFU when they leave the group. Tokens cannot be revoked, so their lifetime was cut to 30 s and a reconciler evicts unauthorised participants, see [0008](0008-token-lifetime-and-reconciliation.md) and [Privacy and security](privacy-and-security.md).

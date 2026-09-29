@@ -19,7 +19,7 @@ By **end-to-end test**, not by reading the documentation line by line: LiveKit 1
 - scoped to **one room** and one identity;
 - `canPublish` limited to the microphone, camera and screen-share sources;
 - `canPublishData` off;
-- valid for 5 minutes (a connection window).
+- valid for 30 seconds (a connection window; LiveKit adds 60 s of clock-skew tolerance, see [0008](0008-token-lifetime-and-reconciliation.md)).
 
 ## Accepted risk
 

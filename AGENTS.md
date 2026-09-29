@@ -72,7 +72,7 @@ Art (output goes to `site/assets/`; details in `docs/art-style.md`):
 - Go: standard library first, `gofmt`, table-driven tests where natural, no dependency for what a few lines do. Keep `internal/media` the only package that speaks to LiveKit.
 - TypeScript: `strict` is on; keep `tsc --noEmit` clean. Prefer small modules; keep hot paths allocation-light.
 - Validate all external input: WebSocket messages, avatars, maps, uploads. Enforce size and rate limits.
-- Media tokens are short (60 s) and the reconciler in `httpapi` removes unknown SFU participants: keep both when touching `internal/media`.
+- Media tokens are short (30 s, LiveKit adds 60 s of leeway) and the reconciler in `httpapi` removes unknown SFU participants: keep both when touching `internal/media`.
 - Protocol changes: update `web/src/net/protocol.ts`, `docs/protocol.md` and the world tests together.
 - Add or update a decision record in `docs/decisions/` when you change an architectural choice, with the performance, maintenance and install impact.
 

@@ -39,7 +39,7 @@ const ctx = { dir, server: null, async startServer() {
   const child = spawn(path.join(root, "bin/opengather"), [], {
     env: { ...process.env, OG_ENV: "dev", OG_ADDR: `127.0.0.1:${PORT}`, OG_DB: path.join(dir, "e2e.db"), OG_STATIC_DIR: path.join(root, "web/dist"),
       OG_ALLOWED_ORIGINS: `127.0.0.1:${PORT}`, LIVEKIT_URL: "ws://127.0.0.1:7880", LIVEKIT_API_KEY: "devkey", LIVEKIT_API_SECRET: "secret",
-      OG_MEDIA_TOKEN_TTL_SECONDS: process.env.OG_MEDIA_TOKEN_TTL_SECONDS ?? "45", OG_MEDIA_RECONCILE_SECONDS: process.env.OG_MEDIA_RECONCILE_SECONDS ?? "3" },
+      OG_JOIN_RATE: "5000", OG_MEDIA_TOKEN_TTL_SECONDS: process.env.OG_MEDIA_TOKEN_TTL_SECONDS ?? "20", OG_MEDIA_RECONCILE_SECONDS: process.env.OG_MEDIA_RECONCILE_SECONDS ?? "3" },
     stdio: ["ignore", fs.openSync(path.join(dir, "server.log"), "a"), fs.openSync(path.join(dir, "server.log"), "a")],
   });
   ctx.server = child;

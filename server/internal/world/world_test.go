@@ -527,3 +527,22 @@ func TestHelloCarriesOfficeChatHistoryAndProfileChangesReachTheRoster(t *testing
 		t.Fatal("a profile change must reach everyone's roster")
 	}
 }
+
+func TestMediaRoomsAreNamespacedPerInstallation(t *testing.T) {
+	h := newHarness(t)
+	h.w.RoomPrefix = "abcd1234.o1"
+	a := h.add(1, "member", sx, sy)
+	b := h.add(2, "member", sx+32, sy)
+	h.consent(a, true)
+	h.consent(b, true)
+	h.run(2 * time.Second)
+	if a.group == nil || !strings.HasPrefix(a.group.room, "abcd1234.o1.g") {
+		t.Fatalf("room names must carry the installation prefix: %+v", a.group)
+	}
+	snap := make(chan map[string]map[string]bool, 1)
+	h.w.handle(ev{kind: evSnapshot, snap: snap}, h.now)
+	m := <-snap
+	if !m[a.group.room]["1"] || !m[a.group.room]["2"] || len(m) != 1 {
+		t.Fatalf("snapshot must list exactly the group's members: %v", m)
+	}
+}

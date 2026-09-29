@@ -1,7 +1,8 @@
 // Media isolation attacks against the real SFU: replayed, tampered and expired tokens.
 import { check, summary, resetChecks, launch, joinAs, waitFor, walkTo, st, sleep, lkParticipants, metrics } from "../lib.mjs";
 
-const TTL = Number(process.env.OG_MEDIA_TOKEN_TTL_SECONDS ?? 45);
+const prefixOf = (room) => room.split(".").slice(0, 2).join(".");
+const TTL = Number(process.env.OG_MEDIA_TOKEN_TTL_SECONDS ?? 20);
 
 export async function run(ctx) {
   resetChecks();
@@ -21,6 +22,7 @@ export async function run(ctx) {
     await waitFor(async () => (await st(a)).conv?.state === "live" && (await st(b)).conv?.state === "live", { timeout: 20000, what: "conversation" });
     await waitFor(() => a.page.evaluate(() => !!window.__RoomCtor), { what: "room constructor captured" });
     const room = await a.page.evaluate(() => window.__og.media.currentRoom);
+    await a.page.evaluate((r) => { window.__privateRoom = r; }, prefixOf(room) + ".r.diretoria");
     const issued = Date.now();
 
     // Everyone leaves the group; the server revokes A's access.
@@ -39,7 +41,7 @@ export async function run(ctx) {
       if (tweak === "room") {
         const [h, p, sg] = token.split(".");
         const payload = JSON.parse(atob(p.replace(/-/g, "+").replace(/_/g, "/")));
-        payload.video.room = "o1.r.diretoria";
+        payload.video.room = window.__privateRoom;
         token = h + "." + btoa(JSON.stringify(payload)).replace(/\+/g, "-").replace(/\//g, "_").replace(/=+$/, "") + "." + sg;
       }
       try {
@@ -62,13 +64,15 @@ export async function run(ctx) {
     // Attack 2: change the room inside the token (private room) without the signing secret.
     const tamper = await attack("room");
     check("a token whose room claim was edited is rejected by the SFU (signature)", tamper.startsWith("rejected"), tamper);
-    check("the private room stayed empty", (await lkParticipants("o1.r.diretoria")).length === 0);
+    check("the private room stayed empty", (await lkParticipants(prefixOf(room) + ".r.diretoria")).length === 0);
 
-    // Attack 3: token past its validity.
-    const wait = Math.max(0, TTL + 12 - (Date.now() - issued) / 1000);
+    // Attack 3: token past its validity. LiveKit's JWT library tolerates 60 s of clock skew (measured: a token
+    // 12 s past its exp was still accepted), so the effective lifetime is TTL + 60 s.
+    const LEEWAY = 60;
+    const wait = Math.max(0, TTL + LEEWAY + 8 - (Date.now() - issued) / 1000);
     await sleep(wait * 1000);
     const expired = await attack("none");
-    check("an expired token is rejected", expired.startsWith("rejected"), expired + " (" + TTL + " s validity)");
+    check("an expired token is rejected once LiveKit\'s 60 s clock-skew leeway has passed", expired.startsWith("rejected"), expired + " (" + TTL + " s validity + " + LEEWAY + " s leeway)");
     check("no unauthorised participant remains in the SFU room", (await lkParticipants(room)).length === 0);
 
     const errs = [a, b].flatMap((u) => u.logs).filter((l) => !/WebSocket|ERR_|net::|closed|401|Unauthorized|validation|token|Failed to load/i.test(l));

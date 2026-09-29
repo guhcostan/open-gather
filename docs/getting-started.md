@@ -78,7 +78,7 @@ Everything is configured through environment variables.
 | `OG_MAX_PLAYERS` | `2000` | Hard cap per office |
 | `OG_MAX_GROUP` | `8` | Maximum people in a proximity group |
 | `OG_JOIN_RATE` | `20` | Join requests per second per IP (raise only for load tests) |
-| `OG_MEDIA_TOKEN_TTL_SECONDS` | `60` | Validity of a media join token |
+| `OG_MEDIA_TOKEN_TTL_SECONDS` | `30` | Validity of a media join token |
 | `OG_MEDIA_RECONCILE_SECONDS` | `10` | How often SFU rooms are compared with the world membership |
 | `LIVEKIT_URL` | empty | Public `ws(s)://` URL browsers use; empty disables media |
 | `LIVEKIT_API_URL` | derived | `http(s)://` URL the server uses for admin calls |

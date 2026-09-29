@@ -37,6 +37,7 @@ type Server struct {
 	posQ  chan posSave
 	chatQ chan chatSave
 
+	inst    string // installation id, namespaces SFU rooms
 	joinLim *limiter
 	mapLim  *limiter
 	profLim *limiter
@@ -56,6 +57,11 @@ type posSave struct {
 func New(ctx context.Context, cfg *config.Config, log *slog.Logger, st *store.Store, md *media.Client) *Server {
 	s := &Server{cfg: cfg, log: log, st: st, media: md, ctx: ctx, worlds: map[int64]*world.World{},
 		posQ: make(chan posSave, 1024), chatQ: make(chan chatSave, 256), joinLim: newLimiter(float64(cfg.JoinRate), float64(cfg.JoinRate)*2), mapLim: newLimiter(1, 5), profLim: newLimiter(0.5, 5)}
+	if id, err := st.InstanceID(ctx); err == nil {
+		s.inst = id
+	} else {
+		log.Error("instance id", "err", err)
+	}
 	go s.savePositions(ctx)
 	go s.reconcileMedia(ctx)
 	return s
@@ -97,6 +103,9 @@ func (s *Server) worldFor(o *store.Office) (*world.World, error) {
 	wc.TickHz, wc.AOICells, wc.MaxPlayers = s.cfg.TickHz, s.cfg.AOICells, s.cfg.MaxPlayers
 	wc.Prox.MaxGroup = s.cfg.MaxGroup
 	w := world.New(wc, o.ID, o.Name, cm, s.media, s.log.With("office", o.ID))
+	if s.inst != "" {
+		w.RoomPrefix = s.inst + ".o" + strconv.FormatInt(o.ID, 10)
+	}
 	if rows, err := s.st.RecentChat(s.ctx, o.ID, 100); err == nil {
 		h := make([]world.ChatEntry, 0, len(rows))
 		for _, r := range rows {
@@ -416,7 +425,7 @@ func (s *Server) reconcileMedia(ctx context.Context) {
 			s.mu.Unlock()
 			for id, w := range ws {
 				rctx, cancel := context.WithTimeout(ctx, 8*time.Second)
-				n, err := s.media.Reconcile(rctx, "o"+strconv.FormatInt(id, 10)+".", w.MediaMembers)
+				n, err := s.media.Reconcile(rctx, w.MediaPrefix()+".", w.MediaMembers)
 				cancel()
 				if err != nil {
 					s.log.Warn("media reconcile", "office", id, "err", err)
