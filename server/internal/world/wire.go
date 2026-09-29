@@ -128,6 +128,23 @@ func (w *World) sendHello(p *Player) {
 		}
 		b = append(b, w.entry(q)...)
 	}
+	b = append(b, `],"chat":[`...)
+	for i, h := range w.hist {
+		if i > 0 {
+			b = append(b, ',')
+		}
+		nb, _ := json.Marshal(h.Name)
+		tb, _ := json.Marshal(h.Text)
+		b = append(b, `{"f":`...)
+		b = strconv.AppendUint(b, uint64(h.From), 10)
+		b = append(b, `,"n":`...)
+		b = append(b, nb...)
+		b = append(b, `,"x":`...)
+		b = append(b, tb...)
+		b = append(b, `,"ts":`...)
+		b = strconv.AppendInt(b, h.TS, 10)
+		b = append(b, '}')
+	}
 	b = append(b, ']', '}')
 	w.sendShared(p, b)
 }

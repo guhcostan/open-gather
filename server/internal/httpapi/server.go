@@ -34,10 +34,18 @@ type Server struct {
 	mu     sync.Mutex
 	worlds map[int64]*world.World
 
-	posQ chan posSave
+	posQ  chan posSave
+	chatQ chan chatSave
 
 	joinLim *limiter
 	mapLim  *limiter
+	profLim *limiter
+}
+
+type chatSave struct {
+	office, user int64
+	text         string
+	ts           int64
 }
 
 type posSave struct {
@@ -47,7 +55,7 @@ type posSave struct {
 
 func New(ctx context.Context, cfg *config.Config, log *slog.Logger, st *store.Store, md *media.Client) *Server {
 	s := &Server{cfg: cfg, log: log, st: st, media: md, ctx: ctx, worlds: map[int64]*world.World{},
-		posQ: make(chan posSave, 1024), joinLim: newLimiter(float64(cfg.JoinRate), float64(cfg.JoinRate)*2), mapLim: newLimiter(1, 5)}
+		posQ: make(chan posSave, 1024), chatQ: make(chan chatSave, 256), joinLim: newLimiter(float64(cfg.JoinRate), float64(cfg.JoinRate)*2), mapLim: newLimiter(1, 5), profLim: newLimiter(0.5, 5)}
 	go s.savePositions(ctx)
 	return s
 }
@@ -57,6 +65,10 @@ func (s *Server) savePositions(ctx context.Context) {
 		select {
 		case <-ctx.Done():
 			return
+		case c := <-s.chatQ:
+			if err := s.st.AppendChat(ctx, c.office, c.user, c.text, c.ts); err != nil {
+				s.log.Error("save chat", "err", err) // never log the message text
+			}
 		case p := <-s.posQ:
 			if err := s.st.SaveLastPos(ctx, p.office, p.user, p.x, p.y); err != nil {
 				s.log.Error("save last position", "err", err)
@@ -84,6 +96,21 @@ func (s *Server) worldFor(o *store.Office) (*world.World, error) {
 	wc.TickHz, wc.AOICells, wc.MaxPlayers = s.cfg.TickHz, s.cfg.AOICells, s.cfg.MaxPlayers
 	wc.Prox.MaxGroup = s.cfg.MaxGroup
 	w := world.New(wc, o.ID, o.Name, cm, s.media, s.log.With("office", o.ID))
+	if rows, err := s.st.RecentChat(s.ctx, o.ID, 100); err == nil {
+		h := make([]world.ChatEntry, 0, len(rows))
+		for _, r := range rows {
+			h = append(h, world.ChatEntry{From: uint32(r.UserID), Name: r.Name, Text: r.Text, TS: r.TS})
+		}
+		w.SeedChat(h)
+	} else {
+		s.log.Error("load chat history", "err", err)
+	}
+	w.OnChat = func(office int64, from uint32, text string, ts int64) {
+		select {
+		case s.chatQ <- chatSave{office, int64(from), text, ts}:
+		default: // history is best effort; never block the world loop
+		}
+	}
 	w.OnLeave = func(office int64, user uint32, x, y float64) {
 		select {
 		case s.posQ <- posSave{office, int64(user), x, y}:
@@ -103,6 +130,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("POST /api/join", s.join)
 	mux.HandleFunc("POST /api/invites", s.createInvite)
 	mux.HandleFunc("PUT /api/map", s.putMap)
+	mux.HandleFunc("PUT /api/profile", s.putProfile)
 	mux.HandleFunc("GET /api/me", s.me)
 	mux.HandleFunc("GET /ws", s.ws)
 	if s.cfg.StaticDir != "" {
@@ -330,4 +358,39 @@ func (s *Server) putMap(w http.ResponseWriter, r *http.Request) {
 	}
 	s.log.Info("map updated", "by", se.UserID, "rev", rev, "props", len(m.Props), "areas", len(m.Areas))
 	writeJSON(w, http.StatusOK, map[string]any{"rev": rev})
+}
+
+// putProfile lets a member change their own display name and avatar.
+func (s *Server) putProfile(w http.ResponseWriter, r *http.Request) {
+	se, err := s.session(r)
+	if err != nil {
+		writeJSON(w, http.StatusUnauthorized, map[string]string{"error": "unauthorized"})
+		return
+	}
+	if !s.profLim.Allow(strconv.FormatInt(se.UserID, 10)) {
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "rate limited"})
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 4096)
+	var req joinReq
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "invalid body"})
+		return
+	}
+	name := store.CleanName(req.Name)
+	if name == "" {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "name required"})
+		return
+	}
+	av := NormalizeAvatar(req.Avatar)
+	if err := s.st.UpdateProfile(r.Context(), se.UserID, name, av); err != nil {
+		writeJSON(w, http.StatusInternalServerError, map[string]string{"error": "internal"})
+		return
+	}
+	if office, err := s.st.OfficeByID(r.Context(), se.OfficeID); err == nil {
+		if wd, err := s.worldFor(office); err == nil {
+			wd.UpdateProfile(r.Context(), uint32(se.UserID), name, av)
+		}
+	}
+	writeJSON(w, http.StatusOK, map[string]any{"name": name, "avatar": json.RawMessage(av)})
 }

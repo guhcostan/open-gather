@@ -42,6 +42,7 @@ const (
 	evToken
 	evSync
 	evMap
+	evProfile
 )
 
 type ev struct {
@@ -78,6 +79,8 @@ type World struct {
 	log      *slog.Logger
 	St       Stats
 	OnLeave  func(officeID int64, userID uint32, x, y float64)
+	OnChat   func(officeID int64, from uint32, text string, tsMillis int64) // persistence hook, must not block
+	hist     []ChatEntry
 
 	players map[uint32]*Player
 	list    []*Player
@@ -210,6 +213,19 @@ func (w *World) ReloadMap(ctx context.Context, cm *gamemap.Compiled) error {
 	}
 }
 
+// SeedChat loads persisted history. Call before Run.
+func (w *World) SeedChat(h []ChatEntry) {
+	if len(h) > chatHistory {
+		h = h[len(h)-chatHistory:]
+	}
+	w.hist = append(w.hist[:0], h...)
+}
+
+// UpdateProfile applies a name/avatar change to an online player (no-op if offline).
+func (w *World) UpdateProfile(ctx context.Context, id uint32, name string, avatar json.RawMessage) {
+	w.post(ctx, ev{kind: evProfile, id: id, info: UserInfo{Name: name, Avatar: avatar}})
+}
+
 func (c *Conn) Sync(ctx context.Context) {
 	c.w.post(ctx, ev{kind: evSync, p: c.P, gen: c.Gen})
 }
@@ -226,6 +242,12 @@ func (w *World) handle(e ev, now time.Time) {
 		return
 	case evMap:
 		e.errc <- w.doReloadMap(e.cm, now)
+		return
+	case evProfile:
+		if p := w.players[e.id]; p != nil {
+			p.Name, p.Avatar = e.info.Name, e.info.Avatar
+			w.rUpd[p.ID] = struct{}{}
+		}
 		return
 	}
 	p := e.p
@@ -475,6 +497,13 @@ func (w *World) doChat(p *Player, scope string, to uint32, text string, now time
 	}
 	switch scope {
 	case "o":
+		w.hist = append(w.hist, ChatEntry{From: p.ID, Name: p.Name, Text: text, TS: now.UnixMilli()})
+		if len(w.hist) > chatHistory {
+			w.hist = append(w.hist[:0], w.hist[len(w.hist)-chatHistory:]...)
+		}
+		if w.OnChat != nil {
+			w.OnChat(w.OfficeID, p.ID, text, now.UnixMilli())
+		}
 		f := mk("o", "")
 		for _, q := range w.list {
 			w.sendShared(q, f)

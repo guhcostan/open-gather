@@ -30,7 +30,9 @@ export async function run() {
 
     await b.page.evaluate(() => window.__og.session.setStatus("busy"));
     await waitFor(async () => (await st(b)).conv === null, { timeout: 8000, what: "B leaves when busy" });
-    check("becoming Ocupado leaves the conversation and stops B's capture", (await st(b)).mic === false);
+    // Leaving is asynchronous (the room disconnects and tracks stop); it must finish within a moment.
+    const stopped = await waitFor(async () => (await st(b)).mic === false && (await b.page.evaluate(() => window.__og.media.room === null || window.__og.media.room === undefined)), { timeout: 4000, what: "capture stops" }).catch(() => false);
+    check("becoming Ocupado leaves the conversation and stops B's capture", !!stopped);
 
     // Invisible: other clients no longer see the avatar; roster shows offline
     await b.page.evaluate(() => window.__og.session.setStatus("invisible"));

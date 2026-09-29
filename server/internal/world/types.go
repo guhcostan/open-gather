@@ -57,6 +57,16 @@ const (
 	boxHalfH = 3.0
 )
 
+// ChatEntry is one office-chat message kept in memory (and persisted by the caller).
+type ChatEntry struct {
+	From uint32
+	Name string
+	Text string
+	TS   int64
+}
+
+const chatHistory = 100
+
 type UserInfo struct {
 	ID     uint32
 	Name   string

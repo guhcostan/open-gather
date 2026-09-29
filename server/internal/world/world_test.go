@@ -490,3 +490,40 @@ func TestReloadMapRelocatesTrappedPlayersAndDissolvesRooms(t *testing.T) {
 		}
 	}
 }
+
+func TestHelloCarriesOfficeChatHistoryAndProfileChangesReachTheRoster(t *testing.T) {
+	h := newHarness(t)
+	h.w.SeedChat([]ChatEntry{{From: 9, Name: "Zed", Text: "bem-vindos", TS: 5}})
+	a := h.add(1, "member", sx, sy)
+	hello := ""
+	for _, f := range drain(a) {
+		if strings.HasPrefix(f, `{"t":"hello"`) {
+			hello = f
+		}
+	}
+	if !strings.Contains(hello, `"chat":[{"f":9,"n":"Zed","x":"bem-vindos","ts":5}]`) {
+		t.Fatalf("hello must carry persisted history: %s", hello[len(hello)-120:])
+	}
+	var saved []string
+	h.w.OnChat = func(_ int64, _ uint32, text string, _ int64) { saved = append(saved, text) }
+	h.w.handle(ev{kind: evChat, p: a, gen: a.gen, s: "o", info: UserInfo{Name: "  oi  "}}, h.now)
+	h.w.handle(ev{kind: evChat, p: a, gen: a.gen, s: "d", id: 99, info: UserInfo{Name: "segredo"}}, h.now)
+	h.w.handle(ev{kind: evChat, p: a, gen: a.gen, s: "g", info: UserInfo{Name: "sem grupo"}}, h.now)
+	if len(saved) != 1 || saved[0] != "oi" || len(h.w.hist) != 2 {
+		t.Fatalf("only office chat is persisted (and trimmed): saved=%v hist=%d", saved, len(h.w.hist))
+	}
+	b := h.add(2, "member", sx+400, sy)
+	drain(a)
+	drain(b)
+	h.w.handle(ev{kind: evProfile, id: 1, info: UserInfo{Name: "Ana Nova", Avatar: json.RawMessage(`{"sk":3}`)}}, h.now)
+	h.run(200 * time.Millisecond)
+	got := false
+	for _, f := range drain(b) {
+		if strings.HasPrefix(f, `{"t":"p"`) && strings.Contains(f, "Ana Nova") && strings.Contains(f, `"sk":3`) {
+			got = true
+		}
+	}
+	if !got {
+		t.Fatal("a profile change must reach everyone's roster")
+	}
+}

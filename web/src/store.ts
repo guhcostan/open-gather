@@ -8,6 +8,7 @@ export interface ChatMsg {
   to?: number;
   text: string;
   ts: number;
+  n?: string; // sender name, for history entries whose author is offline
 }
 
 export type ConvState = "connecting" | "live" | "reconnecting" | "failed";

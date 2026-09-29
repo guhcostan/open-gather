@@ -60,6 +60,7 @@ export interface Hello {
   cfg: { speed: number; tick: number; media: boolean; x: number; y: number; deny: number[] };
   map: MapData;
   roster: Person[];
+  chat?: { f: number; n: string; x: string; ts: number }[];
 }
 
 export interface WorldDelta {

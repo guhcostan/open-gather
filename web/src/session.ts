@@ -77,6 +77,9 @@ class Session {
     switch (m.t) {
       case "hello": {
         const roster = new Map<number, Person>(m.roster.map((p) => [p.id, p]));
+        // The server replays the persisted office chat on every connect; other scopes are kept as they are.
+        const history: ChatMsg[] = (m.chat ?? []).map((c) => ({ id: ++this.chatId, sc: "o", from: c.f, text: c.x, ts: c.ts, n: c.n }));
+        setState({ chat: [...history, ...getState().chat.filter((c) => c.sc !== "o")] });
         setState({ meId: m.you, role: m.role, status: m.status, office: m.office, mediaAvailable: m.cfg.media, roster, phase: "play" });
         view.setMap(m.map, m.cfg.deny);
         view.clearRemote();

@@ -104,7 +104,7 @@ function Chat({ scope, setScope }: { scope: Scope; setScope: (s: Scope) => void 
         {scope.sc === "g" && !conv && <p className="muted">{t("chat.noConv")}</p>}
         {msgs.map((m) => (
           <div key={m.id} className={"msg" + (m.from === me ? " mine" : "")}>
-            <b>{m.from === me ? t("media.you") : name(m.from)}</b>
+            <b>{m.from === me ? t("media.you") : roster.get(m.from)?.n ?? m.n ?? "?"}</b>
             <span>{m.text}</span>
           </div>
         ))}
