@@ -43,6 +43,7 @@ Generated on 2026-09-29 from `pnpm licenses list --prod` and the Go module cache
 | LiveKit server 1.13.7 | Apache-2.0 | run as its own container/process (SFU) |
 | Caddy 2 | Apache-2.0 | optional TLS reverse proxy in `deploy/docker-compose.yml` |
 | Chrome / Puppeteer (tests only) | proprietary browser / Apache-2.0 | used by `e2e/`, not distributed |
+| axe-core (tests only) | MPL-2.0 | injected by the `a11y` scenario in `e2e/` to audit the UI; a dev dependency of `e2e/`, not bundled in the app or distributed |
 
 ## Assets
 

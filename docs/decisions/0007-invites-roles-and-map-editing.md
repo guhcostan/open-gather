@@ -19,4 +19,5 @@ A deployment needs a way to admit people, tell administrators from members, let 
 
 - Install: production cannot be used until the first invite is minted, which is intentional.
 - Security: rate limits on join, map and profile endpoints; bodies are size-limited.
-- Known gaps: no UI to list or revoke invites, to change someone's role or to remove a member yet; an edit that fails to save after being applied is reported to the administrator but not rolled back in memory.
+- Invite listing/revocation, role changes and member removal were added later, see [0009](0009-administration-and-accessibility.md).
+- Known gaps: an edit that fails to save after being applied is reported to the administrator but not rolled back in memory.

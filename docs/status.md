@@ -8,13 +8,15 @@ Environment: macOS (Apple M1 Pro, arm64), Go 1.26.5, Google Chrome with fake cam
 
 | Check | What it proves |
 | --- | --- |
-| Go tests (`server/`, also with `-race`): world rules, dead reckoning, map reload, chat history, store (sessions, invites with a 40-way race, chat pruning, backup), media tokens and reconciliation | rules and invariants hold; media revocation is retried |
+| Go tests (`server/`, also with `-race`): world rules, dead reckoning, map reload, chat history, store (sessions, invites with a 40-way race, chat pruning, backup, roles and the last-admin guard, member removal, invite revocation, audit trail), the admin HTTP API (403/401 for non-admins, role change, removal, invite lifecycle, /metrics policy), production configuration guard rails, eviction from the world, media tokens and reconciliation | rules and invariants hold; media revocation is retried |
 | Browser scenario `proximity` | movement sync, remote avatars tracked within a few pixels, a call forms ~1.6 s after approaching with **real audio and video RTP**, leaving revokes the SFU and stops capture |
 | `consent` | nothing without opt-in; busy blocks automatic entry and leaves calls; invisible hides the avatar |
 | `rooms` | admin-only room enforced by the server against raw inputs; tokens are scoped to one room; screen share is received; leaving a private room revokes access |
 | `access` | only admins mint invites; invite use limits; production refuses insecure configuration; CLI invite and online backup |
 | `editor` | real UI clicks paint walls and create a room; others get it live; the server enforces it; it persists across a restart |
 | `social` | office/direct/conversation chat scopes and privacy, rate limit, 500-character cut, persisted office history, profile change, desk owner label |
+| `admin` | through the real UI: members list, promote/demote an online member (evicted, reconnects with the new role), the last admin cannot be demoted, invite create/list/revoke (secret never listed, revoked link returns 403), activity log, removing a member sends them to the join screen with a notice and kills their session |
+| `a11y` | axe-core (WCAG 2.1 A/AA + best-practice rules) reports zero violations on the join screen, people and chat panels, status menu, settings, administration (three tabs), consent dialog and the map editor; dialogs trap focus and close with Escape |
 | `security` | replayed token connects but is evicted by the reconciler within seconds; edited token rejected; expired token rejected only after LiveKit's 60 s clock-skew tolerance (found by this test, now documented) |
 | `resilience` | WebSocket drop keeps position, call and audio; flooding cannot speed a player up; oversized frames close the socket; session and position survive a server restart |
 | Docker | image builds (24 MB, non-root); the local Compose stack passes `proximity`, `consent` and `rooms`; in the container, production mode returns 403 without an invite, issues a Secure cookie with one, and refuses insecure configuration |
@@ -33,7 +35,8 @@ Scenario A (no media) up to 1,000 bots and a 500-client reconnect storm, with th
 - **The 2 vCPU / 4 GB reference server** and a load generator on a separate machine. A two-hour soak (only a 10-minute, 300-bot presence soak was run: flat goroutines/RSS, see benchmark-results.md).
 - **Browser FPS/CPU on the reference laptop.** Measured only on an Apple M1 Pro: 59.9 FPS (normal) and 29.6 FPS (economy, capped) with 300 bots, see [Benchmark results](benchmark-results.md).
 - **The production Compose file with Caddy, real TLS and TURN on a public host.**
-- No UI to list or revoke invites, change roles or remove members; no moderation or audit log.
+- **Moderation is minimal:** admins can remove members and revoke invites, but there is no ban list, temporary mute, reporting flow or content moderation; the audit log is not tamper-proof.
+- **Accessibility:** only the automated axe-core audit and keyboard checks were run. The game canvas is not operable with a screen reader and nobody has tested with NVDA, VoiceOver or JAWS.
 - **Cost numbers:** only the formula and `bench/cost.py` exist; no prices were verified.
 - Only English is shipped (the i18n dictionary mechanism exists for more locales).
 

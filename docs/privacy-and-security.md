@@ -19,7 +19,8 @@ This page states what the current code does and, just as important, what it does
 | Data | Where | Retention |
 | --- | --- | --- |
 | Names, avatars, roles, last position | SQLite | until the database is deleted |
-| Sessions and invites | SQLite, **hashed** | until expiry |
+| Sessions and invites | SQLite, **hashed** | until expiry (an admin can revoke an invite or remove a member, which deletes their sessions) |
+| Admin audit log (actor, action, target name, short detail; no message content) | SQLite | last 2,000 entries per office |
 | **Office chat** | SQLite | last 500 messages per office; 100 replayed on connect |
 | Direct and conversation chat | memory only, never stored | gone when delivered |
 | Audio, video, screen share | not recorded; only flows through the SFU | none |
@@ -28,9 +29,9 @@ This page states what the current code does and, just as important, what it does
 
 - **TURN and ICE** behaviour behind restrictive firewalls and NATs. TURN over TLS on port 443 is not configured. Documented in [deploy/README.md](../deploy/README.md), not tested.
 - **Up to one reconcile interval (10 s) of exposure** remains for a replayed, unexpired token.
-- **Invite management UI**, role changes and member removal do not exist yet; rotate by expiring invites.
-- **Abuse handling:** rate limits exist, but there is no moderation, blocklist or audit log.
-- **`/metrics` has no authentication.** The provided Caddyfile hides it from the public hostname; keep it that way.
+- **Abuse handling is minimal:** administrators can remove a member (their sessions die and their socket closes at once) and revoke invites, but there is no ban list (a removed person can rejoin with any valid invite), no temporary mute or kick, no reporting flow and no content moderation. Office chat lines of a removed member stay in the last 500 messages until pruned.
+- **The audit log is administrative only** (joins by invite, role changes, removals, invite creation and revocation, map edits). It stores who did what and when, never message content, and keeps the last 2,000 entries per office. It is not tamper-proof: anyone with database access can edit it.
+- **`/metrics`** requires a bearer token (`OG_METRICS_TOKEN`, at least 16 characters) when one is set, is open in dev without one, and is **disabled (404) in production without one**. The Caddyfile also hides it from the public hostname; keep both.
 - **No independent security review.** Do not run this as a multi-tenant or public service.
 
 ## Reporting a vulnerability

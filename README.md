@@ -58,7 +58,7 @@ Virtual offices are usually heavy on the browser, the server and the bill. Open 
 | **Consent and status** | Nothing is captured before you opt in. Available, busy, away and invisible; busy never joins a call automatically. |
 | **Meeting rooms** | Map areas with explicit access rules (open, members, admins, list) enforced by the server. |
 | **Chat** | Office (last messages are kept), conversation and direct messages (never stored). |
-| **Invites and roles** | Administrators mint invite links; members and administrators; production joins require an invite. |
+| **Invites, roles and administration** | Administrators mint, list and revoke invite links, promote or demote members, remove people and read an activity log; production joins require an invite. |
 | **Office editor** | Administrators paint walls, place objects, draw meeting rooms with access rules and assign desks; changes go live for everyone and persist. |
 | **Profile** | Change your name and avatar any time. |
 | **Screen sharing** | Inside a live conversation. |
@@ -129,7 +129,7 @@ Last updated 2026-09-29. Everything below was executed on macOS (Apple M1 Pro), 
 | Area | State |
 | --- | --- |
 | Go tests (world rules, proximity groups, dead reckoning, map reload, store, media tokens and reconciliation), also with the race detector | **pass** |
-| Real-browser suite (Chrome + real LiveKit): proximity calls with real audio/video RTP, consent and busy, private rooms, screen share, invites and admin-only actions, map editor, chat and profile, token replay/tamper/expiry attacks, reconnection and restart persistence | **pass** |
+| Real-browser suite (Chrome + real LiveKit): proximity calls with real audio/video RTP, consent and busy, private rooms, screen share, invites and admin-only actions, map editor, chat and profile, token replay/tamper/expiry attacks, reconnection and restart persistence, member administration and an automated accessibility audit (axe-core) | **pass** |
 | Docker: image builds, Compose local stack passes the browser scenarios, production mode in the container refuses insecure config and requires invites | **verified locally**; the production Compose file with Caddy/TLS/TURN on a public host is **not tested** |
 | Load, scenario A (no media, up to 1,000 bots) and a 500-client mass reconnect | **run locally, generator on the same host**: not a capacity claim, see [results](docs/benchmark-results.md) |
 | Media through a real SFU with synthetic Opus/VP8 (scenarios B and D, a scaled C): clean up to 40 people in calls, 20-person meeting with 6-video cap and a screen share, all 0 % loss | **run locally, generator on the same laptop**; full-size C (100 people) attempted and **invalid** on one machine |

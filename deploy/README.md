@@ -35,7 +35,7 @@ docker compose -f deploy/docker-compose.local.yml up --build
 
 ### Operations
 
-- Health: `/healthz` (liveness), `/readyz` (database reachable), `/metrics` (Prometheus text; blocked on the public hostname by the Caddyfile, scrape `opengather:8080/metrics` from inside the network). Logs are structured JSON on stdout and contain no chat content and no tokens.
+- Health: `/healthz` (liveness), `/readyz` (database reachable), `/metrics` (Prometheus text; **disabled unless `METRICS_TOKEN` is set** in `.env`, at least 16 characters; then scrape `opengather:8080/metrics` from inside the network with `Authorization: Bearer <token>`; also blocked on the public hostname by the Caddyfile). Logs are structured JSON on stdout and contain no chat content and no tokens.
 - **Backup** (consistent while running): `docker compose … run --rm opengather -backup /data/backup-$(date +%F).db`, then copy it out of the volume (`docker compose … cp` or a bind mount). Store copies off the host.
 - **Restore:** stop the stack, replace `/data/opengather.db` in the volume with the backup (delete any `-wal`/`-shm` files next to it), start the stack. Everyone is signed out of nothing: sessions are in the database.
 - **Upgrade:** take a backup, `git pull`, `docker compose … up -d --build`. Schema migrations run automatically at start, inside a transaction, forward-only. To roll back the code, restore the backup taken before the upgrade.

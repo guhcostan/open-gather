@@ -1,6 +1,6 @@
 # WebSocket protocol
 
-JSON text frames, short field names (see [decision 0004](0004-json-protocol.md)). The connection is authenticated by the session cookie. The server closes with code **4001** when a newer connection replaces the session, **4002** when a client is too slow and **1009** when a frame is too large.
+JSON text frames, short field names (see [decision 0004](0004-json-protocol.md)). The connection is authenticated by the session cookie. The server closes the socket with a code that tells the client what to do ([close codes](#websocket-close-codes)); **1009** means a frame was too large.
 
 Every connection starts with a full `hello`; the same happens on every reconnect, so the client never needs to merge state across connections.
 
@@ -47,13 +47,30 @@ Clients keep moving the entity with the same rules as the server (speed from `cf
 | Endpoint | Auth | Purpose |
 | --- | --- | --- |
 | `GET /healthz`, `GET /readyz` | none | liveness, readiness (database) |
-| `GET /metrics` | none (keep it off the public hostname) | Prometheus text |
+| `GET /metrics` | bearer `OG_METRICS_TOKEN`; open in dev; **disabled (404) in production without a token** | Prometheus text |
 | `POST /api/join` | invite (production) | create a member; `{name, avatar, invite}`; sets the session cookie |
 | `GET /api/me` | cookie | current session or `{"authenticated": false}` |
 | `PUT /api/profile` | cookie | change your name and avatar |
-| `POST /api/invites` | admin | mint an invite `{role, maxUses, hours}` |
+| `POST /api/invites` | admin | mint an invite `{role, maxUses, hours}`; the secret is returned once |
+| `GET /api/admin/invites` | admin | list invites (id, role, uses, expiry, creator, status); never the secret |
+| `DELETE /api/admin/invites/{id}` | admin | revoke an invite |
+| `GET /api/admin/members` | admin | list members `{members: [{id, name, role, joinedAt}], you}` |
+| `PATCH /api/admin/members/{id}` | admin | change a role `{role: "admin"|"member"}`; the member is disconnected and reconnects with the new role. The last admin cannot be demoted (409) |
+| `DELETE /api/admin/members/{id}` | admin | remove a member: sessions deleted, socket closed, call ended. Not yourself, not the last admin (409) |
+| `GET /api/admin/audit` | admin | the latest 100 admin actions, newest first |
 | `PUT /api/map` | admin | validate, apply and save a new map |
 | `GET /ws` | cookie | the world WebSocket |
+
+## WebSocket close codes
+
+| Code | Meaning | Client behaviour |
+| --- | --- | --- |
+| 4001 | replaced by a newer connection of the same user (another tab) | stop, show "session opened in another tab" |
+| 4002 | the client could not keep up (reliable queue overflow) | reconnect with backoff |
+| 4003 | an admin removed the member or changed their role | ask `/api/me`: still a member -> reconnect at once; otherwise go to the join screen with a notice |
+| 1013 | server closing the connection for another reason | reconnect with backoff |
+
+The reason is recorded on the world goroutine right before the outbound channel closes, so the writer always sends the right code.
 
 ## Limits
 
@@ -66,5 +83,6 @@ Clients keep moving the entity with the same rules as the server (speed from `cf
 | Outbound queue per client | 128 frames |
 | Reconnect grace before removal | 10 s |
 | Join / map / profile requests | rate limited per IP or user; bodies capped (4 KB, 512 KB, 4 KB) |
+| Admin API | 5 requests/s per admin, burst 20; bodies capped at 256 B (role change) |
 
 Sustained violations disconnect the client. Text is trimmed of control characters on the server.

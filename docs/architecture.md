@@ -8,7 +8,7 @@ server/   Go: HTTP + WebSocket, authoritative world, SQLite, LiveKit integration
   internal/world/        simulation, spatial grid, proximity groups, backpressure
   internal/gamemap/      map format, validation, collision grids, default office
   internal/media/        LiveKit access tokens and participant removal
-  internal/store/        SQLite (WAL), migrations, sessions, invites, chat history
+  internal/store/        SQLite (WAL), migrations, sessions, invites, chat history, members and the admin audit log
   internal/httpapi/      routes, WebSocket session, limits, metrics, media reconciler
   internal/config/       environment configuration
   cmd/loadgen/           WebSocket load generator (benchmarks)
@@ -54,4 +54,4 @@ None of this is implemented yet; it is just kept possible. The app server also r
 
 ## Decisions
 
-The reasoning behind the main choices is recorded as decision records: [0001 stack](0001-stack.md), [0002 authoritative world](0002-authoritative-world.md), [0003 media rooms](0003-media-rooms.md), [0004 JSON protocol](0004-json-protocol.md), [0005 minimal LiveKit client](0005-minimal-livekit-client.md), [0006 state-change records](0006-state-change-records.md), [0007 invites, roles and map editing](0007-invites-roles-and-map-editing.md), [0008 token lifetime and reconciliation](0008-token-lifetime-and-reconciliation.md).
+The reasoning behind the main choices is recorded as decision records: [0001 stack](0001-stack.md), [0002 authoritative world](0002-authoritative-world.md), [0003 media rooms](0003-media-rooms.md), [0004 JSON protocol](0004-json-protocol.md), [0005 minimal LiveKit client](0005-minimal-livekit-client.md), [0006 state-change records](0006-state-change-records.md), [0007 invites, roles and map editing](0007-invites-roles-and-map-editing.md), [0008 token lifetime and reconciliation](0008-token-lifetime-and-reconciliation.md), [0009 administration and accessibility](0009-administration-and-accessibility.md).

@@ -20,8 +20,8 @@ It is **not** affiliated with the original Gather product. Never copy its brand,
 | `server/internal/world` | authoritative simulation: movement, spatial grid, areas of interest, proximity groups, backpressure, stats |
 | `server/internal/gamemap` | map format, validation, collision grids, default office |
 | `server/internal/media` | LiveKit access tokens and participant removal |
-| `server/internal/store` | SQLite (WAL), embedded migrations, sessions |
-| `server/internal/httpapi` | routes, WebSocket session, rate limits, Prometheus metrics |
+| `server/internal/store` | SQLite (WAL), embedded migrations, sessions, members, invites, chat history, admin audit log |
+| `server/internal/httpapi` | routes, admin API (`admin.go`), WebSocket session, rate limits, Prometheus metrics |
 | `server/internal/config` | environment configuration and production guard rails |
 | `web/src/game` | PixiJS world (`WorldView.ts`), avatar textures, map texture |
 | `web/src/game/art` | pure-canvas painters: `pixel.ts` helpers, `tiles.ts` floors/walls/props/map baker, `characters.ts` sprites |
@@ -66,6 +66,12 @@ Art (output goes to `site/assets/`; details in `docs/art-style.md`):
 8. **Local dev and production must stay clearly distinct.** Production mode must keep refusing insecure defaults.
 9. **No content or secrets in logs.** Never log chat text, tokens, keys or secrets.
 10. **Original assets only.** Any third-party asset or dependency needs a compatible licence and must be documented. The visual *style* may be inspired by 2000s handheld RPGs, but never use, trace, extract or recolour assets from Pokémon or any Nintendo/Game Freak (or other) game; draw everything in code under `web/src/game/art`.
+
+## Administration and accessibility rules
+
+- Every admin action that changes access or content of the office calls `audit`; audit rows never contain message text. A change that affects an online member's access also calls `evict`.
+- The last administrator can never be demoted or removed; keep that check in the store transaction.
+- Interactive UI needs an accessible name, dialogs use `Modal` (focus trap, Escape), and the `a11y` e2e scenario must stay at zero axe violations.
 
 ## Conventions
 
