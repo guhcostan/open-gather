@@ -1,0 +1,20 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <title>Open Gather · art preview</title>
+    <style>
+      body { margin: 0; background: #1b1830; color: #f2eefc; font: 14px system-ui; }
+      h2 { margin: 16px; font-weight: 600; }
+      canvas { image-rendering: pixelated; display: block; margin: 8px 16px; }
+      .row { display: flex; flex-wrap: wrap; gap: 8px 24px; }
+    </style>
+  </head>
+  <body>
+    <h2>Sprites (idle + walk, four directions)</h2>
+    <div class="row" id="sheets"></div>
+    <h2>Map</h2>
+    <canvas id="map"></canvas>
+    <script type="module" src="./art-preview.ts"></script>
+  </body>
+</html>

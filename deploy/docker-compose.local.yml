@@ -1,0 +1,28 @@
+# LOCAL / EVALUATION ONLY. Uses the public LiveKit dev key pair, plain HTTP and no TLS.
+# Camera/microphone work on http://localhost because browsers treat localhost as a secure context.
+# Never expose this stack to the internet. For a real deployment use docker-compose.yml.
+#   docker compose -f deploy/docker-compose.local.yml up --build
+name: opengather-local
+services:
+  opengather:
+    build: { context: .., dockerfile: deploy/Dockerfile }
+    environment:
+      OG_ENV: dev
+      OG_ADDR: ":8080"
+      OG_ALLOWED_ORIGINS: "localhost:*,127.0.0.1:*"
+      LIVEKIT_URL: ws://localhost:7880
+      LIVEKIT_API_URL: http://livekit:7880
+      LIVEKIT_API_KEY: devkey
+      LIVEKIT_API_SECRET: secret
+    ports: ["127.0.0.1:8080:8080"]
+    volumes: ["og-data:/data"]
+    depends_on: [livekit]
+  livekit:
+    image: livekit/livekit-server:v1.13.7
+    command: ["--dev", "--bind", "0.0.0.0", "--node-ip", "127.0.0.1"]
+    ports:
+      - "127.0.0.1:7880:7880"
+      - "7881:7881"
+      - "7882:7882/udp"
+volumes:
+  og-data:

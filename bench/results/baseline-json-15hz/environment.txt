@@ -1,0 +1,7 @@
+date:      2026-09-29T12:40:50Z
+os:        Darwin 25.5.0 arm64
+cpu:       Apple M1 Pro (10 logical cores)
+ram:       16 GB
+go:        go version go1.26.5 darwin/arm64
+ulimit -n: 1048575
+git:       no commit

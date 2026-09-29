@@ -1,0 +1,102 @@
+/*
+ * Handheld-RPG skin. Loaded after styles.css and only overrides it (colours, frames, font),
+ * so layout rules stay in one place. The conventions follow 2000s handheld RPG menus: white
+ * message frames with a coloured ring and dark lines on both sides, cream panels with an orange
+ * header tab, blue message bars, teal scanline backgrounds and a black triangle cursor.
+ * Every pixel here is original CSS. Font: Pixelify Sans, SIL Open Font License 1.1
+ * (see assets/fonts/PixelifySans-OFL.txt).
+ */
+@font-face { font-family: "Pixelify Sans"; font-weight: 400; font-display: swap; src: url("./assets/fonts/pixelify-sans-latin-400-normal.woff2") format("woff2"); }
+@font-face { font-family: "Pixelify Sans"; font-weight: 700; font-display: swap; src: url("./assets/fonts/pixelify-sans-latin-700-normal.woff2") format("woff2"); }
+
+:root {
+  --dark: #383438; --ink: #484850; --muted: #7a7c8c; --shade: #c8ccd4;
+  --coral: #e8583c; --orange: #f0a038; --cream: #fff8c8; --cream2: #ffeca0; --blue: #2c62c8; --blue-hi: #a8c8f8; --lav: #a0a8e8;
+  --bg: #1b1830; --bg2: #ffffff; --panel: #ffffff; --panel2: #eef0f8; --line: var(--dark);
+  --amber: #f0a038; --teal: #1d8f7c; --red: #e04a3c; --green: #3c9c4c;
+  /* frame(ring colour): dark outside line, coloured ring (the border), dark inside line, light-grey inner shade */
+  --f-out: 0 0 0 2px var(--dark), 3px 5px 0 2px rgba(20, 16, 40, .35);
+  --f-in: inset 0 0 0 2px var(--dark), inset -4px -4px 0 0 var(--shade);
+}
+html, body, button, input, select, textarea { font-family: "Pixelify Sans", ui-monospace, Menlo, monospace; }
+body { font-size: 16px; letter-spacing: .2px; color: var(--ink); }
+h1, h2, h3 { font-weight: 700; }
+:focus-visible { outline: 3px solid var(--coral); outline-offset: 1px; }
+.brand, .pill, .panel, .modal, .join-card, .menu, .toast, .msg, .btn, .chip, .round, .tabs button, .primary, .field input, .field select, .search, .composer input, .search input { text-shadow: 1px 1px 0 rgba(120, 124, 150, .25); }
+
+/* message frames: white body, coloured ring */
+.brand, .pill, .toast, .status-menu .btn, .menu {
+  background: #fff; color: var(--ink); border: 4px solid var(--coral); border-radius: 6px; box-shadow: var(--f-out), var(--f-in);
+}
+.brand { font-weight: 700; }
+.pill.warn { background: #fff0c8; }
+.menu { border-color: var(--orange); }
+
+/* cream panels with an orange header tab */
+.panel { background: var(--cream); color: var(--ink); border: 4px solid var(--orange); border-radius: 6px; box-shadow: var(--f-out), inset 0 0 0 2px var(--dark), inset 0 0 0 4px #fff6a8; }
+.panel h2 { background: var(--orange); color: #3a2400; border: 3px solid var(--dark); border-radius: 6px; padding: 2px 10px; width: max-content; text-shadow: none; margin: -2px 0 2px; }
+.panel h2 small { color: #6a4a10; }
+.people li:hover { background: #fff; }
+.st, .muted { color: var(--muted); } .nm em { color: var(--muted); }
+
+/* modals and the join card: blue / teal rings */
+.modal { background: #fff; border: 4px solid #3c78d8; border-radius: 8px; box-shadow: var(--f-out), var(--f-in); color: var(--ink); }
+.join-card { background: #fff; border: 4px solid var(--coral); border-radius: 8px; box-shadow: var(--f-out), var(--f-in); color: var(--ink); }
+.scrim { background: rgba(16, 12, 32, .6); }
+
+/* buttons: pills with a hard shadow; the primary one is a blue selection pill */
+.btn, .chip, .round, .tabs button { background: #fff; color: var(--ink); border: 3px solid var(--dark); border-radius: 999px; box-shadow: 0 3px 0 var(--dark); }
+.tabs button { border-radius: 10px; width: 46px; height: 46px; }
+.btn:hover, .round:hover:not(:disabled), .chip:hover, .tabs button:hover { background: var(--cream); }
+.btn:active, .round:active, .chip:active { transform: translateY(2px); box-shadow: 0 1px 0 var(--dark); }
+.primary { background: var(--blue); color: #fff; text-shadow: 1px 1px 0 #142860; border: 3px solid var(--dark); border-radius: 999px; box-shadow: inset 0 3px 0 rgba(255, 255, 255, .28), 0 4px 0 var(--dark); font-weight: 700; letter-spacing: .5px; }
+.primary:hover { background: #3c74dc; } .primary:active { transform: translateY(3px); box-shadow: inset 0 3px 0 rgba(255, 255, 255, .28), 0 1px 0 var(--dark); }
+.chip { padding: 2px 12px; font-size: 14px; box-shadow: 0 2px 0 var(--dark); }
+.chip.on, .tabs button.on { background: var(--orange); color: #3a2400; }
+.badge { background: var(--coral); border: 2px solid var(--dark); color: #fff; }
+.round.off { background: var(--coral); color: #fff; } .round.on { background: #6ed07c; color: #12401c; }
+.round.danger { color: #b02418; } .round.ghost { background: #fff; }
+.composer button { background: var(--blue); color: #fff; border: 3px solid var(--dark); border-radius: 999px; }
+.field input, .field select, .search, .composer input, .search input { background: #fff; color: var(--ink); border: 3px solid var(--dark); border-radius: 6px; box-shadow: inset 2px 2px 0 rgba(20, 16, 40, .12); }
+.field { color: var(--muted); }
+.error { color: #c02c20; }
+
+/* the bottom bar: blue message strips with white text, like a dialogue line */
+.bar-row { background: var(--cream); border: 4px solid var(--orange); border-radius: 999px; box-shadow: var(--f-out), inset 0 0 0 2px var(--dark); }
+.convline, .bar-error {
+  background: var(--blue); color: #fff; text-shadow: 1px 1px 0 #142860; border: 3px solid var(--blue-hi); border-radius: 6px; box-shadow: 0 0 0 2px #182468, 3px 4px 0 2px rgba(20, 16, 40, .3);
+}
+.bar-error { background: #c8402c; border-color: #f8b8a8; text-shadow: 1px 1px 0 #601408; }
+.convline { font-size: 14px; }
+.hint { color: #fff; text-shadow: 0 2px 0 rgba(20, 16, 40, .85); }
+.rec { background: #ff5a4a; }
+
+/* menu cursor: a black triangle */
+.menu button { color: var(--ink); border-radius: 4px; }
+.menu button:hover, .menu button[aria-selected="true"] { background: var(--cream); }
+.menu button:hover::before, .menu button[aria-selected="true"]::before {
+  content: ""; border-left: 8px solid var(--dark); border-top: 5px solid transparent; border-bottom: 5px solid transparent; margin-right: 6px; margin-left: -6px;
+}
+.acts button { color: var(--muted); } .acts button:hover { background: #fff; color: var(--ink); }
+
+/* chat bubbles */
+.msg { background: #fff; color: var(--ink); border: 2px solid var(--dark); border-radius: 8px; }
+.msg b { color: #2a5ed0; } .msg.mine { background: #fff6c0; } .msg.mine b { color: #d03c28; }
+
+/* video tiles */
+.tile { background: #1c2030; border: 4px solid var(--dark); border-radius: 6px; box-shadow: 3px 4px 0 2px rgba(20, 16, 40, .3); }
+.tile.speaking { border-color: #48d088; box-shadow: 0 0 0 3px #48d08880; }
+.tag { color: #fff; background: rgba(20, 16, 40, .78); text-shadow: none; }
+.avatar-fallback { color: var(--orange); }
+.preview { background: #1c2030; border: 3px solid var(--dark); border-radius: 6px; }
+.meter { background: #fff; border: 2px solid var(--dark); } .meter i { background: #48c060; }
+
+/* join screen: teal scanlines, like a menu background */
+.join { background: repeating-linear-gradient(0deg, #5cbcac 0 2px, #50aa9c 2px 4px); }
+.join-card h1 { letter-spacing: 1px; }
+.ae-preview { background: repeating-conic-gradient(#f4ecc0 0% 25%, #ece0ac 0% 50%) 0 0 / 16px 16px; border: 3px solid var(--dark); border-radius: 6px; }
+.sw { border: 3px solid var(--dark); border-radius: 4px; }
+.sw.on { border-color: var(--coral); box-shadow: 0 0 0 2px #fff, 0 0 0 4px var(--dark); }
+.ae-label { color: var(--muted); }
+
+.debug { font-family: ui-monospace, Menlo, monospace; text-shadow: none; }

@@ -1,0 +1,8 @@
+.run
+bin
+server/data
+web/node_modules
+web/dist
+e2e/node_modules
+site/node_modules
+site/dist

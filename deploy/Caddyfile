@@ -1,0 +1,11 @@
+{$APP_DOMAIN} {
+	encode zstd gzip
+	# metrics stay on the internal network (scrape opengather:8080/metrics from inside)
+	@internal path /metrics
+	respond @internal 404
+	reverse_proxy opengather:8080
+}
+
+{$LIVEKIT_DOMAIN} {
+	reverse_proxy livekit:7880
+}

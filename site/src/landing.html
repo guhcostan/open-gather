@@ -1,0 +1,175 @@
+<main id="main">
+  <section class="hero">
+    <div class="wrap hero-grid">
+      <div class="hero-copy">
+        <p class="eyebrow">Open source · AGPL-3.0 · Alpha</p>
+        <h1>Your team's <span class="teal">virtual office</span>, in pixel art. Light on every resource.</h1>
+        <p class="lead">Walk around a 2D office, bump into teammates and talk by proximity. Built with Go, PixiJS and a real SFU, and designed from day one to be cheap to host.</p>
+        <div class="cta">
+          <a class="btn primary" href="docs/getting-started/">Get started</a>
+          <a class="btn" href="{{REPO}}" rel="noopener">View on GitHub</a>
+        </div>
+        <ul class="chips" aria-label="Stack">
+          <li>Go</li><li>React</li><li>PixiJS</li><li>LiveKit</li><li>SQLite</li>
+        </ul>
+      </div>
+      <div class="stage-wrap" role="img" aria-label="Animated pixel-art office: teammates walk between desks while two colleagues chat">
+        <div class="stage">
+          <div class="walker w1"><i class="spr marina r"></i><i class="spr marina l"></i></div>
+          <div class="walker w2"><i class="spr carla r"></i><i class="spr carla l"></i></div>
+          <i class="spr diego idle" style="left:452px;top:136px;background-position-y:-104px"></i>
+          <i class="spr elisa idle" style="left:512px;top:146px;background-position-y:-52px"></i>
+          <span class="bubble b1" style="left:410px;top:96px">Standup in 5?</span>
+          <span class="bubble b2" style="left:500px;top:112px">On my way!</span>
+          <span class="live" style="left:456px;top:196px"><i></i>LIVE</span>
+        </div>
+      </div>
+    </div>
+  </section>
+
+  <section class="targets" aria-label="Design targets">
+    <div class="wrap">
+      <ul>
+        <li><b>&lt; 150 ms</b><span>remote movement p95</span></li>
+        <li><b>60 / 30 FPS</b><span>normal / economy mode</span></li>
+        <li><b>10-15 Hz</b><span>network updates</span></li>
+        <li><b>≤ 8</b><span>people per proximity group</span></li>
+      </ul>
+      <p class="note">Design <strong>targets</strong> to validate, not measured results. Benchmarks are on the <a href="docs/status/">roadmap</a>.</p>
+    </div>
+  </section>
+
+  <section id="features" class="section">
+    <div class="wrap">
+      <h2>Everything a virtual office needs</h2>
+      <p class="sub">A complete loop from avatar to conversation, with the expensive parts handled by the right tool.</p>
+      <div class="cards">
+        <article class="card"><h3>Walk and meet</h3><p>Keyboard movement with collisions, a following camera and smooth remote avatars through prediction and interpolation.</p></article>
+        <article class="card"><h3>Proximity conversations</h3><p>Audio and video start when you get close and stop when you leave, with hysteresis so nothing flaps at the edge.</p></article>
+        <article class="card"><h3>Consent and status</h3><p>Nothing is captured before you opt in. Busy, away and invisible people are never pulled into a call.</p></article>
+        <article class="card"><h3>Meeting rooms</h3><p>Areas with explicit access: open, members only, admins only or an allow list, enforced on the server.</p></article>
+        <article class="card"><h3>Chat and screen sharing</h3><p>Office chat, conversation chat and direct messages, plus screen sharing inside a live conversation.</p></article>
+        <article class="card"><h3>Self-hosted</h3><p>One Go binary, SQLite in WAL mode and a self-hosted LiveKit. No paid service is required to run the whole product.</p></article>
+      </div>
+    </div>
+  </section>
+
+  <section id="how" class="section alt">
+    <div class="wrap">
+      <h2>Light by design</h2>
+      <p class="sub">Three concerns, kept apart: the world, the data and the media.</p>
+      <figure class="diagram">
+        <svg viewBox="0 0 900 340" role="img" aria-labelledby="dg-t dg-d" xmlns="http://www.w3.org/2000/svg">
+          <title id="dg-t">Architecture diagram</title>
+          <desc id="dg-d">The browser talks to the Go server over WebSocket and to the LiveKit SFU over WebRTC. The Go server stores data in SQLite and issues scoped tokens to LiveKit.</desc>
+          <defs><marker id="ar" viewBox="0 0 10 10" refX="9" refY="5" markerWidth="7" markerHeight="7" orient="auto-start-reverse"><path d="M0 0L10 5L0 10z" fill="#a49fc4"/></marker></defs>
+          <g font-family="ui-sans-serif,system-ui,sans-serif" font-size="15" fill="#f2eefc">
+            <rect x="20" y="40" width="230" height="260" rx="8" fill="#241f42" stroke="#3a3560" stroke-width="3"/>
+            <text x="135" y="72" text-anchor="middle" font-weight="700" font-size="17">Browser</text>
+            <rect x="40" y="94" width="190" height="52" rx="6" fill="#120f24" stroke="#3a3560"/><text x="135" y="125" text-anchor="middle">React UI</text>
+            <rect x="40" y="158" width="190" height="52" rx="6" fill="#120f24" stroke="#3cc9b0"/><text x="135" y="189" text-anchor="middle">PixiJS world</text>
+            <rect x="40" y="222" width="190" height="52" rx="6" fill="#120f24" stroke="#ffb84d"/><text x="135" y="253" text-anchor="middle">LiveKit client</text>
+
+            <rect x="350" y="40" width="230" height="170" rx="8" fill="#241f42" stroke="#3a3560" stroke-width="3"/>
+            <text x="465" y="72" text-anchor="middle" font-weight="700" font-size="17">Go server</text>
+            <text x="465" y="108" text-anchor="middle">Authoritative world</text>
+            <text x="465" y="134" text-anchor="middle">Spatial grid + interest</text>
+            <text x="465" y="160" text-anchor="middle">Proximity groups</text>
+            <text x="465" y="186" text-anchor="middle">Token issuer</text>
+
+            <rect x="350" y="240" width="230" height="60" rx="8" fill="#241f42" stroke="#3a3560" stroke-width="3"/>
+            <text x="465" y="276" text-anchor="middle">SQLite (WAL)</text>
+
+            <rect x="670" y="180" width="210" height="120" rx="8" fill="#241f42" stroke="#ffb84d" stroke-width="3"/>
+            <text x="775" y="222" text-anchor="middle" font-weight="700" font-size="17">LiveKit SFU</text>
+            <text x="775" y="252" text-anchor="middle">Small rooms, on demand</text>
+            <text x="775" y="276" text-anchor="middle">Simulcast, dynacast</text>
+          </g>
+          <g stroke="#a49fc4" stroke-width="3" fill="none" marker-end="url(#ar)" marker-start="url(#ar)">
+            <path d="M232 184 H348"/>
+            <path d="M465 212 V238"/>
+            <path d="M232 248 C 400 330, 560 330, 668 260" stroke="#ffb84d"/>
+          </g>
+          <path d="M582 150 C 640 150, 640 190, 668 200" stroke="#a49fc4" stroke-width="3" fill="none" stroke-dasharray="6 6" marker-end="url(#ar)"/>
+          <g font-family="ui-sans-serif,system-ui,sans-serif" font-size="13" fill="#a49fc4">
+            <text x="290" y="174" text-anchor="middle">WebSocket</text>
+            <text x="450" y="330" text-anchor="middle" fill="#ffb84d">WebRTC audio / video / screen</text>
+            <text x="640" y="136" text-anchor="middle">scoped tokens,</text>
+            <text x="640" y="152" text-anchor="middle">remove user</text>
+          </g>
+        </svg>
+      </figure>
+      <div class="cards three">
+        <article class="card"><h3>Server</h3><p>One goroutine owns each office. A spatial grid and areas of interest mean a player is only compared with people nearby. Updates are batched, incremental and coalesced for slow clients.</p></article>
+        <article class="card"><h3>Browser</h3><p>The static map is one texture. Only what the camera sees is drawn, hidden tabs stop rendering but keep calls alive, and an economy mode caps the frame rate.</p></article>
+        <article class="card"><h3>Media</h3><p>A real SFU, never a P2P mesh. Rooms are small, tokens are scoped to one room, and access is revoked on the server when you leave.</p></article>
+      </div>
+      <p class="more"><a href="docs/architecture/">Read the architecture →</a></p>
+    </div>
+  </section>
+
+  <section class="section">
+    <div class="wrap two">
+      <div>
+        <h2>Conversations that behave</h2>
+        <p class="sub">Proximity chat is easy to get wrong. The rules are explicit and tested.</p>
+        <ul class="ticks">
+          <li><b>Hysteresis</b> The distance to leave is larger than the one to join, and both wait a short time.</li>
+          <li><b>No hopping</b> Standing between two conversations keeps you in yours. To switch, you leave first.</li>
+          <li><b>No chains</b> A line of avatars cannot merge the whole office into one call.</li>
+          <li><b>Rooms are isolated</b> Someone in the corridor is not pulled into a meeting room's call.</li>
+        </ul>
+        <p class="more"><a href="docs/proximity-and-media/">How groups form →</a></p>
+      </div>
+      <div class="cast-box">
+        <img src="assets/cast.png" alt="Six pixel-art avatars with different skin tones, hairstyles and outfits" width="1000" height="208" loading="lazy">
+        <img class="walk" src="assets/walk.gif" alt="A pixel-art avatar walking down, left, right and up" width="720" height="256" loading="lazy">
+        <p class="caption">Procedural avatars drawn by the game itself: skin, hairstyle, hair colour, shirt and trousers.</p>
+      </div>
+    </div>
+  </section>
+
+  <section id="look" class="section">
+    <div class="wrap">
+      <h2>Pixel art with personality</h2>
+      <p class="sub">Chunky characters, outlined furniture, textured floors and dialog-window menus: the feel of a 2000s handheld RPG, drawn from scratch in code.</p>
+      <div class="shots">
+        <figure><img src="assets/game-social.png" alt="In-game screenshot of the social area: three avatars near couches, a rug and a table" width="1280" height="720" loading="lazy"><figcaption>Social area</figcaption></figure>
+        <figure><img src="assets/game-desks.png" alt="In-game screenshot of the desk area with computers and chairs" width="1280" height="720" loading="lazy"><figcaption>Desk area</figcaption></figure>
+      </div>
+      <p class="more"><a href="docs/art-style/">How the art is made, and why it is all original →</a></p>
+    </div>
+  </section>
+
+  <section id="status" class="section alt">
+    <div class="wrap">
+      <h2>Honest status</h2>
+      <p class="sub">Alpha software. Here is what has actually been checked, and what has not.</p>
+      <div class="cards three status">
+        <article class="card ok"><h3>Verified</h3><ul>
+          <li>10 Go tests for the world simulation, also with the race detector</li>
+          <li>15/15 checks in a two-browser Chrome test: movement sync, proximity chat with real audio and video RTP through LiveKit, and revocation on leave</li>
+        </ul></article>
+        <article class="card mid"><h3>Built, not verified end to end</h3><ul>
+          <li>Screen sharing</li><li>Office and direct chat</li><li>Reconnection and persistence</li><li>Economy mode and device selection</li>
+        </ul></article>
+        <article class="card todo"><h3>Not yet</h3><ul>
+          <li>Invites and access control</li><li>Map editor and desk assignment</li><li>Docker Compose install</li><li>Load tests, benchmarks and cost tables</li><li>Private-room isolation tests</li>
+        </ul></article>
+      </div>
+      <p class="more"><a href="docs/status/">Full status and roadmap →</a></p>
+    </div>
+  </section>
+
+  <section id="start" class="section">
+    <div class="wrap narrow">
+      <h2>Run it locally</h2>
+      <p class="sub">You need Go, Node with pnpm, and a LiveKit server binary. The dev script starts everything.</p>
+      <div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code>git clone {{REPO}}.git
+cd open-gather
+./scripts/dev.sh
+# open http://127.0.0.1:5173 in two browser profiles</code></pre></div>
+      <p class="more"><a href="docs/getting-started/">Full setup guide and configuration →</a></p>
+    </div>
+  </section>
+</main>
