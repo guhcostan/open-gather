@@ -105,13 +105,14 @@ export async function walkTo(u, tx, ty, { timeout = 60000 } = {}) {
   const t0 = Date.now();
   for (const [cx, cy] of path.slice(1)) {
     const wx = cx * T + 8, wy = cy * T + 8;
+    let tries = 0;
     for (;;) {
       const p = await pos(u);
-      // Waypoint tolerance is wide on purpose: software-rendered CI browsers run at
-      // ~15 fps, so a 2 px window can be overshot on every input tick and the
-      // walker would oscillate around the waypoint forever.
-      const dx = Math.abs(wx - p.x) > 5 ? Math.sign(wx - p.x) : 0;
-      const dy = Math.abs(wy - p.y) > 5 ? Math.sign(wy - p.y) : 0;
+      // Normally 2 px (a 1-tile doorway is unforgiving); after ~1.2 s without arriving the window widens,
+      // because a slow software-rendered browser can overshoot 2 px on every input tick and oscillate forever.
+      const tol = Math.min(4, 2 + 0.5 * Math.floor(tries++ / 40));
+      const dx = Math.abs(wx - p.x) > tol ? Math.sign(wx - p.x) : 0;
+      const dy = Math.abs(wy - p.y) > tol ? Math.sign(wy - p.y) : 0;
       if (!dx && !dy) break;
       await u.page.evaluate((a, b) => window.__og.view.setDirection(a, b), dx, dy);
       await sleep(30);

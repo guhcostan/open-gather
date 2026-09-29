@@ -52,7 +52,10 @@ export async function run(ctx) {
       }
     }, tokenTweak);
 
-    const replay = await attack("none");
+    let replay = await attack("none");
+    // "could not establish pc connection" is an ICE/DTLS setup flake of the headless browser, not a token verdict
+    // (a rejected token fails at the signal step). Retry it once so the check measures the token.
+    if (/pc connection/.test(replay)) replay = await attack("none");
     check("a replayed token can still connect inside its validity window (known, bounded)", replay === "connected", replay);
     const t0 = Date.now();
     const evicted = await waitFor(async () => (await lkParticipants(room)).length === 0, { timeout: 15000, every: 250, what: "attacker evicted" }).then(() => true).catch(() => false);

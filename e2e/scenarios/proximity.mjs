@@ -10,7 +10,10 @@ try {
   const bruno = await joinAs(browser, "Bruno" + tag);
   check("both users connected", ana.id > 0 && bruno.id > 0 && ana.id !== bruno.id);
 
-  const roster = await ana.page.evaluate(() => [...window.__og.state.roster.values()].map((p) => p.n).sort());
+  const readRoster = () => ana.page.evaluate(() => [...window.__og.state.roster.values()].map((p) => p.n).sort());
+  // The roster is pushed over the WebSocket; on a slow browser Bruno's entry can land after joinAs returns.
+  await waitFor(async () => (await readRoster()).includes("Bruno" + tag), { what: "Bruno in Ana's roster" }).catch(() => {});
+  const roster = await readRoster();
   check("roster shows both people", roster.includes("Ana" + tag) && roster.includes("Bruno" + tag), roster.join());
 
   await waitFor(async () => (await others(ana)).some((e) => e.id === bruno.id), { what: "Ana sees Bruno" });
