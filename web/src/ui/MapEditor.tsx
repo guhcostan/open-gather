@@ -84,7 +84,7 @@ export function MapEditor({ onClose }: { onClose: () => void }) {
       });
       if (p && assignTo) {
         p.assign = assignTo;
-        p.label = `Mesa de ${roster.get(assignTo)?.n ?? ""}`.slice(0, 40);
+        p.label = t("editor.deskOf", { name: roster.get(assignTo)?.n ?? "" }).slice(0, 40);
         apply();
       }
     }

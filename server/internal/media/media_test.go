@@ -55,7 +55,7 @@ func TestTokenIsScopedAndShortLived(t *testing.T) {
 	}
 	// tampering with the room claim must invalidate the signature
 	parts := strings.Split(tok, ".")
-	forged := strings.Replace(string(mustDecode(t, parts[1])), "o1.g7", "o1.r.diretoria", 1)
+	forged := strings.Replace(string(mustDecode(t, parts[1])), "o1.g7", "o1.r.boardroom", 1)
 	bad := parts[0] + "." + base64.RawURLEncoding.EncodeToString([]byte(forged)) + "." + parts[2]
 	if bad == tok || parts[2] == "" {
 		t.Fatal("test setup")
@@ -117,7 +117,7 @@ func (f *fakeLK) handler(w http.ResponseWriter, r *http.Request) {
 func TestReconcileRemovesOnlyUnauthorisedParticipantsAndIgnoresForeignRooms(t *testing.T) {
 	f := &fakeLK{rooms: map[string][]string{
 		"o1.g1":          {"1", "2", "99"}, // 99 replayed a token
-		"o1.r.diretoria": {"1"},
+		"o1.r.boardroom": {"1"},
 		"o1.g2":          {"5"},   // stale room: no such group any more
 		"other.tenant":   {"777"}, // not ours
 	}}
@@ -125,7 +125,7 @@ func TestReconcileRemovesOnlyUnauthorisedParticipantsAndIgnoresForeignRooms(t *t
 	defer srv.Close()
 	c := testClient(srv.URL)
 	allowed := func(context.Context) (map[string]map[string]bool, error) {
-		return map[string]map[string]bool{"o1.g1": {"1": true, "2": true}, "o1.r.diretoria": {"1": true}}, nil
+		return map[string]map[string]bool{"o1.g1": {"1": true, "2": true}, "o1.r.boardroom": {"1": true}}, nil
 	}
 	n, err := c.Reconcile(context.Background(), "o1.", allowed)
 	if err != nil || n != 2 {

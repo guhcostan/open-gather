@@ -60,7 +60,7 @@ func Load() (*Config, error) {
 		DBPath:         env("OG_DB", "data/opengather.db"),
 		StaticDir:      env("OG_STATIC_DIR", ""),
 		OfficeSlug:     env("OG_OFFICE_SLUG", "default"),
-		OfficeName:     env("OG_OFFICE_NAME", "Escritório"),
+		OfficeName:     env("OG_OFFICE_NAME", "Office"),
 		SessionTTL:     time.Duration(envInt("OG_SESSION_DAYS", 30)) * 24 * time.Hour,
 		LiveKitURL:     env("LIVEKIT_URL", ""),
 		LiveKitAPIURL:  env("LIVEKIT_API_URL", ""),

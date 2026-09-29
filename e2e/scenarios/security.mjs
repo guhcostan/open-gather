@@ -22,7 +22,7 @@ export async function run(ctx) {
     await waitFor(async () => (await st(a)).conv?.state === "live" && (await st(b)).conv?.state === "live", { timeout: 20000, what: "conversation" });
     await waitFor(() => a.page.evaluate(() => !!window.__RoomCtor), { what: "room constructor captured" });
     const room = await a.page.evaluate(() => window.__og.media.currentRoom);
-    await a.page.evaluate((r) => { window.__privateRoom = r; }, prefixOf(room) + ".r.diretoria");
+    await a.page.evaluate((r) => { window.__privateRoom = r; }, prefixOf(room) + ".r.boardroom");
     const issued = Date.now();
 
     // Everyone leaves the group; the server revokes A's access.
@@ -67,7 +67,7 @@ export async function run(ctx) {
     // Attack 2: change the room inside the token (private room) without the signing secret.
     const tamper = await attack("room");
     check("a token whose room claim was edited is rejected by the SFU (signature)", tamper.startsWith("rejected"), tamper);
-    check("the private room stayed empty", (await lkParticipants(prefixOf(room) + ".r.diretoria")).length === 0);
+    check("the private room stayed empty", (await lkParticipants(prefixOf(room) + ".r.boardroom")).length === 0);
 
     // Attack 3: token past its validity. LiveKit's JWT library tolerates 60 s of clock skew (measured: a token
     // 12 s past its exp was still accepted), so the effective lifetime is TTL + 60 s.

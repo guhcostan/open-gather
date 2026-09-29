@@ -105,7 +105,7 @@ func TestSpeedIsServerEnforced(t *testing.T) {
 
 func TestRoomAccessRules(t *testing.T) {
 	h := newHarness(t)
-	// Diretoria (admins only): door on x=44,y=10..11, room interior x45+.
+	// Boardroom (admins only): door on x=44,y=10..11, room interior x45+.
 	m := h.add(1, "member", 43*16+8, 10*16+8)
 	a := h.add(2, "admin", 43*16+8, 11*16+8)
 	h.w.handle(ev{kind: evInput, p: m, gen: m.gen, seq: 1, dx: 1}, h.now)
@@ -507,7 +507,7 @@ func TestHelloCarriesOfficeChatHistoryAndProfileChangesReachTheRoster(t *testing
 	var saved []string
 	h.w.OnChat = func(_ int64, _ uint32, text string, _ int64) { saved = append(saved, text) }
 	h.w.handle(ev{kind: evChat, p: a, gen: a.gen, s: "o", info: UserInfo{Name: "  oi  "}}, h.now)
-	h.w.handle(ev{kind: evChat, p: a, gen: a.gen, s: "d", id: 99, info: UserInfo{Name: "segredo"}}, h.now)
+	h.w.handle(ev{kind: evChat, p: a, gen: a.gen, s: "d", id: 99, info: UserInfo{Name: "secret"}}, h.now)
 	h.w.handle(ev{kind: evChat, p: a, gen: a.gen, s: "g", info: UserInfo{Name: "sem grupo"}}, h.now)
 	if len(saved) != 1 || saved[0] != "oi" || len(h.w.hist) != 2 {
 		t.Fatalf("only office chat is persisted (and trimmed): saved=%v hist=%d", saved, len(h.w.hist))

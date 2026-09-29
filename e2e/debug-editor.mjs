@@ -6,7 +6,7 @@ try {
   const r = await fetch("http://127.0.0.1:18080/api/join", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "Admin", avatar: {} }) });
   const cookie = r.headers.get("set-cookie").split(";")[0].split("=")[1];
   const u = await joinAs(b, "Admin", { cookie });
-  await u.page.evaluate(() => [...document.querySelectorAll("button")].find((x) => x.textContent === "Editar escritório")?.click());
+  await u.page.evaluate(() => [...document.querySelectorAll("button")].find((x) => x.textContent === "Edit office")?.click());
   await waitFor(() => u.page.$(".editor"), { what: "editor" });
   const info = await u.page.evaluate(() => { const v = window.__og.view; const r = v.app.canvas.getBoundingClientRect(); return { rect: [r.left, r.top, r.width, r.height], cam: [v.camX, v.camY, v.S], top: document.elementFromPoint(400, 300)?.className }; });
   console.log(JSON.stringify(info));

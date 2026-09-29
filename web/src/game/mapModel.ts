@@ -1,17 +1,17 @@
 import type { MapData, Prop } from "../net/protocol";
 
 export const PROP_TYPES: { t: string; w: number; h: number; solid: boolean; label: string }[] = [
-  { t: "desk", w: 2, h: 1, solid: true, label: "Mesa" },
-  { t: "chair", w: 1, h: 1, solid: false, label: "Cadeira" },
-  { t: "table", w: 3, h: 2, solid: true, label: "Mesa grande" },
-  { t: "couch", w: 3, h: 1, solid: true, label: "Sofá" },
-  { t: "plant", w: 1, h: 1, solid: true, label: "Planta" },
-  { t: "bookshelf", w: 2, h: 1, solid: true, label: "Estante" },
-  { t: "coffee", w: 1, h: 1, solid: true, label: "Cafeteira" },
-  { t: "whiteboard", w: 3, h: 1, solid: false, label: "Quadro" },
-  { t: "rug", w: 4, h: 3, solid: false, label: "Tapete" },
-  { t: "lamp", w: 1, h: 1, solid: true, label: "Luminária" },
-  { t: "reception_desk", w: 6, h: 1, solid: true, label: "Balcão" },
+  { t: "desk", w: 2, h: 1, solid: true, label: "Desk" },
+  { t: "chair", w: 1, h: 1, solid: false, label: "Chair" },
+  { t: "table", w: 3, h: 2, solid: true, label: "Table" },
+  { t: "couch", w: 3, h: 1, solid: true, label: "Couch" },
+  { t: "plant", w: 1, h: 1, solid: true, label: "Plant" },
+  { t: "bookshelf", w: 2, h: 1, solid: true, label: "Bookshelf" },
+  { t: "coffee", w: 1, h: 1, solid: true, label: "Coffee machine" },
+  { t: "whiteboard", w: 3, h: 1, solid: false, label: "Whiteboard" },
+  { t: "rug", w: 4, h: 3, solid: false, label: "Rug" },
+  { t: "lamp", w: 1, h: 1, solid: true, label: "Lamp" },
+  { t: "reception_desk", w: 6, h: 1, solid: true, label: "Reception desk" },
 ];
 const byType = new Map(PROP_TYPES.map((p) => [p.t, p]));
 

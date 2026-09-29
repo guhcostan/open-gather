@@ -35,7 +35,7 @@ Scenario A (no media) up to 1,000 bots and a 500-client reconnect storm, with th
 - **The production Compose file with Caddy, real TLS and TURN on a public host.**
 - No UI to list or revoke invites, change roles or remove members; no moderation or audit log.
 - **Cost numbers:** only the formula and `bench/cost.py` exist; no prices were verified.
-- Internationalisation beyond the pt-BR dictionary mechanism; accessibility audit.
+- Only English is shipped (the i18n dictionary mechanism exists for more locales).
 
 ## Roadmap
 

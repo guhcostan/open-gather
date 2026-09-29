@@ -11,7 +11,7 @@ services:
       OG_ENV: production
       OG_ADDR: ":8080"
       OG_ALLOWED_ORIGINS: "${APP_DOMAIN:?set APP_DOMAIN}"
-      OG_OFFICE_NAME: "${OFFICE_NAME:-Escritório}"
+      OG_OFFICE_NAME: "${OFFICE_NAME:-Office}"
       LIVEKIT_URL: "wss://${LIVEKIT_DOMAIN:?set LIVEKIT_DOMAIN}"
       LIVEKIT_API_URL: http://livekit:7880
       LIVEKIT_API_KEY: "${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY}"

@@ -32,7 +32,7 @@ export async function run(ctx) {
     await walkTo(admin, 47 * 16 + 8, 12 * 16 + 8);
     await waitFor(async () => (await st(admin)).conv?.state === "live", { timeout: 15000, what: "admin live in room" });
     const conv = (await st(admin)).conv;
-    check("admin joins the private room call", conv.kind === "r" && conv.name === "Sala da Diretoria", JSON.stringify({ k: conv.kind, n: conv.name }));
+    check("admin joins the private room call", conv.kind === "r" && conv.name === "Boardroom", JSON.stringify({ k: conv.kind, n: conv.name }));
     const room = await admin.page.evaluate(() => window.__og.media.currentRoom);
     const claims = b64json(await admin.page.evaluate(() => window.__lastJoin.token));
     check("token is scoped to exactly this room, this identity and a short validity", claims.video.room === room && claims.sub === String(admin.id) && claims.exp - claims.nbf <= 330 && claims.video.roomJoin === true && !claims.video.roomAdmin, JSON.stringify({ room: claims.video.room, sub: claims.sub, ttl: claims.exp - claims.nbf, admin: claims.video.roomAdmin }));
@@ -46,7 +46,7 @@ export async function run(ctx) {
     await waitFor(async () => (await st(mem)).conv?.state === "live" && (await st(m2)).conv?.state === "live", { timeout: 15000, what: "members converse" });
     const memClaims = b64json(await mem.page.evaluate(() => window.__lastJoin.token));
     const memRoom = await mem.page.evaluate(() => window.__og.media.currentRoom);
-    check("member token grants only the proximity group room, never the private room", memClaims.video.room === memRoom && memRoom !== room && !memRoom.includes("diretoria"));
+    check("member token grants only the proximity group room, never the private room", memClaims.video.room === memRoom && memRoom !== room && !memRoom.includes("boardroom"));
     check("private room still contains only the admin while others talk elsewhere", (await lkParticipants(room)).join() === String(admin.id) && (await lkParticipants(memRoom)).length === 2);
 
     // --- screen sharing inside the admin room requires a second participant: use m2? not allowed. Share inside the member call.

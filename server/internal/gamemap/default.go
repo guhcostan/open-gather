@@ -73,7 +73,7 @@ func Default() *Map {
 	for _, y := range []int{3, 9} {
 		for i := 0; i < 6; i++ {
 			x := 20 + i*4
-			props = append(props, Prop{T: "desk", X: x, Y: y, Label: "Mesa " + itoa(n)})
+			props = append(props, Prop{T: "desk", X: x, Y: y, Label: "Desk " + itoa(n)})
 			add("chair", x, y+1)
 			n++
 		}
@@ -120,13 +120,13 @@ func Default() *Map {
 	add("bookshelf", 3, 15)
 
 	areas := []Area{
-		{ID: "reception", Name: "Recepção", Kind: "reception", X: 1, Y: 1, W: 17, H: 13, Floor: "wood_light"},
-		{ID: "desks", Name: "Mesas individuais", Kind: "desks", X: 19, Y: 1, W: 25, H: 13, Floor: "carpet_blue"},
-		{ID: "social", Name: "Área social", Kind: "social", X: 1, Y: 15, W: 40, H: 20, Floor: "wood_warm"},
-		{ID: "aurora", Name: "Sala Aurora", Kind: KindRoom, X: 45, Y: 1, W: 14, H: 6, Floor: "carpet_teal", Access: Access{Mode: AccessOpen}, Capacity: 20},
-		{ID: "diretoria", Name: "Sala da Diretoria", Kind: KindRoom, X: 45, Y: 8, W: 14, H: 6, Floor: "carpet_plum", Access: Access{Mode: AccessAdmins}, Capacity: 12},
-		{ID: "horizonte", Name: "Sala Horizonte", Kind: KindRoom, X: 42, Y: 15, W: 17, H: 10, Floor: "carpet_teal", Access: Access{Mode: AccessOpen}, Capacity: 30},
-		{ID: "foco", Name: "Sala Foco (membros)", Kind: KindRoom, X: 42, Y: 26, W: 17, H: 9, Floor: "carpet_green", Access: Access{Mode: AccessMembers}, Capacity: 20},
+		{ID: "reception", Name: "Reception", Kind: "reception", X: 1, Y: 1, W: 17, H: 13, Floor: "wood_light"},
+		{ID: "desks", Name: "Individual desks", Kind: "desks", X: 19, Y: 1, W: 25, H: 13, Floor: "carpet_blue"},
+		{ID: "social", Name: "Social area", Kind: "social", X: 1, Y: 15, W: 40, H: 20, Floor: "wood_warm"},
+		{ID: "aurora", Name: "Aurora room", Kind: KindRoom, X: 45, Y: 1, W: 14, H: 6, Floor: "carpet_teal", Access: Access{Mode: AccessOpen}, Capacity: 20},
+		{ID: "boardroom", Name: "Boardroom", Kind: KindRoom, X: 45, Y: 8, W: 14, H: 6, Floor: "carpet_plum", Access: Access{Mode: AccessAdmins}, Capacity: 12},
+		{ID: "horizon", Name: "Horizon room", Kind: KindRoom, X: 42, Y: 15, W: 17, H: 10, Floor: "carpet_teal", Access: Access{Mode: AccessOpen}, Capacity: 30},
+		{ID: "focus", Name: "Focus room (members)", Kind: KindRoom, X: 42, Y: 26, W: 17, H: 9, Floor: "carpet_green", Access: Access{Mode: AccessMembers}, Capacity: 20},
 	}
 	return &Map{Version: 1, W: W, H: H, Walls: walls, Props: props, Areas: areas, Spawn: Point{X: 9, Y: 7}}
 }

@@ -10,7 +10,7 @@ It is **not** affiliated with the original Gather product. Never copy its brand,
 
 ## Language rule
 
-**Everything is in English**: code, comments, identifiers, commit messages, PR text, issues, README, docs, site copy, error messages and generated art text. (The player-facing UI goes through the i18n dictionary in `web/src/i18n.ts`; new user-visible strings must go there, never inline.)
+**Everything is in English**: code, comments, identifiers, commit messages, PR text, issues, README, docs, site copy, error messages and generated art text. (The player-facing UI is English, the only shipped locale, and goes through the i18n dictionary in `web/src/i18n.ts`; new user-visible strings must go there, never inline.)
 
 ## Repository map
 

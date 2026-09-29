@@ -22,24 +22,24 @@ export async function run() {
     // B is busy and consents: busy blocks automatic entry
     await b.page.evaluate(() => { window.__og.session.setStatus("busy"); window.__og.session.setConsent(true); });
     await sleep(2500);
-    check("Ocupado blocks automatic entry into conversations", (await st(a)).conv === null && (await st(b)).conv === null);
+    check("Busy blocks automatic entry into conversations", (await st(a)).conv === null && (await st(b)).conv === null);
 
     await b.page.evaluate(() => window.__og.session.setStatus("available"));
     await waitFor(async () => (await st(a)).conv?.state === "live" && (await st(b)).conv?.state === "live", { timeout: 15000, what: "conversation after B became available" });
-    check("conversation forms once both are Disponível and consented", true);
+    check("conversation forms once both are Available and consented", true);
 
     await b.page.evaluate(() => window.__og.session.setStatus("busy"));
     await waitFor(async () => (await st(b)).conv === null, { timeout: 8000, what: "B leaves when busy" });
     // Leaving is asynchronous (the room disconnects and tracks stop); it must finish within a moment.
     const stopped = await waitFor(async () => (await st(b)).mic === false && (await b.page.evaluate(() => window.__og.media.room === null || window.__og.media.room === undefined)), { timeout: 4000, what: "capture stops" }).catch(() => false);
-    check("becoming Ocupado leaves the conversation and stops B's capture", !!stopped);
+    check("becoming Busy leaves the conversation and stops B's capture", !!stopped);
 
     // Invisible: other clients no longer see the avatar; roster shows offline
     await b.page.evaluate(() => window.__og.session.setStatus("invisible"));
     await sleep(800);
     const seen = await a.page.evaluate((id) => window.__og.view.debugEntities().some((e) => e.id === id), b.id);
     const rosterSt = await a.page.evaluate((id) => window.__og.state.roster.get(id)?.s, b.id);
-    check("Invisível hides the avatar from others and shows offline in the roster", !seen && rosterSt === "offline", "seen=" + seen + " roster=" + rosterSt);
+    check("Invisible hides the avatar from others and shows offline in the roster", !seen && rosterSt === "offline", "seen=" + seen + " roster=" + rosterSt);
 
     // Consent revoked by the user: leaves immediately
     await b.page.evaluate(() => { window.__og.session.setStatus("available"); });
