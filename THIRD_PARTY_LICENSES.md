@@ -29,6 +29,13 @@ Generated on 2026-09-29 from `pnpm licenses list --prod` and the Go module cache
 | github.com/remyoudompheng/bigfft | v0.0.0-2023… | BSD-3-Clause |
 | golang.org/x/sys | v0.48.0 | BSD-3-Clause |
 
+## Benchmark tool (bench/mediagen, separate Go module, not part of the server binary)
+
+| Module | License |
+|---|---|
+| github.com/livekit/server-sdk-go/v2, github.com/livekit/protocol | Apache-2.0 |
+| github.com/pion/webrtc, pion/rtp and the other pion modules | MIT |
+
 ## Separate processes (not linked)
 
 | Software | License | Note |

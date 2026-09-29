@@ -30,9 +30,9 @@
 | | Scenario | State |
 | --- | --- | --- |
 | A | 100, 300, 500, 1,000 connected, no media, spread out and concentrated | **run locally** (generator on the same host), see results |
-| B | 100 present, 20 of them in five calls of four | **not run** |
-| C | 100 spread across 25 calls of four | **not run** |
-| D | 20-person meeting with a cap on received videos and one screen share | **not run** |
+| B | 100 present, 20 of them in five calls of four | **run locally** for the 20 in calls (SFU side, real synthetic media); the other 80 are scenario A |
+| C | 100 spread across 25 calls of four | **attempted, invalid on one laptop**; 40 people (10 calls) measured cleanly, 60+ saturate the machine |
+| D | 20-person meeting with a cap on received videos and one screen share | **run locally** (cap of 6 videos, one 720p share): 0 % loss |
 | browser | FPS, frame time and CPU with 300 bots around | **run on an M1 Pro** (not the reference laptop) |
 | E | simultaneous join, mass reconnect, two-hour soak | join and 500-client mass reconnect **run locally**; a shorter soak was run instead of the two-hour test; the two-hour test is **not run** |
 
@@ -46,6 +46,7 @@ WebSocket benchmarks do not prove video capacity. Media tests must publish and c
 | `bench/run-presence.sh` | the whole scenario A / E matrix |
 | `bench/report.py`, `bench/compare.py` | Markdown tables from the JSON results |
 | `bench/cost.py` | cost model with **no prices built in** |
+| `bench/mediagen` + `bench/run-media.sh` | synthetic but real Opus/VP8 publishers and subscribers through a LiveKit server, measuring received bitrate, loss, jitter, stalls and SFU CPU |
 | `e2e/` | functional browser suite (real Chrome, real LiveKit) |
 | `/metrics` | Prometheus text: players, moving, tick histogram and max, frames and bytes out, records sent, skipped flushes, kicked clients, groups, media tokens, revocations and reconciliations, Go runtime |
 | debug HUD (Settings) | FPS, frame time, round-trip time, world messages per second, entity counts |

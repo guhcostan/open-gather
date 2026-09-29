@@ -23,6 +23,13 @@ bp = json.load(open(os.path.join(here, "results", "browser-perf", "perf-300bots.
 brows = "\n".join(f"| {r['mode']} | {r['fps']} (min {r['fpsMin']}) | {r['frameMs']} | {r['mainThreadBusyPct']} | {r['scriptPct']} | {r['heapStartMB']} -> {r['heapMB']} | {r['entities']} / {r['visible']} |" for r in bp["runs"])
 gpu = bp["runs"][0]["gl"]
 
+mrows = []
+for name in ["B-5x4-video", "C-10x4-video", "C-15x4-video", "C-25x4-audioonly", "D-20-cap6-screen"]:
+    m = json.load(open(os.path.join(here, "results", "media", name + ".json")))
+    mrows.append(f"| {name} | {m['Connected']}/{m['Participants']} | {m['SubscribedAudio']} / {m['SubscribedVideo']} / {m['SubscribedScr']} | {m['ReceivedMbpsTotal']:.1f} | {m['LossPct']:.1f} | {m['AudioJitterMsP95']:.1f} / {m['VideoJitterMsP95']:.1f} | {m['Stalls500ms']} | {m['FirstMediaMsP95']:.0f} | {m['SFUCPUAvgPct']:.0f} / {m['SFUCPUMaxPct']:.0f} | {m['SFUMemMaxMB']:.0f} | {(str(round(m['SFUNetOutMBps'], 1)) if m['SFUNetOutMBps'] > 0.05 else 'n/a')} |")
+mtable = "\n".join(mrows)
+inv = json.load(open(os.path.join(here, "results", "media-invalid-full-c", "C-25x4-video.json")))
+
 doc = f"""# Benchmark results
 
 > **These are local reference numbers, not a capacity claim.** The server and the load generator ran on the **same laptop**, over loopback, with media disabled. They show where the cost goes and that an optimisation helped. They say nothing about a 2 vCPU / 4 GB server, a real network, or audio/video. Everything not listed under "Measured" is **not run**.
@@ -74,11 +81,25 @@ This is an Apple M1 Pro with a fast integrated GPU, **not** the reference laptop
 - **Mass reconnect (scenario E):** 500 clients dropped at once and reconnected (with up to 2 s of client-side jitter, as the web app does) in 2.0 s, 0 failures, 0 kicked clients.
 - **Proximity grouping cost:** 300 concentrated bots with media consent formed 64 groups; mean tick 2.15 ms, the same order as the same run without groups.
 
+## Media through the SFU (scenarios B, C, D)
+
+Synthetic but **real** media: [bench/mediagen](../bench/mediagen) publishes an Opus track (~56 kbit/s on the wire) and a 640x360 VP8 track (~520 kbit/s) from encoded files, and every participant subscribes to the others through a local LiveKit server 1.13.7 and measures the RTP it actually receives (loss from sequence gaps, RFC 3550 jitter, stalls over 500 ms). Everything ran on the same M1 Pro laptop; **the SFU CPU is percent of one core** (100 = one core), sampled with `ps`, and the generator competes for the same CPU. Script: [bench/run-media.sh](../bench/run-media.sh).
+
+| Run | Connected | Subscribed audio / video / screen | Received Mbit/s (all receivers) | Loss % | Jitter p95 ms (audio / video) | Stalls > 500 ms | First media p95 ms | SFU CPU avg / max % of a core | SFU RSS MB | SFU out MB/s |
+|---|---|---|---|---|---|---|---|---|---|---|
+{mtable}
+
+- **B** = 5 calls of 4 (20 of the 100 present are in calls; the other 80 cost the app server only, see scenario A). **C-10x4** and **C-15x4** are *scaled-down* versions of scenario C (40 and 60 people instead of 100); **C-25x4-audioonly** is 100 people with audio only. **D** = one meeting of 20, each receiving at most 6 camera videos, one 720p screen share.
+- **Valid results are the ones with 0 % loss:** B (20 people), C-10x4 (40 people) and D (20 people). The SFU used 46 %, 123 % and 152 % of a core while forwarding 35, 69 and 107 Mbit/s: **roughly 1.3-1.8 % of one M1 Pro core per Mbit/s forwarded**, in these three points.
+- **C-15x4 (60 people) already lost 34 % of the packets** and the audio-only run with 100 people lost 61 % and could not connect 17 participants. With the generator on the same laptop we cannot tell how much of that is the SFU and how much the 100+ WebRTC clients (and their DTLS/SRTP work) fighting for the same cores and the loopback socket buffers. **Scenario C at its full size (100 people in 25 calls of 4) was attempted and failed** (first attempt with video: only {inv['Connected']} of {inv['Participants']} connected, {inv['LossPct']:.0f} % loss; raw JSON kept in [bench/results/media-invalid-full-c](../bench/results/media-invalid-full-c/)). It needs a generator on another machine.
+- **ESTIMATE, not measured:** if one vCPU of the 2 vCPU reference server were 2-3x slower than an M1 Pro core (an assumption nobody has verified here), the same ratio would mean ~3-5 % of a vCPU per Mbit/s forwarded, i.e. roughly 40-65 Mbit/s (80-120 forwarded 500 kbit/s video streams) before the SFU alone uses both vCPUs. Treat this as a hypothesis to test on the real server.
+- Not measured: TURN-relayed media, simulcast layer switching under congestion (the test tracks are single-layer, the browser client publishes two layers), a long run, packet loss injected on the network.
+
 ## Not run
 
 | Item | Why it matters |
 | --- | --- |
-| Scenarios B, C, D (calls of four, a 20-person meeting with a screen share) | media cost is the SFU's, and only real or representative synthetic media proves it |
+| Scenario C at full size (100 people in 25 calls) | attempted, invalid on one laptop (see above); needs a separate generator machine |
 | Any run on the 2 vCPU / 4 GB reference server, or with the generator on another machine | capacity claims need it |
 | TURN-relayed media, restrictive networks | not exercised |
 | Two-hour soak | a 15-minute soak was started and stopped early; **no result is claimed** |

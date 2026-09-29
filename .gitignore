@@ -6,3 +6,6 @@ web/dist
 e2e/node_modules
 site/node_modules
 site/dist
+bench/results/**/*.log
+bench/mediagen/assets
+bench/mediagen/mediagen

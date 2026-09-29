@@ -23,11 +23,11 @@ The exact pass counts of the last full run are in the commit history; rerun `cd 
 
 ## Measured (local reference, not a capacity claim)
 
-Scenario A (no media) up to 1,000 bots and a 500-client reconnect storm, with the generator on the same laptop: see [Benchmark results](benchmark-results.md). Highlights: state-change records cut server output about 5x and brought the worst tick at 1,000 concentrated bots from 143 ms to 60 ms; a 500-client mass reconnect finished in 2.0 s with no failures.
+Scenario A (no media) up to 1,000 bots and a 500-client reconnect storm, with the generator on the same laptop: see [Benchmark results](benchmark-results.md). Media through a real SFU (B, D and a scaled C, 0 % loss up to 40 people in calls, ~1.3-1.8 % of one M1 core per forwarded Mbit/s) is in the same document. Highlights: state-change records cut server output about 5x and brought the worst tick at 1,000 concentrated bots from 143 ms to 60 ms; a 500-client mass reconnect finished in 2.0 s with no failures.
 
 ## Not run / not implemented
 
-- **Scenarios B, C, D** (media under load) and TURN through restrictive networks.
+- **Scenario C at its full size** (100 people in 25 calls) and any media test with the generator on another machine. B (20 people), a scaled C (40 people) and D (20-person meeting) were run locally with real synthetic media; 60 people and above saturate a single laptop. TURN through restrictive networks is untested.
 - **The 2 vCPU / 4 GB reference server** and a load generator on a separate machine. A two-hour soak (a shorter one was started and stopped; no result is claimed).
 - **Browser FPS/CPU on the reference laptop.** Measured only on an Apple M1 Pro: 59.9 FPS (normal) and 29.6 FPS (economy, capped) with 300 bots, see [Benchmark results](benchmark-results.md).
 - **The production Compose file with Caddy, real TLS and TURN on a public host.**
