@@ -1,16 +1,41 @@
 package httpapi
 
 import (
+	"crypto/subtle"
 	"fmt"
 	"net/http"
 	"runtime"
+	"strings"
 
 	"opengather/internal/media"
 	"opengather/internal/world"
 )
 
+// metricsAllowed applies the /metrics policy: a bearer token when one is configured; otherwise open in
+// dev and disabled in production (a reverse proxy on the same host would make a loopback check meaningless).
+func (s *Server) metricsAllowed(w http.ResponseWriter, r *http.Request) bool {
+	tok := s.cfg.MetricsToken
+	if tok == "" {
+		if s.cfg.Dev() {
+			return true
+		}
+		http.NotFound(w, r)
+		return false
+	}
+	got := strings.TrimPrefix(r.Header.Get("Authorization"), "Bearer ")
+	if subtle.ConstantTimeCompare([]byte(got), []byte(tok)) != 1 {
+		w.Header().Set("WWW-Authenticate", `Bearer realm="metrics"`)
+		http.Error(w, "unauthorized", http.StatusUnauthorized)
+		return false
+	}
+	return true
+}
+
 // metrics renders Prometheus text format without any dependency.
 func (s *Server) metrics(w http.ResponseWriter, r *http.Request) {
+	if !s.metricsAllowed(w, r) {
+		return
+	}
 	w.Header().Set("Content-Type", "text/plain; version=0.0.4")
 	g := func(name, help string, v any) {
 		fmt.Fprintf(w, "# HELP %s %s\n# TYPE %s gauge\n%s %v\n", name, help, name, name, v)

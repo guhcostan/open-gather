@@ -37,10 +37,11 @@ type Server struct {
 	posQ  chan posSave
 	chatQ chan chatSave
 
-	inst    string // installation id, namespaces SFU rooms
-	joinLim *limiter
-	mapLim  *limiter
-	profLim *limiter
+	inst     string // installation id, namespaces SFU rooms
+	joinLim  *limiter
+	mapLim   *limiter
+	profLim  *limiter
+	adminLim *limiter
 }
 
 type chatSave struct {
@@ -56,7 +57,7 @@ type posSave struct {
 
 func New(ctx context.Context, cfg *config.Config, log *slog.Logger, st *store.Store, md *media.Client) *Server {
 	s := &Server{cfg: cfg, log: log, st: st, media: md, ctx: ctx, worlds: map[int64]*world.World{},
-		posQ: make(chan posSave, 1024), chatQ: make(chan chatSave, 256), joinLim: newLimiter(float64(cfg.JoinRate), float64(cfg.JoinRate)*2), mapLim: newLimiter(1, 5), profLim: newLimiter(0.5, 5)}
+		posQ: make(chan posSave, 1024), chatQ: make(chan chatSave, 256), joinLim: newLimiter(float64(cfg.JoinRate), float64(cfg.JoinRate)*2), mapLim: newLimiter(1, 5), profLim: newLimiter(0.5, 5), adminLim: newLimiter(5, 20)}
 	if id, err := st.InstanceID(ctx); err == nil {
 		s.inst = id
 	} else {
@@ -139,6 +140,12 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /metrics", s.metrics)
 	mux.HandleFunc("POST /api/join", s.join)
 	mux.HandleFunc("POST /api/invites", s.createInvite)
+	mux.HandleFunc("GET /api/admin/members", s.listMembers)
+	mux.HandleFunc("PATCH /api/admin/members/{id}", s.patchMember)
+	mux.HandleFunc("DELETE /api/admin/members/{id}", s.deleteMember)
+	mux.HandleFunc("GET /api/admin/invites", s.listInvites)
+	mux.HandleFunc("DELETE /api/admin/invites/{id}", s.revokeInvite)
+	mux.HandleFunc("GET /api/admin/audit", s.listAudit)
 	mux.HandleFunc("PUT /api/map", s.putMap)
 	mux.HandleFunc("PUT /api/profile", s.putProfile)
 	mux.HandleFunc("GET /api/me", s.me)
@@ -255,6 +262,9 @@ func (s *Server) join(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.setCookie(w, tok)
+	if req.Invite != "" {
+		s.audit(r, &store.Session{UserID: uid, OfficeID: o.ID}, "member.join", uid, name, "role="+role)
+	}
 	writeJSON(w, http.StatusOK, map[string]any{"id": uid, "name": name, "role": role})
 }
 
@@ -315,6 +325,7 @@ func (s *Server) createInvite(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.log.Info("invite created", "by", se.UserID, "role", req.Role, "uses", req.MaxUses, "hours", req.Hours) // never logs the token
+	s.audit(r, se, "invite.create", 0, "", "role="+req.Role+" uses="+strconv.Itoa(req.MaxUses)+" hours="+strconv.Itoa(req.Hours))
 	writeJSON(w, http.StatusOK, map[string]any{"token": tok, "path": "/?invite=" + tok})
 }
 
@@ -367,6 +378,7 @@ func (s *Server) putMap(w http.ResponseWriter, r *http.Request) {
 		return
 	}
 	s.log.Info("map updated", "by", se.UserID, "rev", rev, "props", len(m.Props), "areas", len(m.Areas))
+	s.audit(r, se, "map.update", 0, "", "rev="+strconv.FormatInt(rev, 10)+" props="+strconv.Itoa(len(m.Props))+" areas="+strconv.Itoa(len(m.Areas)))
 	writeJSON(w, http.StatusOK, map[string]any{"rev": rev})
 }
 

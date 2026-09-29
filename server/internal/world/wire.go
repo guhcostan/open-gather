@@ -14,6 +14,18 @@ const (
 
 // ---- outbound helpers (world goroutine only) ----
 
+func (w *World) evictPlayer(p *Player) {
+	if p.out != nil {
+		close(p.out)
+		p.out = nil
+		if p.kick != nil {
+			go p.kick(KickEvicted)
+		}
+	}
+	p.Dx, p.Dy = 0, 0
+	w.removePlayer(p)
+}
+
 func (w *World) kickPlayer(p *Player, now time.Time) {
 	if p.out == nil {
 		return
@@ -25,7 +37,7 @@ func (w *World) kickPlayer(p *Player, now time.Time) {
 	delete(w.movers, p)
 	w.St.Kicked.Add(1)
 	if p.kick != nil {
-		go p.kick(false)
+		go p.kick(KickSlow)
 	}
 }
 

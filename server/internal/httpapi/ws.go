@@ -60,10 +60,13 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request) {
 
 	role := se.Role
 	conn, err := wd.Join(ctx, world.UserInfo{ID: uint32(se.UserID), Name: se.Name, Avatar: se.Avatar, Role: role,
-		LastX: se.LastX, LastY: se.LastY}, func(replaced bool) {
-		if replaced {
+		LastX: se.LastX, LastY: se.LastY}, func(reason world.KickReason) {
+		switch reason {
+		case world.KickReplaced:
 			c.Close(websocket.StatusCode(4001), "replaced by a newer connection")
-		} else {
+		case world.KickEvicted:
+			c.Close(websocket.StatusCode(4003), "removed by an administrator or role changed")
+		default:
 			c.Close(websocket.StatusCode(4002), "client too slow")
 		}
 		cancel()

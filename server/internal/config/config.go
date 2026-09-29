@@ -20,6 +20,9 @@ type Config struct {
 	OfficeSlug     string
 	OfficeName     string
 	SessionTTL     time.Duration
+	// MetricsToken protects /metrics with a bearer token. In dev, an empty token leaves /metrics open;
+	// in production an empty token disables the endpoint (404).
+	MetricsToken string
 
 	LiveKitURL    string // public ws(s) URL used by browsers
 	LiveKitAPIURL string // http(s) URL used by this server for admin calls
@@ -61,6 +64,7 @@ func Load() (*Config, error) {
 		StaticDir:      env("OG_STATIC_DIR", ""),
 		OfficeSlug:     env("OG_OFFICE_SLUG", "default"),
 		OfficeName:     env("OG_OFFICE_NAME", "Office"),
+		MetricsToken:   env("OG_METRICS_TOKEN", ""),
 		SessionTTL:     time.Duration(envInt("OG_SESSION_DAYS", 30)) * 24 * time.Hour,
 		LiveKitURL:     env("LIVEKIT_URL", ""),
 		LiveKitAPIURL:  env("LIVEKIT_API_URL", ""),
@@ -98,6 +102,9 @@ func Load() (*Config, error) {
 		}
 		if !strings.HasPrefix(c.LiveKitURL, "wss://") {
 			return nil, errors.New("production requires LIVEKIT_URL to use wss://")
+		}
+		if c.MetricsToken != "" && len(c.MetricsToken) < 16 {
+			return nil, errors.New("OG_METRICS_TOKEN must have at least 16 characters")
 		}
 		if len(c.AllowedOrigins) == 0 {
 			return nil, errors.New("production requires OG_ALLOWED_ORIGINS (e.g. office.example.com)")

@@ -44,6 +44,7 @@ const (
 	evMap
 	evProfile
 	evSnapshot
+	evEvict
 )
 
 type ev struct {
@@ -56,7 +57,7 @@ type ev struct {
 	b      bool
 	id     uint32
 	info   UserInfo
-	kick   func(replaced bool)
+	kick   func(reason KickReason)
 	reply  chan joinResult
 	cm     *gamemap.Compiled
 	snap   chan map[string]map[string]bool
@@ -167,7 +168,7 @@ type Conn struct {
 	w   *World
 }
 
-func (w *World) Join(ctx context.Context, info UserInfo, kick func(replaced bool)) (*Conn, error) {
+func (w *World) Join(ctx context.Context, info UserInfo, kick func(reason KickReason)) (*Conn, error) {
 	reply := make(chan joinResult, 1)
 	e := ev{kind: evJoin, info: info, kick: kick, reply: reply}
 	if !w.post(ctx, e) {
@@ -239,6 +240,13 @@ func (w *World) SeedChat(h []ChatEntry) {
 	w.hist = append(w.hist[:0], h...)
 }
 
+// Evict disconnects a player (with KickEvicted) and removes them from the world at once, ending
+// any call they are in. Used when an admin removes a member or changes their role: a role is read
+// at join, so an evicted client that still belongs to the office simply reconnects with the new one.
+func (w *World) Evict(ctx context.Context, id uint32) {
+	w.post(ctx, ev{kind: evEvict, id: id})
+}
+
 // UpdateProfile applies a name/avatar change to an online player (no-op if offline).
 func (w *World) UpdateProfile(ctx context.Context, id uint32, name string, avatar json.RawMessage) {
 	w.post(ctx, ev{kind: evProfile, id: id, info: UserInfo{Name: name, Avatar: avatar}})
@@ -271,6 +279,11 @@ func (w *World) handle(e ev, now time.Time) {
 			out[g.room] = ids
 		}
 		e.snap <- out
+		return
+	case evEvict:
+		if p := w.players[e.id]; p != nil {
+			w.evictPlayer(p)
+		}
 		return
 	case evProfile:
 		if p := w.players[e.id]; p != nil {
@@ -342,7 +355,7 @@ func (w *World) doJoin(e ev, now time.Time) {
 		if p.out != nil {
 			old := p.out
 			if p.kick != nil {
-				go p.kick(true)
+				go p.kick(KickReplaced)
 			}
 			p.out = nil
 			close(old)

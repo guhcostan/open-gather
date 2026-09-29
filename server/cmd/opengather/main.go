@@ -65,6 +65,7 @@ func main() {
 			fmt.Fprintln(os.Stderr, "invite:", err)
 			os.Exit(1)
 		}
+		_ = st.Audit(context.Background(), office.ID, 0, "invite.create", 0, "", fmt.Sprintf("cli role=%s uses=%d hours=%d", *inviteRole, *inviteUses, *inviteHours))
 		fmt.Println("/?invite=" + tok)
 		return
 	}

@@ -493,7 +493,7 @@ func TestReloadMapRelocatesTrappedPlayersAndDissolvesRooms(t *testing.T) {
 
 func TestHelloCarriesOfficeChatHistoryAndProfileChangesReachTheRoster(t *testing.T) {
 	h := newHarness(t)
-	h.w.SeedChat([]ChatEntry{{From: 9, Name: "Zed", Text: "bem-vindos", TS: 5}})
+	h.w.SeedChat([]ChatEntry{{From: 9, Name: "Zed", Text: "welcome", TS: 5}})
 	a := h.add(1, "member", sx, sy)
 	hello := ""
 	for _, f := range drain(a) {
@@ -501,25 +501,25 @@ func TestHelloCarriesOfficeChatHistoryAndProfileChangesReachTheRoster(t *testing
 			hello = f
 		}
 	}
-	if !strings.Contains(hello, `"chat":[{"f":9,"n":"Zed","x":"bem-vindos","ts":5}]`) {
+	if !strings.Contains(hello, `"chat":[{"f":9,"n":"Zed","x":"welcome","ts":5}]`) {
 		t.Fatalf("hello must carry persisted history: %s", hello[len(hello)-120:])
 	}
 	var saved []string
 	h.w.OnChat = func(_ int64, _ uint32, text string, _ int64) { saved = append(saved, text) }
-	h.w.handle(ev{kind: evChat, p: a, gen: a.gen, s: "o", info: UserInfo{Name: "  oi  "}}, h.now)
+	h.w.handle(ev{kind: evChat, p: a, gen: a.gen, s: "o", info: UserInfo{Name: "  hi  "}}, h.now)
 	h.w.handle(ev{kind: evChat, p: a, gen: a.gen, s: "d", id: 99, info: UserInfo{Name: "secret"}}, h.now)
-	h.w.handle(ev{kind: evChat, p: a, gen: a.gen, s: "g", info: UserInfo{Name: "sem grupo"}}, h.now)
-	if len(saved) != 1 || saved[0] != "oi" || len(h.w.hist) != 2 {
+	h.w.handle(ev{kind: evChat, p: a, gen: a.gen, s: "g", info: UserInfo{Name: "no group"}}, h.now)
+	if len(saved) != 1 || saved[0] != "hi" || len(h.w.hist) != 2 {
 		t.Fatalf("only office chat is persisted (and trimmed): saved=%v hist=%d", saved, len(h.w.hist))
 	}
 	b := h.add(2, "member", sx+400, sy)
 	drain(a)
 	drain(b)
-	h.w.handle(ev{kind: evProfile, id: 1, info: UserInfo{Name: "Ana Nova", Avatar: json.RawMessage(`{"sk":3}`)}}, h.now)
+	h.w.handle(ev{kind: evProfile, id: 1, info: UserInfo{Name: "Ana New", Avatar: json.RawMessage(`{"sk":3}`)}}, h.now)
 	h.run(200 * time.Millisecond)
 	got := false
 	for _, f := range drain(b) {
-		if strings.HasPrefix(f, `{"t":"p"`) && strings.Contains(f, "Ana Nova") && strings.Contains(f, `"sk":3`) {
+		if strings.HasPrefix(f, `{"t":"p"`) && strings.Contains(f, "Ana New") && strings.Contains(f, `"sk":3`) {
 			got = true
 		}
 	}
@@ -545,4 +545,51 @@ func TestMediaRoomsAreNamespacedPerInstallation(t *testing.T) {
 	if !m[a.group.room]["1"] || !m[a.group.room]["2"] || len(m) != 1 {
 		t.Fatalf("snapshot must list exactly the group's members: %v", m)
 	}
+}
+
+func TestEvictRemovesThePlayerEndsTheCallAndTellsTheConnection(t *testing.T) {
+	h := newHarness(t)
+	a := h.add(1, "member", sx, sy)
+	b := h.add(2, "member", sx+32, sy)
+	kicked := make(chan KickReason, 1)
+	a.kick = func(r KickReason) { kicked <- r }
+	var left []uint32
+	h.w.OnLeave = func(_ int64, u uint32, _, _ float64) { left = append(left, u) }
+	h.consent(a, true)
+	h.consent(b, true)
+	h.run(2 * time.Second)
+	if a.group == nil || b.group == nil {
+		t.Fatal("precondition: a call should have formed")
+	}
+
+	h.w.handle(ev{kind: evEvict, id: 1}, h.now)
+
+	select {
+	case r := <-kicked:
+		if r != KickEvicted {
+			t.Fatalf("reason %v", r)
+		}
+	case <-time.After(time.Second):
+		t.Fatal("the connection must be told it was evicted")
+	}
+	if h.w.players[1] != nil || len(left) != 1 || left[0] != 1 {
+		t.Fatalf("player must leave the world and have its position saved: %v", left)
+	}
+	if b.group != nil && len(b.group.members) > 1 {
+		t.Fatal("the evicted player must leave the call")
+	}
+	h.run(300 * time.Millisecond)
+	revoked := false
+	h.fm.mu.Lock()
+	for _, r := range h.fm.revoked {
+		if strings.HasSuffix(r, "/1") {
+			revoked = true
+		}
+	}
+	h.fm.mu.Unlock()
+	if !revoked {
+		t.Fatal("media access of the evicted player must be revoked")
+	}
+	// evicting somebody who is not there is a no-op
+	h.w.handle(ev{kind: evEvict, id: 77}, h.now)
 }

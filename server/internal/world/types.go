@@ -113,7 +113,7 @@ type Player struct {
 
 	// connection
 	out       chan []byte
-	kick      func(replaced bool)
+	kick      func(reason KickReason)
 	gen       uint64
 	gone      time.Time // when the connection dropped (zero = connected)
 	pendPos   map[uint32]posRec
@@ -134,3 +134,12 @@ type Player struct {
 }
 
 func (p *Player) connected() bool { return p.out != nil }
+
+// KickReason says why the server closed a live connection.
+type KickReason uint8
+
+const (
+	KickReplaced KickReason = iota + 1 // a newer connection of the same user took over
+	KickSlow                           // the reliable queue overflowed
+	KickEvicted                        // an admin removed the member or changed their role
+)
