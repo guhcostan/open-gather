@@ -38,6 +38,9 @@ export async function run(ctx) {
     await admin.page.select('.modal select[aria-label="Role of Mia' + t + '"]', "member");
     await waitFor(() => mia.page.evaluate(() => window.__og.state.role === "member" && window.__og.state.conn === "open"), { timeout: 20000, what: "Mia back to member" });
     check("demoting works the same way", true);
+    // earlier scenarios may have minted other admins in this shared office: demote them, so that ours is the last one
+    const all = await (await api(ctx.adminCookie, "GET", "/api/admin/members")).json();
+    for (const m of all.members) if (m.role === "admin" && m.id !== ctx.adminId) await api(ctx.adminCookie, "PATCH", "/api/admin/members/" + m.id, { role: "member" });
     const selfDemote = await api(ctx.adminCookie, "PATCH", "/api/admin/members/" + ctx.adminId, { role: "member" });
     check("the last admin cannot be demoted (409)", selfDemote.status === 409);
     check("a member cannot call the admin API (403)", (await api(miaCookie, "GET", "/api/admin/members")).status === 403);
