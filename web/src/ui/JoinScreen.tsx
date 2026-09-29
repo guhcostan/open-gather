@@ -8,6 +8,7 @@ export function JoinScreen() {
   const [name, setName] = useState(() => localStorage.getItem("og.name") ?? "");
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
+  const notice = useStore((s) => s.notice);
   const invite = new URLSearchParams(location.search).get("invite") ?? "";
 
   const submit = async (e: React.FormEvent) => {
@@ -31,6 +32,7 @@ export function JoinScreen() {
     <main className="join">
       <form className="join-card" onSubmit={submit}>
         <h1>{t("join.title")}</h1>
+        {notice && <p className="error" role="alert">{notice}</p>}
         <p className="muted">{t("join.subtitle")}</p>
         <label className="field">
           <span>{t("join.name")}</span>

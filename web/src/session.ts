@@ -33,7 +33,7 @@ class Session {
     this.view = view;
     media.onSpeaking = (ids) => view.setSpeaking(ids);
     media.onNeedToken = () => this.socket?.send({ t: "tok" });
-    this.socket = new Socket((m) => this.onMessage(m), (s) => this.onConn(s));
+    this.socket = new Socket((m) => this.onMessage(m), (s) => this.onConn(s), () => void this.onEvicted());
     this.socket.connect();
 
     const act = () => {
@@ -65,6 +65,19 @@ class Session {
     this.view?.destroy();
     this.view = null;
     setState({ conv: null, roster: new Map() });
+  }
+
+  /** An admin removed us or changed our role. A role change keeps the session (reconnect); removal ends it. */
+  private async onEvicted() {
+    if (this.stopped) return;
+    setState({ conn: "reconnecting" });
+    const me = (await fetch("/api/me").then((r) => r.json()).catch(() => ({ authenticated: true }))) as { authenticated?: boolean };
+    if (this.stopped) return;
+    if (me.authenticated) {
+      this.socket?.connect();
+    } else {
+      setState({ phase: "join", notice: t("removed.notice") });
+    }
   }
 
   private onConn(s: ConnState) {

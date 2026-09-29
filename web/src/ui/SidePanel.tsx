@@ -96,9 +96,9 @@ function Chat({ scope, setScope }: { scope: Scope; setScope: (s: Scope) => void 
         <button className={"chip" + (scope.sc === "o" ? " on" : "")} onClick={() => setScope({ sc: "o" })}>{t("chat.office")}</button>
         <button className={"chip" + (scope.sc === "g" ? " on" : "")} onClick={() => setScope({ sc: "g" })}>{t("chat.conversation")}</button>
         {dmPeers.map((id) => (
-          <button key={id} className={"chip" + (scope.sc === "d" && scope.peer === id ? " on" : "")} onClick={() => setScope({ sc: "d", peer: id })}>${name(id)}</button>
+          <button key={id} className={"chip" + (scope.sc === "d" && scope.peer === id ? " on" : "")} onClick={() => setScope({ sc: "d", peer: id })}>{name(id)}</button>
         ))}
-        {scope.sc === "d" && !dmPeers.includes(scope.peer) && <button className="chip on">${name(scope.peer)}</button>}
+        {scope.sc === "d" && !dmPeers.includes(scope.peer) && <button className="chip on">{name(scope.peer)}</button>}
       </div>
       <div className="msgs" aria-live="polite">
         {scope.sc === "g" && !conv && <p className="muted">{t("chat.noConv")}</p>}

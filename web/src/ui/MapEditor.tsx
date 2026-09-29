@@ -124,7 +124,7 @@ export function MapEditor({ onClose }: { onClose: () => void }) {
   const createRoom = () => {
     const d = draft.current;
     if (!d || !pending || !roomName.trim()) return;
-    const base = roomName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "sala";
+    const base = roomName.trim().toLowerCase().replace(/[^a-z0-9]+/g, "-").replace(/^-|-$/g, "") || "room";
     let id = base, n = 2;
     while (d.areas.some((a) => a.id === id)) id = `${base}-${n++}`;
     d.areas.push({ id, name: roomName.trim().slice(0, 60), kind: "room", ...pending, floor: "carpet_teal", access: { mode: access }, capacity: 20 });

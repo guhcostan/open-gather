@@ -5,6 +5,7 @@ import (
 	"encoding/json"
 	"net/http"
 	"strconv"
+	"sync/atomic"
 	"time"
 
 	"github.com/coder/websocket"
@@ -59,18 +60,11 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request) {
 	defer cancel()
 
 	role := se.Role
+	// The world calls this synchronously, right before it closes the outbound channel, so the writer
+	// below always knows the reason when it sees the channel close. It must stay non-blocking.
+	var closeReason atomic.Uint32
 	conn, err := wd.Join(ctx, world.UserInfo{ID: uint32(se.UserID), Name: se.Name, Avatar: se.Avatar, Role: role,
-		LastX: se.LastX, LastY: se.LastY}, func(reason world.KickReason) {
-		switch reason {
-		case world.KickReplaced:
-			c.Close(websocket.StatusCode(4001), "replaced by a newer connection")
-		case world.KickEvicted:
-			c.Close(websocket.StatusCode(4003), "removed by an administrator or role changed")
-		default:
-			c.Close(websocket.StatusCode(4002), "client too slow")
-		}
-		cancel()
-	})
+		LastX: se.LastX, LastY: se.LastY}, func(reason world.KickReason) { closeReason.Store(uint32(reason)) })
 	if err != nil {
 		c.Close(websocket.StatusTryAgainLater, "office unavailable")
 		return
@@ -88,7 +82,16 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request) {
 			select {
 			case b, ok := <-conn.Out:
 				if !ok {
-					c.Close(websocket.StatusTryAgainLater, "closed by server")
+					switch world.KickReason(closeReason.Load()) {
+					case world.KickReplaced:
+						c.Close(websocket.StatusCode(4001), "replaced by a newer connection")
+					case world.KickEvicted:
+						c.Close(websocket.StatusCode(4003), "removed by an administrator or role changed")
+					case world.KickSlow:
+						c.Close(websocket.StatusCode(4002), "client too slow")
+					default:
+						c.Close(websocket.StatusTryAgainLater, "closed by server")
+					}
 					return
 				}
 				wctx, wc := context.WithTimeout(ctx, 5*time.Second)

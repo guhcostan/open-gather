@@ -168,6 +168,8 @@ type Conn struct {
 	w   *World
 }
 
+// Join attaches a connection. kick is called on the world goroutine, just before the outbound channel
+// is closed, to say why the server ends the connection; it must not block.
 func (w *World) Join(ctx context.Context, info UserInfo, kick func(reason KickReason)) (*Conn, error) {
 	reply := make(chan joinResult, 1)
 	e := ev{kind: evJoin, info: info, kick: kick, reply: reply}
@@ -355,7 +357,7 @@ func (w *World) doJoin(e ev, now time.Time) {
 		if p.out != nil {
 			old := p.out
 			if p.kick != nil {
-				go p.kick(KickReplaced)
+				p.kick(KickReplaced) // records the reason before the channel closes (see Join)
 			}
 			p.out = nil
 			close(old)

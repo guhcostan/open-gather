@@ -134,3 +134,17 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .editor-layer { position: absolute; inset: 0; z-index: 4; cursor: crosshair; touch-action: none; }
 .editor { position: absolute; left: 12px; bottom: 96px; width: 300px; z-index: 6; background: var(--panel); border: 1px solid var(--amber); border-radius: 14px; padding: 14px; display: grid; gap: 10px; }
 .editor h3 { margin: 0; }
+
+/* administration dialog */
+.sr-only { position: absolute; width: 1px; height: 1px; margin: -1px; padding: 0; overflow: hidden; clip: rect(0 0 0 0); white-space: nowrap; border: 0; }
+.modal.wide { width: min(720px, 100%); }
+.admin-table { width: 100%; border-collapse: collapse; font-size: 13px; }
+.admin-table th { text-align: left; font-weight: 700; padding: 4px 8px 6px 0; border-bottom: 2px solid currentColor; }
+.admin-table td { padding: 6px 8px 6px 0; border-bottom: 1px solid #0002; vertical-align: middle; }
+.admin-table select { max-width: 130px; }
+.admin-form { display: grid; grid-template-columns: repeat(3, 1fr) auto; gap: 8px; align-items: end; }
+.inline { display: inline-flex; gap: 6px; flex-wrap: wrap; }
+.btn.danger { background: #b3261e; color: #fff; }
+.audit { list-style: none; margin: 0; padding: 0; display: grid; gap: 6px; max-height: 50vh; overflow: auto; font-size: 13px; }
+.audit time { color: var(--muted); margin-right: 6px; font-size: 12px; }
+@media (max-width: 640px) { .admin-form { grid-template-columns: 1fr 1fr; } }

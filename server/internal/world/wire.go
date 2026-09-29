@@ -16,11 +16,11 @@ const (
 
 func (w *World) evictPlayer(p *Player) {
 	if p.out != nil {
+		if p.kick != nil {
+			p.kick(KickEvicted)
+		}
 		close(p.out)
 		p.out = nil
-		if p.kick != nil {
-			go p.kick(KickEvicted)
-		}
 	}
 	p.Dx, p.Dy = 0, 0
 	w.removePlayer(p)
@@ -30,15 +30,15 @@ func (w *World) kickPlayer(p *Player, now time.Time) {
 	if p.out == nil {
 		return
 	}
+	if p.kick != nil {
+		p.kick(KickSlow)
+	}
 	close(p.out)
 	p.out = nil
 	p.gone = now
 	p.Dx, p.Dy = 0, 0
 	delete(w.movers, p)
 	w.St.Kicked.Add(1)
-	if p.kick != nil {
-		go p.kick(KickSlow)
-	}
 }
 
 // sendShared queues an immutable frame on a reliable path. A full queue means

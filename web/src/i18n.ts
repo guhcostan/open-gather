@@ -106,11 +106,56 @@ const en = {
   "invite.copy": "Copy",
   "invite.copied": "Link copied",
   "invite.error": "Could not create the invite.",
+  "admin.open": "Admin",
+  "admin.title": "Administration",
+  "admin.tab.members": "Members",
+  "admin.tab.invites": "Invites",
+  "admin.tab.activity": "Activity",
+  "admin.loading": "Loading…",
+  "admin.error": "Something went wrong.",
+  "admin.name": "Name",
+  "admin.role": "Role",
+  "admin.role.admin": "Admin",
+  "admin.role.member": "Member",
+  "admin.roleOf": "Role of {name}",
+  "admin.joined": "Joined",
+  "admin.actions": "Actions",
+  "admin.remove": "Remove",
+  "admin.removeOf": "Remove {name}",
+  "admin.confirmRemove": "Confirm removal",
+  "admin.roleChanged": "Role of {name} updated",
+  "admin.removed": "{name} was removed",
+  "admin.maxUses": "Maximum uses",
+  "admin.hours": "Valid for (hours)",
+  "admin.inviteHint": "The link is shown only once. Revoke an invite to make its link stop working.",
+  "admin.noInvites": "No invites yet.",
+  "admin.uses": "Uses",
+  "admin.expires": "Expires",
+  "admin.status": "Status",
+  "admin.revoke": "Revoke",
+  "admin.revokeOf": "Revoke the invite created {date}",
+  "admin.revoked": "Invite revoked",
+  "admin.invite.active": "Active",
+  "admin.invite.expired": "Expired",
+  "admin.invite.exhausted": "Used up",
+  "admin.invite.revoked": "Revoked",
+  "admin.noActivity": "Nothing has happened yet.",
+  "admin.audit.member.join": "{actor} joined ({detail})",
+  "admin.audit.member.role": "{actor} changed the role of {target} ({detail})",
+  "admin.audit.member.remove": "{actor} removed {target}",
+  "admin.audit.invite.create": "{actor} created an invite ({detail})",
+  "admin.audit.invite.revoke": "{actor} revoked an invite",
+  "admin.audit.map.update": "{actor} edited the office ({detail})",
+  "removed.notice": "You were removed from this office. Ask an administrator for a new invite.",
+  "map.label": "Office map. Move with the arrow keys or W, A, S and D.",
 } as const;
 
 export type Key = keyof typeof en;
 const dicts: Record<string, Partial<Record<Key, string>>> = { en };
 let locale = "en";
+export function hasKey(k: string): k is Key {
+  return k in en;
+}
 export function setLocale(l: string) {
   if (dicts[l]) locale = l;
 }

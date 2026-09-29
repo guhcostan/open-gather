@@ -41,12 +41,12 @@ export async function run(ctx) {
     await walkTo(admin, 32 * 16 + 8, 22 * 16 + 8);
     await admin.page.evaluate(() => [...document.querySelectorAll("button")].find((b) => b.textContent === "Edit office")?.click());
     await waitFor(() => admin.page.$(".editor"), { what: "editor open" });
-    await drag(admin, [35, 20], [35, 24]); // default tool: Paredes
+    await drag(admin, [35, 20], [35, 24]); // default tool: Walls
     check("painting walls updates the local preview immediately", await admin.page.evaluate(() => [20, 21, 22, 23, 24].every((y) => window.__og.view.map.walls[y][35] === "#")));
     await admin.page.evaluate(() => [...document.querySelectorAll(".editor button")].find((b) => b.textContent === "Save")?.click());
     await waitFor(() => mem.page.evaluate(() => window.__og.view.map.walls[22][35] === "#"), { what: "member receives the new wall" });
     await walkTo(admin, 12 * 16 + 8, 30 * 16 + 8);
-    await chip(admin, "Nova sala");
+    await chip(admin, "New room");
     await drag(admin, [14, 28], [19, 32]);
     await admin.page.type('.editor input[placeholder]', "Test room");
     await admin.page.select(".editor select[aria-label]", "admins");

@@ -56,6 +56,8 @@ export interface State {
   currentArea: string;
   toast: string;
   myAvatar: AvatarSpec;
+  /** One-off message shown on the join screen (for example after being removed). */
+  notice: string;
 }
 
 const load = <T,>(k: string, d: T): T => {
@@ -89,6 +91,7 @@ const initial: State = {
   currentArea: "",
   toast: "",
   myAvatar: load<AvatarSpec>("og.avatar", { sk: 1, hs: 0, hc: 1, sh: 4, pa: 1 }),
+  notice: "",
 };
 
 let state = initial;

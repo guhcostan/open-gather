@@ -14,6 +14,7 @@ export class Socket {
   constructor(
     private onMsg: (m: ServerMsg) => void,
     private onState: (s: ConnState) => void,
+    private onEvicted: () => void = () => {},
   ) {}
 
   connect() {
@@ -42,6 +43,12 @@ export class Socket {
       if (this.stopped) return;
       if (e.code === 4001) {
         this.onState("replaced");
+        return;
+      }
+      if (e.code === 4003) {
+        // removed or role changed: the session layer decides whether to reconnect
+        this.backoff = 400;
+        this.onEvicted();
         return;
       }
       this.onState("reconnecting");

@@ -10,6 +10,7 @@ import { SettingsDialog } from "./SettingsDialog";
 import { DebugHud } from "./DebugHud";
 import { StatusMenu } from "./StatusMenu";
 import { MapEditor } from "./MapEditor";
+import { AdminButton, AdminDialog } from "./AdminDialog";
 
 export function OfficeScreen() {
   const host = useRef<HTMLDivElement>(null);
@@ -20,7 +21,7 @@ export function OfficeScreen() {
   const debug = useStore((s) => s.settings.debug);
   const role = useStore((s) => s.role);
   const [editing, setEditing] = useState(false);
-  const [dialog, setDialog] = useState<"" | "media" | "settings">("");
+  const [dialog, setDialog] = useState<"" | "media" | "settings" | "admin">("");
 
   useEffect(() => {
     if (!host.current) return;
@@ -30,12 +31,13 @@ export function OfficeScreen() {
 
   return (
     <div className="office">
-      <div className="stage" ref={host} />
+      <div className="stage" ref={host} role="application" aria-label={t("map.label")} />
       <header className="topbar">
         <strong className="brand">{office || t("app.name")}</strong>
         {area && <span className="pill">{area}</span>}
         {conn !== "open" && conn !== "connecting" && <span className="pill warn" role="status">{conn === "replaced" ? t("conn.replaced") : t("conn.reconnecting")}</span>}
         <span className="spacer" />
+        <AdminButton onOpen={() => setDialog("admin")} />
         {role === "admin" && !editing && <button className="btn" onClick={() => setEditing(true)}>{t("editor.open")}</button>}
         <StatusMenu />
       </header>
@@ -47,6 +49,7 @@ export function OfficeScreen() {
       {debug && <DebugHud />}
       {dialog === "media" && <MediaDialog onClose={() => setDialog("")} />}
       {dialog === "settings" && <SettingsDialog onClose={() => setDialog("")} />}
+      {dialog === "admin" && <AdminDialog onClose={() => setDialog("")} />}
     </div>
   );
 }
