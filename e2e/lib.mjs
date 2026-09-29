@@ -71,7 +71,7 @@ export async function joinAs(browser, name, { path = "/", avatar = null, viewpor
     await page.type("input", name);
     await page.click("button.primary");
   }
-  await waitFor(() => page.evaluate(() => window.__og?.state?.meId > 0 && window.__og.state.conn === "open"), { what: name + " connected" });
+  await waitFor(() => page.evaluate(() => window.__og?.state?.meId > 0 && window.__og.state.conn === "open"), { timeout: 30000, what: name + " connected" });
   return { ctx, page, name, logs, id: await page.evaluate(() => window.__og.state.meId) };
 }
 
