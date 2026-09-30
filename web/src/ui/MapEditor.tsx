@@ -6,6 +6,7 @@ import { toast, useStore } from "../store";
 import { t } from "../i18n";
 
 type Tool = "wall" | "prop" | "erase" | "room" | "unroom" | "desk" | "content";
+const INTERACTIVE = ["note", "embed", "image", "portal", "whiteboard", "spotlight"];
 
 export function MapEditor({ onClose }: { onClose: () => void }) {
   const roster = useStore((s) => s.roster);
@@ -52,6 +53,12 @@ export function MapEditor({ onClose }: { onClose: () => void }) {
     setDirty(true);
   };
 
+  const pickContent = (index: number) => {
+    const p = draft.current?.props[index];
+    if (!p || !INTERACTIVE.includes(p.t)) { setContent(null); return; }
+    setContent({ index, label: p.label ?? "", data: p.data ?? "", toX: p.to?.x ?? 9, toY: p.to?.y ?? 7 });
+  };
+
   const tileAt = (e: React.PointerEvent) => session.view!.screenToTile(e.clientX, e.clientY);
 
   const down = (e: React.PointerEvent) => {
@@ -93,7 +100,7 @@ export function MapEditor({ onClose }: { onClose: () => void }) {
         const [w, h] = propSize(p);
         return ["note", "embed", "image", "portal", "whiteboard", "spotlight"].includes(p.t) && x >= p.x && x < p.x + w && y >= p.y && y < p.y + h;
       });
-      if (index >= 0) { const p = d.props[index]; setContent({ index, label: p.label ?? "", data: p.data ?? "", toX: p.to?.x ?? 9, toY: p.to?.y ?? 7 }); }
+      if (index >= 0) pickContent(index);
     } else if (tool === "desk") {
       const p = d.props.find((q) => {
         if (q.t !== "desk") return false;
@@ -188,6 +195,10 @@ export function MapEditor({ onClose }: { onClose: () => void }) {
         </>}
         {tool === "content" && <div className="field">
           <span>{t("editor.contentHint")}</span>
+          {ready && <select aria-label={t("editor.objectPick")} value={content?.index ?? -1} onChange={(e) => pickContent(Number(e.target.value))}>
+            <option value={-1}>—</option>
+            {draft.current!.props.map((p, i) => INTERACTIVE.includes(p.t) ? <option key={i} value={i}>{(p.label || t(("prop." + p.t) as never)) + " (" + p.x + ", " + p.y + ")"}</option> : null)}
+          </select>}
           {content && <>
             <label className="field"><span>{t("editor.objectLabel")}</span><input maxLength={40} value={content.label} onChange={(e) => setContent({ ...content, label: e.target.value })} /></label>
             {["note", "embed", "image"].includes(draft.current!.props[content.index].t) && <label className="field"><span>{t("editor.objectData")}</span><textarea maxLength={draft.current!.props[content.index].t === "note" ? 500 : 300} value={content.data} onChange={(e) => setContent({ ...content, data: e.target.value })} /></label>}

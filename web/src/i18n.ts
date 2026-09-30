@@ -59,6 +59,7 @@ const en = {
   "editor.tool.content": "Edit content",
   "editor.contentHint": "Click an interactive object to edit its content.",
   "editor.objectLabel": "Object name",
+  "editor.objectPick": "Interactive object to edit",
   "editor.objectData": "Note text or HTTPS URL",
   "editor.portalX": "Destination column",
   "editor.portalY": "Destination row",

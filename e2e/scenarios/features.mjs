@@ -62,11 +62,10 @@ export async function run(ctx) {
     if (!(await click(a, "Edit office"))) throw new Error("admin editor button unavailable");
     await waitFor(() => a.page.$(".editor"), { what: "editor open" });
     await click(a, "Edit content", ".editor button");
-    await waitFor(async () => {
-      const noteAt = await read(a, () => { const v = window.__og.view, r = v.app.canvas.getBoundingClientRect(); return { x: r.left + v.camX + (4*16+8)*v.S, y: r.top + v.camY + (5*16+8)*v.S }; });
-      await a.page.mouse.click(noteAt.x, noteAt.y);
-      return a.page.$(".editor textarea");
-    }, { timeout: 20000, every: 700, what: "note content editor" });
+    // Pick the note from the object list (works at any viewport; on small screens the panel covers the map corner).
+    const noteOption = await waitFor(() => read(a, () => [...document.querySelectorAll('.editor select[aria-label="Interactive object to edit"] option')].find((o) => o.textContent.endsWith("(4, 5)"))?.value), { timeout: 20000, what: "object list with the note" });
+    await a.page.select('.editor select[aria-label="Interactive object to edit"]', noteOption);
+    await waitFor(() => a.page.$(".editor textarea"), { what: "note content editor" });
     check("editor restores hidden content before editing", await read(a, () => document.querySelector(".editor textarea").value.includes("Welcome to Open Gather!")));
     await a.page.$eval(".editor textarea", (el) => { el.value = ""; });
     await a.page.type(".editor textarea", "A saved team note");
