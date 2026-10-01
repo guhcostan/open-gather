@@ -31,7 +31,7 @@ Open Gather is a virtual office for remote and hybrid teams in the spirit of the
 
 **Try it now:** the **[live demo](https://office.152-67-49-137.sslip.io)** runs on a free Oracle Cloud VM (1 GB of RAM, so be gentle). No sign-up beyond a name; anyone can join, and the map, office chat and whiteboards reset every 6 hours. Open it in two browser profiles and walk the avatars together to see a call start.
 
-> **MVP / alpha.** The whole loop works and is tested in real browsers: avatars, movement, proximity audio and video through a real SFU, private meeting rooms, screen sharing, chat, invites, an admin map editor and a Docker install. **Capacity on a real server has not been measured yet**: the load numbers we have come from a laptop with the generator on the same machine. Read [Status](#status) before you rely on anything. "Open Gather" is a **provisional name** and the project is not affiliated with the original Gather product.
+> **MVP / alpha.** The whole loop works and is tested in real browsers: avatars, movement, proximity audio and video through a real SFU, private meeting rooms, screen sharing, chat, invites, an admin map editor and a Docker install. **Capacity is not established yet**: on the free 1 GB demo VM a single run over the internet stayed smooth at 100 bots and saturated at 500, and only small calls (4 people with video, 20 in audio groups) ran clean. Read [Status](#status) before you rely on anything. "Open Gather" is a **provisional name** and the project is not affiliated with the original Gather product.
 
 ⭐ **If you would like a virtual office you can own, star the repository.** It is the simplest way to help other teams find it and to tell us this is worth building.
 
@@ -135,7 +135,7 @@ More in the [getting started guide](docs/getting-started.md), including every en
 
 **What does it cost?** Nothing but the machine. No paid service is required, and the public demo runs on a free 1 GB VM.
 
-**How many people can it hold?** Not measured on a real server yet, so we do not claim a number. Local benchmarks (generator on the same laptop) are in [Benchmark results](docs/benchmark-results.md).
+**How many people can it hold?** We do not claim a number yet. One run on the free 1 GB Oracle VM, loaded over the internet, was smooth at 100 bots, slower in the worst cases at 200 and saturated at 500; a 4-person video call and 20 people in audio groups were clean, larger media runs lost packets. Details in [Benchmark results](docs/benchmark-results.md).
 
 **Is anything recorded?** No. Audio, video and screen shares only pass through the media server, direct and conversation chat are never stored, and nothing is captured before you opt in. The office chat keeps its last 500 messages. See [Privacy and security](docs/privacy-and-security.md).
 

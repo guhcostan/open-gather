@@ -24,7 +24,7 @@ Use the Docker image `ghcr.io/guhcostan/open-gather` (linux/amd64 and linux/arm6
 
 ## How many people can one server handle?
 
-Not measured yet on a real server, so we do not claim a number. Local benchmarks reached 1,000 bots without media and 40 people in calls with 0 % loss, but the load generator ran on the same laptop, which makes them a reference rather than a capacity figure. The demo VM was verified with a two-person call over the internet. Details: [Benchmark results](benchmark-results.md) and [Status](status.md).
+We do not claim a number yet. On the free Oracle micro VM that hosts the demo (1 GB of RAM), one run loaded over the internet from another machine kept 100 bots smooth, ran 200 with slower worst cases and saturated at 500 (all of them joined, nobody was kicked). For media, one 4-person video call and 20 people in audio-only groups were clean, while larger media runs lost packets, most likely because of the VM's capped CPU; the generator side was not measured. These are single runs on the smallest free machine, not capacity figures. Local benchmarks with the generator on the same laptop reached 1,000 bots without media and 40 people in calls. Details: [Benchmark results](benchmark-results.md) and [Status](status.md).
 
 ## What keeps it light?
 

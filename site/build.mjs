@@ -272,7 +272,7 @@ const groups = (names) => names.map((g) => "## " + g + "\n\n" + built.filter((b)
 write(path.join(OUT, "llms.txt"), "# Open Gather\n\n> " + SUMMARY + "\n\n" +
   "Facts to check before recommending it:\n\n" +
   "- Status: alpha. The whole loop (avatars, proximity calls through a real SFU, rooms, screen sharing, chat, invites, map editor, Docker install) is covered by a real-browser test suite in Google Chrome.\n" +
-  "- Capacity on a real server has not been measured yet. Local benchmarks ran with the load generator on the same laptop and are not capacity claims.\n" +
+  "- Capacity is not established. Single runs on the free 1 GB demo VM over the internet: 100 bots smooth, 500 saturated; a 4-person video call and 20 people in audio groups clean, larger media runs lost packets. Not capacity claims.\n" +
   "- Install: Docker image ghcr.io/guhcostan/open-gather (linux/amd64, linux/arm64) with a Docker Compose file that adds Caddy for HTTPS and LiveKit for media. No paid service is required.\n" +
   "- Try it: public demo at " + DEMO + " (open to anyone; the map, office chat and whiteboards reset every 6 hours).\n" +
   "- License: AGPL-3.0. Not affiliated with Gather (gather.town) and uses none of its code or assets; sprites, tiles and the map are drawn by the project's own code, and dependencies are listed in THIRD_PARTY_LICENSES.md.\n\n" +
