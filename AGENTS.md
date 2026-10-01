@@ -8,6 +8,10 @@ Guidance for AI coding agents (and humans) working in this repository. Read it f
 
 It is **not** affiliated with the original Gather product. Never copy its brand, maps, sprites or code.
 
+## Every change runs the gauntlet
+
+Build against written acceptance criteria, reproduce behaviour failures with **red** checks, get `scripts/gauntlet.sh` to `GATES GREEN`, then let independent **critics** (UX, invariants, regression) inspect it, and repeat until no blocker or major is open. Follow [`.agents/skills/gauntlet/SKILL.md`](.agents/skills/gauntlet/SKILL.md) for every feature, fix, refactor or review; it defines proportional evidence for documentation and review-only work. The reasons are in [`docs/gauntlet.md`](docs/gauntlet.md). Look at the frames for anything a person sees: a passing metric once approved a pet that was glued to its owner.
+
 ## Language rule
 
 **Everything is in English**: code, comments, identifiers, commit messages, PR text, issues, README, docs, site copy, error messages and generated art text. (The player-facing UI is English, the only shipped locale, and goes through the i18n dictionary in `web/src/i18n.ts`; new user-visible strings must go there, never inline.)
@@ -41,6 +45,8 @@ It is **not** affiliated with the original Gather product. Never copy its brand,
 ~~~bash
 ./scripts/dev.sh                          # LiveKit (dev) + Go server + Vite; logs in .run/
 cd server && go vet ./... && go test -race ./...
+scripts/gauntlet.sh [scenario ...]       # all gates: gofmt, vet, race tests, tsc, build, web lint, browser suite (CI=1)
+node scripts/lint-web.mjs                # static web rules (effects return a cleanup or nothing, i18n)
 cd web && pnpm exec tsc --noEmit && pnpm exec vite build
 cd e2e && node run.mjs                    # real Chrome + real LiveKit; builds, starts its own server with a fresh database
 cd e2e && OG_EXTERNAL_URL=http://127.0.0.1:8080 node run.mjs   # same scenarios against a running stack (e.g. Docker Compose)
@@ -103,6 +109,8 @@ Other agents or people may be working in the same tree at the same time.
 ## Testing notes and gotchas
 
 - The browser exposes `window.__og` (view, media, state, session) for tests. Drive movement with `view.setDirection`, not synthetic key events.
+- `window.__og` shortcuts are for setup; every feature also needs one check through its real controls with its panel open (the chat crash hid behind API-only sends).
+- `node run.mjs capture-pet` writes frames and a contact sheet to a fresh folder under `/tmp/og-capture`; copy it for new `capture-*` scenarios. They are not in the default suite.
 - LiveKit's client may use a single peer connection; read RTP stats from `room.engine.pcManager.subscriber?.pc ?? publisher.pc` (see `rtpBytes` in `e2e/lib.mjs`).
 - Editing client files while the Vite dev server runs can trigger a full reload and break a running E2E script; rerun it.
 - Avatar sheet cells are 18x26 px (16x24 content plus a 1 px outline margin). The outline is applied per cell so nothing bleeds between rows; keep it that way. `e2e/art.mjs` crops to 25 rows when it reuses cells.
@@ -120,6 +128,7 @@ Recording, AI transcription, native apps, marketplace, enterprise integrations a
 
 ## Definition of done
 
+- The gauntlet's stop condition holds: whole suite green, no blocker or major finding open, evidence for every acceptance criterion.
 - Code builds, is formatted, and relevant tests pass (state which you ran).
 - Behaviour changes have tests; risky media/privacy changes have an end-to-end check or a clearly stated "not verified".
 - Docs, decision records and the status table are updated in the same change.

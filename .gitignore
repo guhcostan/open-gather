@@ -1,4 +1,5 @@
 .run
+.gauntlet
 bin
 server/data
 web/node_modules

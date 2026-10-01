@@ -16,6 +16,16 @@ export function SocialControls() {
   const running = useStore((s) => s.running);
   const wave = useStore((s) => s.wave);
   const handUp = useStore((s) => s.roster.get(s.meId)?.h === 1);
+  // Phones: the reactions collapse into one button so they never cover the map or the chat panel.
+  const [compact, setCompact] = useState(() => window.matchMedia?.("(max-width: 700px)").matches ?? false);
+  const [open, setOpen] = useState(false);
+  useEffect(() => {
+    const mq = window.matchMedia?.("(max-width: 700px)");
+    const on = () => setCompact(mq.matches);
+    mq?.addEventListener("change", on);
+    return () => mq?.removeEventListener("change", on);
+  }, []);
+  const done = () => { if (compact) setOpen(false); };
   useEffect(() => {
     if (!wave) return;
     const timer = window.setTimeout(() => setState({ wave: null }), 20000);
@@ -40,13 +50,14 @@ export function SocialControls() {
   const roomIndex = map?.areas.findIndex((a) => a.name === currentArea && a.kind === "room") ?? -1;
   return (
     <>
-      <div className="social-controls" role="region" aria-label={t("emote.title")}>
-        <div className="reaction-row">
-          {EMOTES.map((emoji, i) => <button key={i} className="chip" aria-label={t(`emote.${i + 1}` as Key)} title={`${i + 1} · ${t(`emote.${i + 1}` as Key)}`} onClick={() => session.emote(i + 1)}>{emoji}</button>)}
-          <button className={"chip run-toggle" + (running ? " on" : "")} aria-pressed={running} aria-label={t("run.toggle")} title={t("run.hint")} onClick={() => session.toggleRun()}>🏃</button>
-          <button className="chip" aria-label={t("dance.action")} title={t("dance.action")} onClick={() => session.emote(8)}>💃</button>
-          <button className={"chip" + (handUp ? " on" : "")} aria-pressed={handUp} aria-label={handUp ? t("hand.lower") : t("hand.raise")} title={handUp ? t("hand.lower") : t("hand.raise")} onClick={() => session.hand(!handUp)}>✋</button>
-        </div>
+      <div className={"social-controls" + (compact && open ? " open" : "")} role="region" aria-label={t("emote.title")}>
+        {compact && <button className="chip reaction-toggle" aria-expanded={open} aria-label={t("emote.title")} title={t("emote.title")} onClick={() => setOpen(!open)}>😀</button>}
+        {(!compact || open) && <div className="reaction-row">
+          {EMOTES.map((emoji, i) => <button key={i} className="chip" aria-label={t(`emote.${i + 1}` as Key)} title={`${i + 1} · ${t(`emote.${i + 1}` as Key)}`} onClick={() => { session.emote(i + 1); done(); }}>{emoji}</button>)}
+          <button className={"chip run-toggle" + (running ? " on" : "")} aria-pressed={running} aria-label={t("run.toggle")} title={t("run.hint")} onClick={() => { session.toggleRun(); done(); }}>🏃</button>
+          <button className="chip" aria-label={t("dance.action")} title={t("dance.action")} onClick={() => { session.emote(8); done(); }}>💃</button>
+          <button className={"chip" + (handUp ? " on" : "")} aria-pressed={handUp} aria-label={handUp ? t("hand.lower") : t("hand.raise")} title={handUp ? t("hand.lower") : t("hand.raise")} onClick={() => { session.hand(!handUp); done(); }}>✋</button>
+        </div>}
         {wave && (
           <div className="wave-card" role="alert">
             <span>{t("wave.incoming", { name: wave.name })}</span>

@@ -53,6 +53,16 @@ jobs:
         working-directory: web
       - run: pnpm exec tsc --noEmit
         working-directory: web
+      - name: Web lint (bug classes tsc misses)
+        run: node scripts/lint-web.mjs
+      - name: Web unit tests (pure game logic)
+        run: node --test 'web/test/*.test.ts'
+      - name: Type-check the web unit tests
+        run: pnpm exec tsc -p tsconfig.test.json --noEmit
+        working-directory: web
+      - name: Build the docs site
+        run: pnpm install --frozen-lockfile && node build.mjs
+        working-directory: site
       - run: pnpm exec vite build
         working-directory: web
 

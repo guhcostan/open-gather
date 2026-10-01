@@ -11,6 +11,8 @@ Thanks for looking. The project is early, so the most useful contributions are c
 
 ## Development loop
 
+Every change runs the [gauntlet loop](gauntlet.md): written acceptance criteria, a test seen red first, `scripts/gauntlet.sh` green, and independent critics (UX, invariants, regression) with evidence.
+
 ~~~bash
 ./scripts/dev.sh                 # full local stack
 cd server && go vet ./... && go test -race ./...   # server tests

@@ -4,6 +4,7 @@ import { DANCE, EMOTES } from "./emotes";
 import { propSize } from "./mapModel";
 import { avatarFrames, FEET_Y, CELL_H, type AvatarFrames } from "./avatars";
 import { petFrames, PET_FEET_Y, PET_H, type PetFrames } from "./pets";
+import { followOwner, newPet, type PetState } from "./petFollow";
 import { bakeMap } from "./mapArt";
 
 const T = 16;
@@ -16,7 +17,6 @@ const BOX_HH = 3;
 const SHADOW_STEP = 1 / 60; // fixed sub-step used by server and client so extrapolation matches
 const OFFSET_TAU = 0.08; // seconds over which a correction blends in
 const HEARTBEAT_MS = 400; // re-send held input so the server can correct drift
-const PET_SNAP = 140; // px: a pet farther than this from its spot (teleport, portal) jumps there
 const STATUS_COLOR: Record<string, number> = { available: 0x5ec26a, busy: 0xe5584f, away: 0xf2d14b, offline: 0x8e8e9a, invisible: 0x8e8e9a };
 const DEFAULT_AV: AvatarSpec = { sk: 1, hs: 0, hc: 1, sh: 4, pa: 1 };
 
@@ -48,10 +48,8 @@ interface Ent {
   pet: Sprite | null;
   petKind: number;
   petFrames: PetFrames | null;
-  px: number;
-  py: number;
-  pdir: number;
-  pmoving: boolean;
+  /** Where the pet is and the trail it walks (see petFollow.ts). */
+  ps: PetState;
   speaking: boolean;
   sharing: boolean;
   inConv: boolean;
@@ -602,7 +600,7 @@ export class WorldView {
     this.hud.addChild(label);
     const e: Ent = {
       id, key: "", frames, spr, label, text, dot, ring: null, hand: null, danceUntil: 0, tx: 0, ty: 0, ox: 0, oy: 0, dx: 0, dy: 0, x: 0, y: 0, dir: 0, moving: false, run: false,
-      pet: null, petKind: 0, petFrames: null, px: NaN, py: NaN, pdir: 0, pmoving: false,
+      pet: null, petKind: 0, petFrames: null, ps: newPet(),
       speaking: false, sharing: false, inConv: false, status: p?.s ?? "available", name: p?.n ?? "", drawnStatus: "", drawnConv: false, drawnShare: false,
     };
     this.refreshEnt(e);
@@ -649,33 +647,23 @@ export class WorldView {
       e.pet = new Sprite(e.petFrames[0][0]);
       e.pet.anchor.set(0.5, PET_FEET_Y / PET_H);
       this.entLayer.addChild(e.pet);
-      e.px = e.py = NaN; // placed next to the owner on the next frame
+      e.ps = newPet(); // placed behind the owner on the next frame
     }
   }
 
-  /** A pet trots to a spot behind its owner, a little faster than a runner so it never lags far. */
+  /** One frame of the pet's walk (logic in petFollow.ts, tested with node --test). */
+  private petCanStand = (x: number, y: number) => !!this.map && this.canStandStatic(x, y);
+
   private stepPet(e: Ent, dt: number, now: number) {
     const pet = e.pet!;
-    const back = [[-7, -9], [12, -2], [-12, -2], [7, 9]][e.dir] ?? [0, -9];
-    const gx = e.x + back[0], gy = e.y + back[1];
-    if (!Number.isFinite(e.px) || Math.hypot(gx - e.px, gy - e.py) > PET_SNAP) { e.px = gx; e.py = gy; }
-    const ddx = gx - e.px, ddy = gy - e.py;
-    const d = Math.hypot(ddx, ddy);
-    if (d > 1.5) {
-      const v = Math.max(this.speed * this.runMul * 1.08, d * 5) * dt;
-      const k = Math.min(1, v / d);
-      e.px += ddx * k;
-      e.py += ddy * k;
-      e.pmoving = d > 4;
-      if (e.pmoving) e.pdir = Math.abs(ddx) > Math.abs(ddy) ? (ddx < 0 ? 1 : 2) : ddy < 0 ? 3 : 0;
-    } else {
-      e.pmoving = false;
-      if (!e.moving) e.pdir = e.dir;
-    }
-    const ph = e.pmoving ? [1, 0, 2, 0][Math.floor((now / 1000) * 10) & 3] : 0;
-    pet.texture = e.petFrames![e.pdir]?.[ph] ?? e.petFrames![0][0];
-    pet.position.set(Math.round(e.px), Math.round(e.py));
-    pet.zIndex = e.py;
+    const s = e.ps;
+    const ownerV = (e.run || (e.id === this.meId && (this.running || this.guided)) ? this.runMul : 1) * this.speed;
+    followOwner(s, e.x, e.y, e.dir, ownerV, dt, now, this.petCanStand);
+    const idleHop = !s.moving && now - s.restSince > 1500 && now % 2600 < 140; // a little hop now and then
+    const ph = s.moving ? [1, 0, 2, 0][Math.floor((now / 1000) * 10) & 3] : idleHop ? 1 : 0;
+    pet.texture = e.petFrames![s.dir]?.[ph] ?? e.petFrames![0][0];
+    pet.position.set(Math.round(s.px), Math.round(s.py) - (idleHop ? 1 : 0));
+    pet.zIndex = s.py;
   }
 
   private removeEnt(id: number) {
@@ -823,7 +811,7 @@ export class WorldView {
       if (e.pet) {
         e.pet.visible = on;
         if (on) this.stepPet(e, dt, now);
-        else e.px = NaN; // re-enters the view next to its owner
+        else e.ps.px = NaN; // re-enters the view behind its owner
       }
       if (e.ring) e.ring.visible = on && e.speaking;
       if (!on) continue;

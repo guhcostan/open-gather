@@ -1,6 +1,6 @@
 # Status and roadmap
 
-Open Gather is at **MVP / alpha** level. This page separates what has been run from what has not. Last updated on 2026-09-30.
+Open Gather is at **MVP / alpha** level. This page separates what has been run from what has not. Last updated on 2026-10-01.
 
 ## Verified (executed)
 
@@ -14,14 +14,14 @@ Environment: macOS (Apple M1 Pro, arm64), Go 1.26.5, Google Chrome with fake cam
 | `rooms` | admin-only room enforced by the server against raw inputs; tokens are scoped to one room; screen share is received; leaving a private room revokes access |
 | `access` | only admins mint invites; invite use limits; production refuses insecure configuration; CLI invite and online backup |
 | `editor` | real UI clicks paint walls and create a room; others get it live; the server enforces it; it persists across a restart |
-| `social` | office/direct/conversation chat scopes and privacy, rate limit, 500-character cut, persisted office history, profile change, desk owner label |
+| `social` | office/direct/conversation chat scopes and privacy; three messages typed into the real chat composer with both panels open render for sender and receiver and the app stays alive (regression: an effect returned `scrollIntoView()`'s Promise on Chrome 154 and blanked the UI), rate limit, 500-character cut, persisted office history, profile change, desk owner label |
 | `admin` | through the real UI: members list, promote/demote an online member (evicted, reconnects with the new role), the last admin cannot be demoted, invite create/list/revoke (secret never listed, revoked link returns 403), activity log, removing a member sends them to the join screen with a notice and kills their session |
 | `a11y` | axe-core (WCAG 2.1 A/AA + best-practice rules) reports zero violations on the join screen, people and chat panels, status menu, settings, administration (three tabs), consent dialog and the map editor; dialogs trap focus and close with Escape |
 | `security` | replayed token connects but is evicted by the reconciler within seconds; edited token rejected; expired token rejected only after LiveKit's 60 s clock-skew tolerance (found by this test, now documented) |
 | `resilience` | WebSocket drop keeps position, call and audio; flooding cannot speed a player up; oversized frames close the socket; session and position survive a server restart |
 | `features` | keys 1-7 show reactions on both avatars; X opens a nearby note whose content is absent from the public map; follow walks around walls to the leader and stops on input; portals teleport once per arrival; a locked room blocks outsiders and admits one visitor after a knock; edited notes and whiteboards persist across a restart |
 | `spotlight` | stepping on the pad with consent goes on air; a listener in a separate private call receives real audio, video and screen share RTP; audience tokens are subscribe-only and scoped; withdrawing consent or stepping off empties the SFU room |
-| `movement` | walking measures 72 px/s and running (R / Shift) 144 px/s in the browser; another browser sees the run bit and agrees on where the runner stops (< 1 px); double-clicking the map runs there along a server path; "Walk to" in the people panel crosses the office around walls in ~3 s; a member cannot be routed into an admin-only room; pets picked on the join screen are stored, drawn next to their owner for others, trot after them, and change live through the profile; unknown pets are rejected |
+| `movement` | walking measures 72 px/s and running (R / Shift) 144 px/s in the browser; another browser sees the run bit and agrees on where the runner stops (< 1 px); double-clicking the map runs there along a server path; "Walk to" in the people panel crosses the office around walls in ~3 s; a member cannot be routed into an admin-only room; pets picked on the join screen are stored and drawn next to their owner for others; recorded frame by frame while the owner walks an L, the pet follows the owner's trail about 20 px behind (median), never more than 3 px off it (no cut corners), never faster than 1.35x a walker, and rests about 19 px behind; pets and change live through the profile; unknown pets are rejected |
 | `rooms` (screen share) | besides isolation: the receiving browser expands the shared screen over the map (360 -> 1240 px) and shrinks it with Escape; the presenter's avatar shows a screen badge that clears when sharing stops; the capture runs at 1920x1080 |
 | `presence` | a wave crosses the office (behind a wall, out of view) and "Walk to them" runs to the waver; busy people are not disturbed and the sender is told; H raises a hand others see over the avatar and in the roster, H again lowers it; a note typed in the status menu appears in the other person's people panel; Z dances for people nearby; the minimap shows server head counts and clicking it runs there; M hides it; on an emulated phone (390x844, touch) the on-screen pad walks the avatar; ? opens the shortcuts; an administrator announcement reaches both people as a banner that can be dismissed, and the activity log records it without the text |
 | Docker | image builds (24 MB, non-root); the local Compose stack passes `proximity`, `consent` and `rooms`; in the container, production mode returns 403 without an invite, issues a Secure cookie with one, and refuses insecure configuration |
@@ -29,7 +29,9 @@ Environment: macOS (Apple M1 Pro, arm64), Go 1.26.5, Google Chrome with fake cam
 
 GitHub Actions (`.github/workflows/ci.yml`) runs the Go tests with `-race`, the web typecheck/build and this whole browser suite on an Ubuntu runner (software-rendered Chrome, real LiveKit); the run for the latest commit is green. The runner is much slower than a laptop (10-16 FPS), so the test walker steers frame by frame inside the page.
 
-The exact pass counts of the last full run are in the commit history; rerun `cd e2e && node run.mjs` to reproduce.
+The 2026-10-01 gauntlet run passed the full local browser suite after fixes to editor and status-menu layering. Focused scenarios passed movement 18/18 and social 20/20, including real composer sends and small-screen control hit tests; 11 pure pet tests passed for trails, running, corrections, low frame rates and resting visibility. Static checks, Go race tests and the docs build also passed. The final review then exposed inaccessible expanded phone reactions, covered by two additional social checks. See [the gauntlet procedure](gauntlet.md). These changes have not yet been verified on the public demo. Brief overlap at corners or a 180-degree reversal and temporary hiding behind a moving owner remain cosmetic limitations; the measured minimum gap applies to the tested forward L route, not every reversal.
+
+Rerun `scripts/gauntlet.sh` to reproduce the whole local verification.
 
 ## Measured (local reference, not a capacity claim)
 
@@ -40,7 +42,7 @@ Scenario A (no media) up to 1,000 bots and a 500-client reconnect storm, with th
 - **Scenario C at its full size** (100 people in 25 calls) and any media test with the generator on another machine. B (20 people), a scaled C (40 people) and D (20-person meeting) were run locally with real synthetic media; 60 people and above saturate a single laptop. TURN through restrictive networks is untested.
 - **The 2 vCPU / 4 GB reference server** and a load generator on a separate machine. A two-hour soak (only a 10-minute, 300-bot presence soak was run: flat goroutines/RSS, see benchmark-results.md).
 - **Browser FPS/CPU on the reference laptop.** Measured only on an Apple M1 Pro: 59.9 FPS (normal) and 29.6 FPS (economy, capped) with 300 bots, see [Benchmark results](benchmark-results.md).
-- **The production Compose file with Caddy, real TLS and TURN on a public host.**
+- **TURN relay on a public host through UDP-blocked networks.** Direct UDP media and the production Compose stack with Caddy/TLS were verified on the demo; relay behaviour was not.
 - **Moderation is minimal:** admins can remove members and revoke invites, but there is no ban list, temporary mute, reporting flow or content moderation; the audit log is not tamper-proof.
 - **Accessibility:** only the automated axe-core audit and keyboard checks were run. The game canvas is not operable with a screen reader and nobody has tested with NVDA, VoiceOver or JAWS.
 - **Cost numbers:** only the formula and `bench/cost.py` exist; no prices were verified.

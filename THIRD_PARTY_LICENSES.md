@@ -16,6 +16,8 @@ Generated on 2026-09-29 from `pnpm licenses list --prod` and the Go module cache
 | rxjs | 7.8.2 | Apache-2.0 |
 | tslib | 2.8.1 | 0BSD |
 
+Development-only addition (2026-10-01): `@types/node` 24.19.0 and its `undici-types` dependency are MIT-licensed; neither ships in the web bundle. Licenses were checked in the installed package metadata.
+
 ## Server (Go modules linked into the binary)
 
 | Module | Version | License |

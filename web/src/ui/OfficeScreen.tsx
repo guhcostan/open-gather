@@ -56,7 +56,7 @@ export function OfficeScreen() {
   }, [announcement]);
 
   return (
-    <div className="office">
+    <div className={"office" + (editing ? " editing" : "")}>
       <div className="stage" ref={host} role="application" aria-label={t("map.label")} />
       <header className="topbar">
         <strong className="brand">{office || t("app.name")}</strong>

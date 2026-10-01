@@ -23,7 +23,7 @@ const NAV = [
       return [slug, title, "decisions/" + f];
     }),
   },
-  { group: "Community", items: [["contributing", "Contributing", "contributing.md"]] },
+  { group: "Community", items: [["contributing", "Contributing", "contributing.md"], ["gauntlet", "The gauntlet loop", "gauntlet.md"]] },
 ];
 const PAGES = NAV.flatMap((g) => g.items.map(([slug, title, file]) => ({ slug, title, file, group: g.group })));
 const bySlug = new Map(PAGES.map((p) => [p.slug, p]));

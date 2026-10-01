@@ -9,7 +9,8 @@ import { statusColor } from "./StatusMenu";
 type Scope = { sc: "o" | "g" } | { sc: "d"; peer: number };
 
 export function SidePanel() {
-  const [tab, setTab] = useState<"people" | "chat" | "">("people");
+  // phones start with the map visible; the panel opens from its tab
+  const [tab, setTab] = useState<"people" | "chat" | "">(() => (window.matchMedia?.("(max-width: 700px)").matches ? "" : "people"));
   const [scope, setScope] = useState<Scope>({ sc: "o" });
   const unread = useStore((s) => s.unread);
   useEffect(() => {
@@ -85,7 +86,10 @@ function Chat({ scope, setScope }: { scope: Scope; setScope: (s: Scope) => void 
     if (scope.sc === "g") return m.sc === "g";
     return m.sc === "d" && (m.from === peer || m.to === peer);
   });
-  useEffect(() => end.current?.scrollIntoView({ block: "end" }), [msgs.length, scope]);
+  // Braces: Chrome 154+ returns a Promise from scrollIntoView, and an effect must return a cleanup or nothing.
+  useEffect(() => {
+    end.current?.scrollIntoView({ block: "end" });
+  }, [msgs.length, scope]);
   const name = (id: number) => roster.get(id)?.n ?? "?";
   const send = (e: React.FormEvent) => {
     e.preventDefault();
@@ -116,8 +120,9 @@ function Chat({ scope, setScope }: { scope: Scope; setScope: (s: Scope) => void 
         <div ref={end} />
       </div>
       <form className="composer" onSubmit={send}>
-        <input value={text} maxLength={500} onChange={(e) => setText(e.target.value)} placeholder={scope.sc === "d" ? t("chat.dmWith", { name: name(scope.peer) }) : t("chat.placeholder")} aria-label={t("chat.placeholder")} />
-        <button aria-label={t("chat.send")}><SendIcon /></button>
+        {/* conversation chat needs a conversation: say so instead of silently dropping the message */}
+        <input value={text} maxLength={500} disabled={scope.sc === "g" && !conv} onChange={(e) => setText(e.target.value)} placeholder={scope.sc === "g" && !conv ? t("chat.noConv") : scope.sc === "d" ? t("chat.dmWith", { name: name(scope.peer) }) : t("chat.placeholder")} aria-label={t("chat.placeholder")} />
+        <button aria-label={t("chat.send")} disabled={scope.sc === "g" && !conv}><SendIcon /></button>
       </form>
     </section>
   );

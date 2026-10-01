@@ -78,7 +78,7 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .spacer { flex: 1; }
 .dot { display: inline-block; width: 9px; height: 9px; border-radius: 50%; margin-right: 6px; }
 .status-menu { position: relative; }
-.menu { position: absolute; right: 0; top: calc(100% + 6px); list-style: none; margin: 0; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 160px; z-index: 5; }
+.menu { position: absolute; right: 0; top: calc(100% + 6px); list-style: none; margin: 0; padding: 6px; background: var(--panel); border: 1px solid var(--line); border-radius: 10px; min-width: 160px; z-index: 9; }
 .menu button { width: 100%; text-align: left; background: none; border: 0; padding: 7px 9px; border-radius: 6px; display: flex; align-items: center; }
 .menu button:hover, .menu button[aria-pressed="true"] { background: #2d2752; }
 
@@ -156,7 +156,10 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .toast { position: absolute; left: 50%; top: 64px; transform: translateX(-50%); background: var(--panel); border: 1px solid var(--amber); padding: 8px 16px; border-radius: 10px; z-index: 10; }
 .debug { position: absolute; left: 12px; bottom: 12px; margin: 0; background: #000b; color: #9fffa8; font: 12px/1.4 ui-monospace, Menlo, monospace; padding: 8px 10px; border-radius: 8px; pointer-events: none; }
 
-@media (max-width: 900px) { .panel { width: 250px; } .dock { width: 46vw; } }
+/* below 900 px the panel starts under the reaction row and covers the minimap; the map editor's paint
+   layer stays on top of it while editing */
+@media (max-width: 900px) { .panel { width: 250px; } .dock { width: 46vw; } .side { top: 110px; z-index: 7; } .office.editing .side { z-index: auto; } .social-controls.open { z-index: 8; } }
+.reaction-toggle[aria-expanded="true"] { outline: 2px solid var(--amber); }
 
 /* map editor */
 .editor-layer { position: absolute; inset: 0; z-index: 4; cursor: crosshair; touch-action: none; }
@@ -175,6 +178,11 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .social-controls { position: absolute; left: 50%; top: 58px; transform: translateX(-50%); display: grid; justify-items: center; gap: 6px; max-width: calc(100vw - 24px); z-index: 5; }
 .reaction-row { display: flex; gap: 4px; padding: 4px; background: #ffffffdf; border-radius: 12px; }
 .reaction-row .chip { padding: 3px 7px; font-family: system-ui; font-size: 19px; }
+@media (max-width: 700px) {
+  .social-controls { width: min(340px, calc(100vw - 24px)); }
+  .reaction-row { flex-wrap: wrap; justify-content: center; max-width: 100%; }
+  .office:has(.social-controls.open) .side { top: 210px; }
+}
 .follow-hint { background: #fff; padding: 4px 8px; border-radius: 8px; display: flex; gap: 8px; align-items: center; }
 .object-note { white-space: pre-wrap; overflow-wrap: anywhere; }
 .demo-note { border: 3px solid #b77908; background: #fff6d8; color: #3a2400; border-radius: 8px; padding: 8px 12px; font-size: 13px; }
