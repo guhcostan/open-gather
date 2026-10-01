@@ -1,0 +1,45 @@
+name: Bug report
+description: Something broke or behaved unexpectedly.
+labels: [bug]
+body:
+  - type: markdown
+    attributes:
+      value: Thanks for taking the time. Please write in English, and never paste invite links, tokens or secrets.
+  - type: dropdown
+    id: where
+    attributes:
+      label: Where did it happen?
+      options:
+        - Public demo
+        - My own install (Docker Compose)
+        - Local development (scripts/dev.sh)
+    validations:
+      required: true
+  - type: textarea
+    id: steps
+    attributes:
+      label: Steps to reproduce
+      placeholder: "1. Join as ...\n2. Walk toward ...\n3. ..."
+    validations:
+      required: true
+  - type: textarea
+    id: expected
+    attributes:
+      label: What did you expect, and what happened instead?
+    validations:
+      required: true
+  - type: input
+    id: browser
+    attributes:
+      label: Browser and device
+      placeholder: Chrome 140 on macOS, Safari on iPhone, ...
+  - type: input
+    id: version
+    attributes:
+      label: Commit or image tag (self-hosted only)
+  - type: textarea
+    id: logs
+    attributes:
+      label: Browser console or server log lines
+      description: Remove names, chat text and anything secret first.
+      render: text

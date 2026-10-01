@@ -1,0 +1,20 @@
+name: Feature request or use case
+description: Tell us what your team needs from a virtual office.
+labels: [enhancement]
+body:
+  - type: textarea
+    id: problem
+    attributes:
+      label: What are you trying to do?
+      description: Describe the situation and who is involved, before any solution.
+    validations:
+      required: true
+  - type: textarea
+    id: idea
+    attributes:
+      label: What would help?
+  - type: textarea
+    id: context
+    attributes:
+      label: How do you use (or plan to use) Open Gather?
+      description: Team size, self-hosted or not, what you use today. Real use cases decide what gets built next.

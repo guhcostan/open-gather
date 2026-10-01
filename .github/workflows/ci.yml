@@ -60,8 +60,8 @@ jobs:
       - name: Type-check the web unit tests
         run: pnpm exec tsc -p tsconfig.test.json --noEmit
         working-directory: web
-      - name: Build the docs site
-        run: pnpm install --frozen-lockfile && node build.mjs
+      - name: Build and check the docs site (links, SEO metadata, sitemap, llms.txt)
+        run: pnpm install --frozen-lockfile && node build.mjs && node check.mjs
         working-directory: site
       - run: pnpm exec vite build
         working-directory: web

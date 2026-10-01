@@ -2,15 +2,15 @@
   <section class="hero">
     <div class="wrap hero-grid">
       <div class="hero-copy">
-        <p class="eyebrow">Open source · AGPL-3.0 · Alpha</p>
+        <p class="eyebrow">Open source · Self-hosted · Alpha</p>
         <h1>Your team's <span class="teal">virtual office</span>, in pixel art. Light on every resource.</h1>
-        <p class="lead">Walk around a 2D office, bump into teammates and talk by proximity. Built with Go, PixiJS and a real SFU, and designed from day one to be cheap to host.</p>
+        <p class="lead">An open source virtual office for remote teams: walk around a 2D map, bump into teammates and talk with proximity audio and video. Built with Go, PixiJS and LiveKit, and designed from day one to be cheap to host yourself.</p>
         <div class="cta">
-          <a class="btn primary" href="https://office.152-67-49-137.sslip.io" rel="noopener">Try the live demo</a>
-          <a class="btn" href="docs/getting-started/">Get started</a>
-          <a class="btn" href="{{REPO}}" rel="noopener">View on GitHub</a>
+          <a class="btn primary" href="{{DEMO}}" rel="noopener">Try the live demo</a>
+          <a class="btn" href="docs/self-hosting/">Self-host it</a>
+          <a class="btn" href="{{REPO}}" rel="noopener">Star on GitHub</a>
         </div>
-        <p class="note">The demo is a free, small server: content resets every few hours. Self-host it with one Docker Compose file or <code>ghcr.io/guhcostan/open-gather</code>.</p>
+        <p class="note">No sign-up beyond a name. The demo is a free, small server; its map, chat and whiteboards reset every 6 hours. Self-host it with one Docker Compose file or <code>ghcr.io/guhcostan/open-gather</code>.</p>
         <ul class="chips" aria-label="Stack">
           <li>Go</li><li>React</li><li>PixiJS</li><li>LiveKit</li><li>SQLite</li>
         </ul>
@@ -37,7 +37,7 @@
         <li><b>10-15 Hz</b><span>network updates</span></li>
         <li><b>≤ 8</b><span>people per proximity group</span></li>
       </ul>
-      <p class="note">Design <strong>targets</strong> to validate, not measured results. Benchmarks are on the <a href="docs/status/">roadmap</a>.</p>
+      <p class="note">Design <strong>targets</strong> to validate, not measured results. Local measurements so far are in <a href="docs/benchmark-results/">Benchmark results</a>; capacity on a real server is on the <a href="docs/status/">roadmap</a>.</p>
     </div>
   </section>
 
@@ -157,7 +157,7 @@
       <div class="cards three status">
         <article class="card ok"><h3>Verified</h3><ul>
           <li>Go tests for the world, store, admin API and media tokens, also with the race detector</li>
-          <li>A real-browser suite (Chrome + a real LiveKit) of 14 scenarios on every push: proximity calls with real audio and video RTP, private rooms, screen sharing, invites, admin, editor, attacks on tokens, reconnection, accessibility (axe-core), and every social feature</li>
+          <li>A real-browser suite (Chrome + a real LiveKit) on every push to main and every pull request: proximity calls with real audio and video RTP, private rooms and offices, screen sharing, invites, admin, editor, attacks on tokens, reconnection, accessibility (axe-core), and every social feature</li>
           <li>The public demo on a free Oracle VM: real audio and video over UDP across the internet</li>
         </ul></article>
         <article class="card mid"><h3>Measured locally only</h3><ul>
@@ -173,13 +173,36 @@
 
   <section id="start" class="section">
     <div class="wrap narrow">
-      <h2>Run it locally</h2>
-      <p class="sub">You need Go, Node with pnpm, and a LiveKit server binary. The dev script starts everything.</p>
+      <h2>Self-host it</h2>
+      <p class="sub">Try the whole stack on your machine with Docker. The first person to join becomes the administrator.</p>
       <div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code>git clone {{REPO}}.git
 cd open-gather
-./scripts/dev.sh
-# open http://127.0.0.1:5173 in two browser profiles</code></pre></div>
-      <p class="more"><a href="docs/getting-started/">Full setup guide and configuration →</a></p>
+docker compose -f deploy/docker-compose.local.yml up --build
+# open http://localhost:8080 in two browser profiles</code></pre></div>
+      <p>For a real server, the production Compose file adds automatic HTTPS (Caddy), a LiveKit media server and invite-only joins, using the prebuilt image for amd64 and arm64. To hack on the code, <code>./scripts/dev.sh</code> starts LiveKit, the Go server and Vite.</p>
+      <p class="more"><a href="docs/self-hosting/">Production guide →</a> &nbsp; <a href="docs/getting-started/">Development setup →</a></p>
+    </div>
+  </section>
+
+  <section id="faq" class="section alt">
+    <div class="wrap narrow">
+      <h2>Frequently asked questions</h2>
+      <div class="faq">
+{{FAQ}}
+      </div>
+      <p class="more"><a href="docs/faq/">All questions →</a></p>
+    </div>
+  </section>
+
+  <section class="section final-cta">
+    <div class="wrap narrow">
+      <h2>Walk in and say hi</h2>
+      <p class="sub">Open the demo in two browser profiles, walk your avatars together and watch the call start. If you like where this is going, a star helps other teams find it.</p>
+      <div class="cta">
+        <a class="btn primary" href="{{DEMO}}" rel="noopener">Try the live demo</a>
+        <a class="btn" href="{{REPO}}" rel="noopener">Star on GitHub</a>
+        <a class="btn" href="{{REPO}}/issues/new" rel="noopener">Report an issue</a>
+      </div>
     </div>
   </section>
 </main>

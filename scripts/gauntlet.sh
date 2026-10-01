@@ -42,7 +42,7 @@ gate tsc-tests bash -c 'cd web && pnpm exec tsc -p tsconfig.test.json --noEmit'
 gate vite-build bash -c 'cd web && pnpm exec vite build'
 gate web-lint node scripts/lint-web.mjs
 gate web-unit bash -c "node --test 'web/test/*.test.ts'"
-gate site-build bash -c 'cd site && node build.mjs'
+gate site-build bash -c 'cd site && node build.mjs && node check.mjs'
 if [ -z "${GAUNTLET_SKIP_E2E:-}" ]; then
   gate e2e bash -c 'cd e2e && CI=1 node run.mjs "$@"' _ "$@"
 else

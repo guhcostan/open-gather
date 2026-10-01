@@ -97,6 +97,18 @@ h2 { font-size: clamp(26px, 3.2vw, 36px); letter-spacing: -.8px; line-height: 1.
 .status .card.mid { border-color: #8a7020; } .status .card.mid h3 { color: #f2d14b; }
 .status .card.todo { border-color: #7a3a36; } .status .card.todo h3 { color: #ff8f86; }
 .more { margin: 26px 0 0; font-weight: 700; }
+.faq { display: grid; gap: 12px; }
+.faq-item { background: var(--panel); border: 2px solid var(--line); border-radius: 12px; box-shadow: var(--shadow); }
+.faq-item summary { cursor: pointer; padding: 16px 20px; font-weight: 800; font-size: 17px; list-style: none; display: flex; justify-content: space-between; gap: 16px; }
+.faq-item summary::-webkit-details-marker { display: none; }
+.faq-item summary::after { content: "+"; color: var(--amber); font-weight: 800; }
+.faq-item[open] summary::after { content: "−"; }
+.faq-item summary:focus-visible { outline: 3px solid var(--amber); outline-offset: 2px; border-radius: 10px; }
+.faq-item .prose { padding: 0 20px 6px; }
+.faq-item .prose p { margin: 0 0 14px; }
+.final-cta { text-align: center; }
+.final-cta .sub { margin-inline: auto; margin-bottom: 26px; }
+.final-cta .cta { justify-content: center; }
 @media (max-width: 900px) { .cards { grid-template-columns: 1fr 1fr; } }
 @media (max-width: 620px) { .cards { grid-template-columns: 1fr; } .section { padding: 56px 0; } }
 .diagram { margin: 0; background: var(--bg); border: 2px solid var(--line); border-radius: 12px; padding: 14px; box-shadow: var(--shadow); }
@@ -122,6 +134,7 @@ h2 { font-size: clamp(26px, 3.2vw, 36px); letter-spacing: -.8px; line-height: 1.
 /* code */
 .code { position: relative; margin: 18px 0; }
 .code pre { margin: 0; background: #0d0a1c; border: 2px solid var(--line); border-radius: 10px; padding: 18px 18px; overflow-x: auto; box-shadow: var(--shadow); }
+.code:has(.copy) pre { padding-top: 40px; }
 code { font-family: var(--mono); font-size: .9em; }
 pre code { font-size: 14px; line-height: 1.6; color: #d9f5ee; }
 .copy { position: absolute; top: 8px; right: 8px; font: 700 12px var(--mono); background: var(--panel2); color: var(--ink); border: 2px solid var(--line); border-radius: 6px; padding: 3px 9px; cursor: pointer; }

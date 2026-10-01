@@ -3,7 +3,8 @@ name: Deploy site to GitHub Pages
 on:
   push:
     branches: [main]
-    paths: ["site/**", "docs/**", ".github/workflows/pages.yml"]
+    # deploy/README.md is published as the self-hosting page; README.md is checked by site/check.mjs
+    paths: ["site/**", "docs/**", "deploy/README.md", "README.md", ".github/workflows/pages.yml"]
   workflow_dispatch:
 
 permissions:
@@ -20,6 +21,8 @@ jobs:
     runs-on: ubuntu-latest
     steps:
       - uses: actions/checkout@v7
+        with:
+          fetch-depth: 0 # full history, for the sitemap's lastmod dates
       - uses: pnpm/action-setup@v6
         with:
           version: 11
@@ -31,6 +34,7 @@ jobs:
         run: |
           pnpm install --frozen-lockfile
           node build.mjs
+          node check.mjs
       - uses: actions/configure-pages@v6
       - uses: actions/upload-pages-artifact@v5
         with:

@@ -1,4 +1,4 @@
-# Deploying Open Gather (single node)
+# Self-hosting Open Gather (single node)
 
 Two stacks, deliberately different:
 

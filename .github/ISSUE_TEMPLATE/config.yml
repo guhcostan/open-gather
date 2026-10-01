@@ -1,0 +1,11 @@
+blank_issues_enabled: true
+contact_links:
+  - name: Questions (FAQ)
+    url: https://guhcostan.github.io/open-gather/docs/faq/
+    about: Short answers about cost, self-hosting, capacity, privacy and browsers.
+  - name: Self-hosting guide
+    url: https://guhcostan.github.io/open-gather/docs/self-hosting/
+    about: Docker Compose, HTTPS, LiveKit, ports and invites.
+  - name: Security vulnerability
+    url: https://github.com/guhcostan/open-gather/security/advisories/new
+    about: Report vulnerabilities privately, never in a public issue.

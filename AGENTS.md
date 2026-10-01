@@ -50,7 +50,7 @@ node scripts/lint-web.mjs                # static web rules (effects return a cl
 cd web && pnpm exec tsc --noEmit && pnpm exec vite build
 cd e2e && node run.mjs                    # real Chrome + real LiveKit; builds, starts its own server with a fresh database
 cd e2e && OG_EXTERNAL_URL=http://127.0.0.1:8080 node run.mjs   # same scenarios against a running stack (e.g. Docker Compose)
-cd site && pnpm install && node build.mjs # builds site/dist
+cd site && pnpm install && node build.mjs && node check.mjs # builds site/dist, then checks links, SEO metadata, sitemap, llms.txt and README links
 ~~~
 
 Art (output goes to `site/assets/`; details in `docs/art-style.md`):
@@ -120,7 +120,7 @@ Other agents or people may be working in the same tree at the same time.
 
 ## The site (GitHub Pages)
 
-`site/build.mjs` turns `docs/*.md`, `docs/decisions/*.md` and `site/src/landing.html` into `site/dist/` with relative links (it works under `/open-gather/`). The workflow in `.github/workflows/pages.yml` builds and deploys it on pushes to `main` that touch `site/` or `docs/`. To add a docs page: create the Markdown file in `docs/` and register it in the `NAV` list in `site/build.mjs`.
+`site/build.mjs` turns `docs/*.md`, `docs/decisions/*.md`, `deploy/README.md` (the Self-hosting page) and `site/src/landing.html` into `site/dist/` with relative links (it works under `/open-gather/`). It also writes what search engines and AI assistants read: canonical and social metadata, JSON-LD, `sitemap.xml`, `llms.txt`, `llms-full.txt` and a Markdown copy of every page (`docs/<slug>.md`). Links from docs to other repository files become GitHub URLs. The landing FAQ shows the first six questions of `docs/faq.md`, so answers live in one place. `site/check.mjs` fails on broken links, missing metadata or a stale sitemap; CI, the Pages workflow and `scripts/gauntlet.sh` run it. To add a docs page: create the Markdown file in `docs/` and register it in the `NAV` list in `site/build.mjs` (add a hand-written entry to `DESCRIPTIONS` if the first paragraph makes a poor search snippet). The site's public URL is `SITE` in both scripts.
 
 ## Out of scope for now
 

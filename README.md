@@ -4,30 +4,36 @@
 
 <p align="center">
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-3cc9b0?style=flat-square"></a>
+  <a href="https://github.com/guhcostan/open-gather/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/guhcostan/open-gather/ci.yml?branch=main&style=flat-square&label=CI"></a>
+  <a href="https://github.com/guhcostan/open-gather/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/guhcostan/open-gather?style=flat-square&color=ffb84d"></a>
+  <a href="https://github.com/guhcostan/open-gather/pkgs/container/open-gather"><img alt="Docker image on GHCR" src="https://img.shields.io/badge/docker-ghcr.io%2Fguhcostan%2Fopen--gather-2496ED?style=flat-square&logo=docker&logoColor=white"></a>
   <img alt="Status: alpha" src="https://img.shields.io/badge/status-alpha-ffb84d?style=flat-square">
-  <img alt="Go" src="https://img.shields.io/badge/server-Go-00ADD8?style=flat-square">
-  <img alt="TypeScript, React and PixiJS" src="https://img.shields.io/badge/client-TypeScript%20%C2%B7%20React%20%C2%B7%20PixiJS-4a8fe0?style=flat-square">
-  <img alt="Media: LiveKit" src="https://img.shields.io/badge/media-LiveKit-8a63d2?style=flat-square">
 </p>
 
 <h1 align="center">Open Gather</h1>
 
 <p align="center">
-  <b>A lightweight, open source 2D virtual office.</b><br>
-  Walk around a pixel-art map, meet your team and talk by proximity, without burning CPU, RAM, GPU or bandwidth.
+  <b>A lightweight, open source, self-hosted 2D virtual office.</b><br>
+  Walk around a pixel-art map, meet your team and talk with proximity audio and video, without burning CPU, RAM, GPU or bandwidth.
 </p>
 
 <p align="center">
+  <a href="https://office.152-67-49-137.sslip.io"><b>Live demo</b></a> ·
   <a href="https://guhcostan.github.io/open-gather/">Website</a> ·
   <a href="https://guhcostan.github.io/open-gather/docs/">Docs</a> ·
   <a href="#quick-start">Quick start</a> ·
+  <a href="docs/faq.md">FAQ</a> ·
   <a href="#status">Status</a> ·
   <a href="#contributing">Contributing</a>
 </p>
 
+Open Gather is a virtual office for remote and hybrid teams in the spirit of the classic Gather experience: everyone has a pixel-art avatar on a shared 2D map, and a call starts when you walk up to someone and ends when you walk away. It runs in the browser, you host it yourself with one Docker Compose file (one Go binary, SQLite and a LiveKit media server), and it needs no paid service.
+
+**Try it now:** the **[live demo](https://office.152-67-49-137.sslip.io)** runs on a free Oracle Cloud VM (1 GB of RAM, so be gentle). No sign-up beyond a name; anyone can join, and the map, office chat and whiteboards reset every 6 hours. Open it in two browser profiles and walk the avatars together to see a call start.
+
 > **MVP / alpha.** The whole loop works and is tested in real browsers: avatars, movement, proximity audio and video through a real SFU, private meeting rooms, screen sharing, chat, invites, an admin map editor and a Docker install. **Capacity on a real server has not been measured yet**: the load numbers we have come from a laptop with the generator on the same machine. Read [Status](#status) before you rely on anything. "Open Gather" is a **provisional name** and the project is not affiliated with the original Gather product.
 
-**Try it:** a public demo runs at **[office.152-67-49-137.sslip.io](https://office.152-67-49-137.sslip.io)** on a free Oracle Cloud VM (1 GB of RAM, so be gentle). No sign-up beyond a name; everything is public and resets every 6 hours. Like it? Run your own with the Docker image `ghcr.io/guhcostan/open-gather` ([deploy guide](deploy/README.md)).
+⭐ **If you would like a virtual office you can own, star the repository.** It is the simplest way to help other teams find it and to tell us this is worth building.
 
 ## Why Open Gather
 
@@ -53,6 +59,8 @@ Virtual offices are usually heavy on the browser, the server and the bill. Open 
 
 | | |
 | --- | --- |
+| **Proximity conversations** | Audio and video start when you get close and stop when you leave, with hysteresis and small groups. |
+| **Consent and status** | Nothing is captured before you opt in. Available, busy, away and invisible; busy never joins a call automatically. |
 | **Avatars** | Procedural pixel-art characters with big heads and a three-frame walk cycle: skin, six hairstyles, hair colour, shirt, trousers. |
 | **Look** | 16 px tiles, outlined and shaded props, textured floors and walls, dialog-window UI and a pixel font. All original. |
 | **World** | Keyboard movement with collisions, camera follow, animation, prediction for you and dead-reckoned movement for others. |
@@ -62,8 +70,6 @@ Virtual offices are usually heavy on the browser, the server and the bill. Open 
 | **Minimap** | The whole office at a glance with live head counts per area; click to run there (M toggles). |
 | **Phones and tablets** | An on-screen movement pad appears on touch screens. Optional sounds and desktop notifications for waves, knocks and direct messages. |
 | **Announcements and help** | Administrators can send a banner to everyone online (audited, never stored). Press ? for every shortcut. Turn anyone in a call down or mute them for yourself only. |
-| **Proximity conversations** | Audio and video start when you get close and stop when you leave, with hysteresis and small groups. |
-| **Consent and status** | Nothing is captured before you opt in. Available, busy, away and invisible; busy never joins a call automatically. |
 | **Meeting rooms** | Map areas with explicit access rules (open, members, admins, list) enforced by the server. |
 | **Lockable rooms and knocking** | Anyone inside can lock a room; outsiders knock and are let in one at a time; empty rooms unlock themselves. |
 | **Private offices** | Six small offices behind a hall, each with its own call. A free office is open and lockable; an administrator assigns one to a person from the editor, and from then on only the owner (and admins) walk in, while visitors knock and the owner decides. |
@@ -86,7 +92,22 @@ Virtual offices are usually heavy on the browser, the server and the bill. Open 
 
 ## Quick start
 
-You need **Go**, **Node.js with pnpm** and a **LiveKit server** binary (on macOS: `brew install livekit`).
+Three ways in, from zero effort to hacking on the code.
+
+**1. Use the [live demo](https://office.152-67-49-137.sslip.io).** Nothing to install.
+
+**2. Self-host with Docker.** Evaluate the whole stack locally (the first person to join becomes the administrator):
+
+~~~bash
+git clone https://github.com/guhcostan/open-gather.git
+cd open-gather
+docker compose -f deploy/docker-compose.local.yml up --build
+# open http://localhost:8080
+~~~
+
+For a real server, the production Compose file uses the prebuilt image `ghcr.io/guhcostan/open-gather` (linux/amd64 and linux/arm64) and adds automatic HTTPS (Caddy), a LiveKit media server and invite-only joins. Follow the [self-hosting guide](deploy/README.md); it also shows how to try it without owning a domain.
+
+**3. Develop.** You need **Go**, **Node.js with pnpm** and a **LiveKit server** binary (on macOS: `brew install livekit`).
 
 ~~~bash
 git clone https://github.com/guhcostan/open-gather.git
@@ -98,8 +119,6 @@ Then open http://127.0.0.1:5173 in **two different browser profiles**, pick a na
 
 > The dev stack uses LiveKit's public development keys and an unauthenticated join endpoint. It is for local use only. Production mode refuses to start with those defaults.
 
-Or with Docker (local evaluation only): `docker compose -f deploy/docker-compose.local.yml up --build` and open http://localhost:8080.
-
 Tests:
 
 ~~~bash
@@ -108,9 +127,19 @@ cd web && pnpm exec tsc --noEmit      # type-check the client
 cd e2e && pnpm install && node run.mjs   # real Chrome + real LiveKit, own server and database
 ~~~
 
-Production install (HTTPS, invites, backups): [deploy/README.md](deploy/README.md).
-
 More in the [getting started guide](docs/getting-started.md), including every environment variable.
+
+## FAQ
+
+**Is it an open source Gather alternative?** It is an independent, AGPL-3.0 project inspired by the classic Gather experience, with no affiliation and no shared code, maps, sprites or branding. If you want a 2D virtual office with proximity video that you host and inspect yourself, that is the use case.
+
+**What does it cost?** Nothing but the machine. No paid service is required, and the public demo runs on a free 1 GB VM.
+
+**How many people can it hold?** Not measured on a real server yet, so we do not claim a number. Local benchmarks (generator on the same laptop) are in [Benchmark results](docs/benchmark-results.md).
+
+**Is anything recorded?** No. Audio, video and screen shares only pass through the media server, direct and conversation chat are never stored, and nothing is captured before you opt in. The office chat keeps its last 500 messages. See [Privacy and security](docs/privacy-and-security.md).
+
+More answers in the [FAQ](docs/faq.md). AI assistants and tools can read a summary of the whole project at [llms.txt](https://guhcostan.github.io/open-gather/llms.txt) or every doc page in one file at [llms-full.txt](https://guhcostan.github.io/open-gather/llms-full.txt).
 
 ## Architecture
 
@@ -172,7 +201,9 @@ scripts/  local development stack
 
 ## Contributing
 
-Issues, careful bug reports, tests and measurements are all welcome. Read [CONTRIBUTING](docs/contributing.md) and [AGENTS.md](AGENTS.md) (also useful for humans) first. Everything in the repository is written in **English**.
+Issues, careful bug reports, tests and measurements are all welcome. Read [CONTRIBUTING](docs/contributing.md) and [AGENTS.md](AGENTS.md) (also useful for humans) first. Everything in the repository is written in **English**. Found a security problem? Follow [SECURITY.md](SECURITY.md) instead of opening a public issue.
+
+Using it with your team? Tell us how in an issue: real use cases decide what gets built next.
 
 ## Licence and credits
 
