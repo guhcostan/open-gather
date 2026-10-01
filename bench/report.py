@@ -10,7 +10,7 @@ for f in sorted(glob.glob(os.path.join(os.path.dirname(__file__), "results", sub
     rows.append(d)
 
 def n(x, p=1):
-    return "-" if x is None or x != x else f"{x:.{p}f}"
+    return "-" if x is None or x != x or x < 0 else f"{x:.{p}f}"  # loadgen writes -1 for "no value"
 
 print("| Run | Bots | Region | Joined/failed | Srv CPU avg/max % | Srv RSS MB | Tick mean ms | Tick p95 (<=) ms | Tick max ms | Srv out KB/s | KB/s per client | Msgs/s per client | Move latency p50/p95/p99 ms | Kicked/skipped |")
 print("|---|---|---|---|---|---|---|---|---|---|---|---|---|---|")

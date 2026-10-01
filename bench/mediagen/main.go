@@ -32,8 +32,8 @@ import (
 
 var (
 	url       = flag.String("url", "http://127.0.0.1:17880", "LiveKit URL")
-	key       = flag.String("key", "devkey", "API key")
-	secret    = flag.String("secret", "secret", "API secret")
+	key       = flag.String("key", "devkey", "API key (or $LIVEKIT_API_KEY: flags are visible in the process list)")
+	secret    = flag.String("secret", "secret", "API secret (or $LIVEKIT_API_SECRET)")
 	rooms     = flag.Int("rooms", 1, "number of rooms")
 	perRoom   = flag.Int("per-room", 4, "participants per room")
 	withVideo = flag.Bool("video", true, "every participant publishes camera video (360p VP8)")
@@ -236,6 +236,13 @@ func pct(xs []float64, p float64) float64 {
 	return s[int(math.Min(float64(len(s)-1), math.Ceil(p*float64(len(s)))-1))]
 }
 
+// flagSet reports whether a flag was given on the command line.
+func flagSet(name string) bool {
+	set := false
+	flag.Visit(func(f *flag.Flag) { set = set || f.Name == name })
+	return set
+}
+
 type report struct {
 	Label                                                    string
 	Rooms, PerRoom, Participants                             int
@@ -255,7 +262,9 @@ type report struct {
 	WindowS                                                  float64
 	SFUCPUAvgPct, SFUCPUMaxPct, SFUMemMaxMB                  float64
 	SFUNetInMBps, SFUNetOutMBps                              float64
-	Notes                                                    string
+	// Unix seconds of the measurement window, to line up host samples taken on a remote SFU (bench/vm-sample.sh).
+	WindowStart, WindowEnd float64
+	Notes                  string
 }
 
 func dockerSample(name string) (cpu, memMB, rx, tx float64) {
@@ -287,6 +296,13 @@ func parseSize(s string) float64 {
 
 func main() {
 	flag.Parse()
+	// credentials from the environment win over the dev defaults, so scripts never put them in argv
+	if v := os.Getenv("LIVEKIT_API_KEY"); v != "" && !flagSet("key") {
+		*key = v
+	}
+	if v := os.Getenv("LIVEKIT_API_SECRET"); v != "" && !flagSet("secret") {
+		*secret = v
+	}
 	ctx, cancel := context.WithCancel(context.Background())
 	defer cancel()
 	a := &agg{}
@@ -348,6 +364,7 @@ func main() {
 
 	rep := report{Label: *label, Rooms: *rooms, PerRoom: *perRoom, Participants: total, Video: *withVideo, MaxVideos: *maxVideos, Screen: *screen,
 		Connected: int(a.connected.Load()), ConnectFailed: a.connectFail, WindowS: el}
+	rep.WindowStart, rep.WindowEnd = float64(start.UnixMilli())/1000, float64(start.UnixMilli())/1000+el
 	rep.ConnectMsP50, rep.ConnectMsP95 = pct(a.connectMs, .5), pct(a.connectMs, .95)
 	var ttfp, aj, vj []float64
 	var bytes, pk, lost, gaps int64

@@ -54,3 +54,15 @@ See docs/benchmark-results.md: they are only reported when they were actually ex
 - `lk load-test` was tried first and neither reports results nor exits on its own here, so it is not used.
 
 Run it on a separate machine from the SFU for capacity numbers; on one laptop it stops being valid at about 60 people in calls (see [Benchmark results](../docs/benchmark-results.md)).
+
+## Against a remote VM (generator on this machine)
+
+For numbers that include TLS, the network and a real host, run the generators here against the production Compose stack on a VM. The scripts keep the VM's secrets on the VM (they read them over SSH), sample the host with `bench/vm-sample.sh` (CPU, steal, memory, network, per-container CPU), and put the stack back as it was when they finish.
+
+~~~sh
+OG_VM=ubuntu@IP OG_URL=https://office.example.com OG_SSH_KEY=~/.ssh/key OUT_DIR=bench/results/vm-mine bench/run-vm.sh 50 100 200 300 500
+OG_VM=ubuntu@IP OG_LK_URL=https://rtc.example.com OG_SSH_KEY=~/.ssh/key OUT_DIR=bench/results/vm-mine bench/run-vm-media.sh "M-1x4-video -rooms 1 -per-room 4 -video" "M-5x4-audio -rooms 5 -per-room 4 -video=false"
+bench/vm_report.py bench/results/vm-mine
+~~~
+
+`run-vm.sh` switches the app to benchmark mode for each run ([deploy/docker-compose.bench.yml](../deploy/docker-compose.bench.yml): its own database, no demo limits, a multi-use invite) and reads `/metrics` through an SSH tunnel because Caddy hides it. On a public demo this takes the office offline for a few minutes per run. Both scripts write the measured image to `images.txt` and pass secrets through the environment or stdin, never as arguments (`OG_METRICS_TOKEN` for loadgen, `LIVEKIT_API_KEY`/`LIVEKIT_API_SECRET` for mediagen). In loadgen reports, -1 means no value (no samples, or a tick percentile above the largest histogram bucket). Docker's per-container CPU is inflated under steal: compare containers with it, do not read it as absolute load. The generator machine is not sampled: record its CPU and upload yourself before blaming the server for loss.

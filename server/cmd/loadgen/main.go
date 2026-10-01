@@ -16,6 +16,7 @@ import (
 	"net/url"
 	"os"
 	"os/exec"
+	"reflect"
 	"sort"
 	"strconv"
 	"strings"
@@ -41,6 +42,9 @@ var (
 	label       = flag.String("label", "run", "label for the report")
 	out         = flag.String("out", "", "write JSON report to this file")
 	sampleEvery = flag.Duration("sample", 0, "record a time series (heap, goroutines, RSS, CPU) at this interval, e.g. 30s")
+	invite      = flag.String("invite", "", "invite token every bot joins with (production servers require one; mint a multi-use one with opengather -invite member -invite-uses N)")
+	metricsTok  = flag.String("metrics-token", "", "bearer token for /metrics on a production server (prefer $OG_METRICS_TOKEN: flags are visible in the process list)")
+	metricsURL  = flag.String("metrics-url", "", "where to scrape /metrics when the public URL hides it (e.g. an SSH tunnel); default: -url")
 )
 
 type mapData struct {
@@ -89,7 +93,11 @@ var (
 )
 
 func httpJoin(name string) (string, error) {
-	body, _ := json.Marshal(map[string]any{"name": name, "avatar": map[string]int{"sk": rand.IntN(6), "hs": rand.IntN(6), "hc": rand.IntN(8), "sh": rand.IntN(8), "pa": rand.IntN(8)}})
+	req := map[string]any{"name": name, "avatar": map[string]int{"sk": rand.IntN(6), "hs": rand.IntN(6), "hc": rand.IntN(8), "sh": rand.IntN(8), "pa": rand.IntN(8)}}
+	if *invite != "" {
+		req["invite"] = *invite
+	}
+	body, _ := json.Marshal(req)
 	for attempt := 0; attempt < 8; attempt++ {
 		resp, err := http.Post(*base+"/api/join", "application/json", bytes.NewReader(body))
 		if err != nil {
@@ -374,11 +382,26 @@ func sign(f float64) int {
 // ---- server metrics ----
 
 func scrape() map[string]float64 {
-	resp, err := http.Get(*base + "/metrics")
+	mu := *metricsURL
+	if mu == "" {
+		mu = *base
+	}
+	rq, _ := http.NewRequest("GET", mu+"/metrics", nil)
+	tok := *metricsTok
+	if tok == "" {
+		tok = os.Getenv("OG_METRICS_TOKEN")
+	}
+	if tok != "" {
+		rq.Header.Set("Authorization", "Bearer "+tok)
+	}
+	resp, err := http.DefaultClient.Do(rq)
 	if err != nil {
 		return nil
 	}
 	defer resp.Body.Close()
+	if resp.StatusCode != http.StatusOK {
+		return nil
+	}
 	b, _ := io.ReadAll(resp.Body)
 	m := map[string]float64{}
 	for _, line := range strings.Split(string(b), "\n") {
@@ -469,7 +492,9 @@ type report struct {
 	StormMs                               float64
 	StormFailed                           int
 	Note                                  string
-	Series                                []sample
+	// Unix seconds of the measurement window, to line up host samples taken elsewhere (bench/vm-sample.sh).
+	WindowStart, WindowEnd float64
+	Series                 []sample
 }
 
 type sample struct {
@@ -548,6 +573,7 @@ func main() {
 	_ = o0
 
 	r := report{Label: *label, Region: *region, Bots: int64(*nBots), Joined: st.joined.Load(), Failed: st.failed.Load(), Disconnects: st.disconnects.Load(), Moving: *moving, DurationS: el}
+	r.WindowStart, r.WindowEnd = float64(start.UnixMilli())/1000, float64(start.UnixMilli())/1000+el
 	d := func(k string) float64 { return m1[k] - m0[k] }
 	r.ServerMsgsPerSec = d("og_ws_frames_out_total") / el
 	r.ServerKBPerSec = d("og_ws_bytes_out_total") / el / 1024
@@ -616,9 +642,28 @@ func main() {
 		cancel2()
 	}
 	cancel()
-	js, _ := json.MarshalIndent(r, "", "  ")
+	if m1 == nil || m0 == nil {
+		r.Note = strings.TrimSpace(r.Note + " server metrics unavailable: server-side fields are 0 or -1 (no value)")
+	}
+	scrubNaN(&r)
+	js, err := json.MarshalIndent(r, "", "  ")
+	if err != nil {
+		fmt.Fprintln(os.Stderr, "report:", err)
+		os.Exit(1)
+	}
 	fmt.Println(string(js))
 	if *out != "" {
 		os.WriteFile(*out, js, 0o644)
+	}
+}
+
+// scrubNaN sets NaN/Inf fields to -1 so the report always serialises: -1 means no samples, no metrics,
+// or (tick percentiles) a value above the histogram's largest finite bucket.
+func scrubNaN(r *report) {
+	v := reflect.ValueOf(r).Elem()
+	for i := 0; i < v.NumField(); i++ {
+		if f := v.Field(i); f.Kind() == reflect.Float64 && (math.IsNaN(f.Float()) || math.IsInf(f.Float(), 0)) {
+			f.SetFloat(-1)
+		}
 	}
 }

@@ -1,0 +1,10 @@
+# Benchmark mode for the production stack (bench/run-vm.sh uses it): the same Caddy + Open Gather + LiveKit
+# containers, but the app writes to its own database file, is not a public demo (no per-IP sign-up limit) and
+# admits up to 2000 players. Join with a multi-use invite. Remove the override to go back to normal.
+#   docker compose -f docker-compose.yml -f docker-compose.bench.yml up -d opengather
+services:
+  opengather:
+    environment:
+      OG_DEMO: ""
+      OG_DB: /data/bench.db
+      OG_MAX_PLAYERS: "2000"
