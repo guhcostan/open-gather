@@ -36,8 +36,11 @@ export async function run(ctx) {
     await sleep(2000);
     await a.page.evaluate(() => { clearInterval(window.__flood); window.__og.session.socket.send({ t: "in", s: 9999, x: 0, y: 0 }); });
     await sleep(600);
-    await a.page.evaluate((id) => window.__og.session.locate(id), a.id);
-    const loc = await waitFor(() => a.page.evaluate(() => window.__og.view.locate), { what: "server position" });
+    // The flood may trip the rate limit and close the socket; ask again until the reconnected session answers.
+    const loc = await waitFor(async () => {
+      await a.page.evaluate((id) => window.__og.session.locate(id), a.id);
+      return a.page.evaluate(() => window.__og.view.locate);
+    }, { timeout: 30000, every: 1000, what: "server position" });
     const dist = Math.hypot(loc.x - s0.x, loc.y - s0.y);
     check("flooding inputs cannot make the server move a player faster than the configured speed", dist <= 72 * 2.9, dist.toFixed(1) + " px in ~2.6s (limit ~209)");
     const d = await joinAs(browser, "Rd" + t); // throwaway: a 2nd socket with the same session replaces the 1st (latest wins)

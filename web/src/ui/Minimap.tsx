@@ -27,19 +27,32 @@ export function Minimap() {
 
   useEffect(() => {
     if (!enabled) return;
+    // The office picture is scaled once into a thumbnail; each redraw only blits that small image.
+    let thumb: HTMLCanvasElement | null = null;
+    let thumbOf: HTMLCanvasElement | null = null;
     const draw = () => {
+      if (document.hidden) return;
       const c = ref.current, view = session.view, map = view?.currentMap(), img = view?.mapImage();
       if (!c || !view || !map || !img) return;
       const s = W / (map.w * 16);
       const h = Math.round(map.h * 16 * s);
       const dpr = Math.min(window.devicePixelRatio || 1, 2);
       if (c.width !== Math.round(W * dpr)) { c.width = Math.round(W * dpr); c.height = Math.round(h * dpr); c.style.height = h + "px"; }
+      if (thumbOf !== img || !thumb) {
+        thumb = document.createElement("canvas");
+        thumb.width = c.width;
+        thumb.height = c.height;
+        const tg = thumb.getContext("2d")!;
+        tg.imageSmoothingEnabled = true;
+        tg.drawImage(img, 0, 0, thumb.width, thumb.height);
+        tg.fillStyle = "rgba(20, 16, 40, 0.25)";
+        tg.fillRect(0, 0, thumb.width, thumb.height);
+        thumbOf = img;
+      }
       const g = c.getContext("2d")!;
+      g.setTransform(1, 0, 0, 1, 0, 0);
+      g.drawImage(thumb, 0, 0);
       g.setTransform(dpr, 0, 0, dpr, 0, 0);
-      g.imageSmoothingEnabled = true;
-      g.drawImage(img, 0, 0, W, h);
-      g.fillStyle = "rgba(20, 16, 40, 0.25)";
-      g.fillRect(0, 0, W, h);
       // people in view (area of interest), me on top
       g.fillStyle = "#ffffff";
       for (const e of view.debugEntities()) { g.beginPath(); g.arc(e.x * s, e.y * s, 2, 0, 7); g.fill(); }
@@ -79,4 +92,3 @@ export function Minimap() {
     </section>
   );
 }
-

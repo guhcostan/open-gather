@@ -28,7 +28,11 @@ export async function run(ctx) {
     await speaker.page.evaluate(() => window.__og.session.setConsent(true));
     // Stand still ON the pad (tile 34,19); a slow CI browser would otherwise walk past it.
     await walkTo(speaker, 34 * 16 + 8, 19 * 16 + 8);
-    await waitFor(async () => (await state(speaker))?.state === "live" && (await state(listener))?.state === "live", { timeout: 30000, what: "spotlight speaker and listener connected" });
+    await waitFor(async () => (await state(speaker))?.state === "live" && (await state(listener))?.state === "live", { timeout: 45000, what: "spotlight speaker and listener connected" }).catch(async (e) => {
+      const diag = await speaker.page.evaluate(() => ({ pos: window.__og.view.position(), spot: window.__og.state.spotlight, consent: window.__og.state.consent, conn: window.__og.state.conn, fps: window.__og.view.stats.fps }));
+      const ldiag = await listener.page.evaluate(() => ({ spot: window.__og.state.spotlight, conv: window.__og.state.conv?.state }));
+      throw new Error(e.message + " speaker=" + JSON.stringify(diag) + " listener=" + JSON.stringify(ldiag));
+    });
     check("stepping onto the pad goes on air only with consent", (await state(speaker)).me === true);
     check("listener keeps their isolated private call", await listener.page.evaluate((r) => window.__og.media.currentRoom === r && window.__og.state.conv.state === "live", privateRoom));
     const room = await speaker.page.evaluate(() => window.__og.spotlightMedia.currentRoom);
