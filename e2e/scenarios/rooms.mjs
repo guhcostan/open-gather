@@ -50,7 +50,7 @@ export async function run(ctx) {
     check("private room still contains only the admin while others talk elsewhere", (await lkParticipants(room)).join() === String(admin.id) && (await lkParticipants(memRoom)).length === 2);
 
     // --- screen sharing inside the admin room requires a second participant: use m2? not allowed. Share inside the member call.
-    await mem.page.evaluate(() => window.__og.media.setShare(true));
+    await mem.page.click('.bar button[aria-label="Share screen"]'); // the real control
     const shared = await waitFor(() => m2.page.evaluate(() => window.__og.media.tiles.some((tl) => !tl.local && tl.screen)), { timeout: 15000, what: "m2 sees screen share" }).catch(() => false);
     check("screen share published by one participant is received by the other", !!shared);
     if (shared) {
@@ -75,6 +75,48 @@ export async function run(ctx) {
       const gone = await waitFor(() => m2.page.evaluate((id) => window.__og.view.ents.get(id)?.sharing === false, mem.id), { what: "badge clears" }).catch(() => false);
       check("stopping the share removes the badge", !!gone);
     }
+
+    // --- when sharing cannot start, the person is told why (it used to fail silently). Every text the
+    // alert area shows is recorded, so a flash of a wrong message counts too.
+    const shareAlerts = async (u, setup, how = "click") => {
+      await u.page.evaluate(setup);
+      await u.page.evaluate(() => {
+        window.__alerts = [];
+        const before = document.querySelector(".bar-error")?.textContent ?? "";
+        let changed = false; // a message left from an earlier step does not count until the text changes
+        const seen = () => {
+          const e = document.querySelector(".bar-error")?.textContent ?? "";
+          if (e !== before) changed = true;
+          if (changed && e && window.__alerts.at(-1) !== e) window.__alerts.push(e);
+        };
+        window.__alertObs?.disconnect();
+        window.__alertObs = new MutationObserver(seen);
+        window.__alertObs.observe(document.body, { subtree: true, childList: true, characterData: true });
+      });
+      await u.page[how]('.bar button[aria-label="Share screen"]');
+      await sleep(800);
+      return u.page.evaluate(() => window.__alerts);
+    };
+    // the page's getDisplayMedia fails the way a real browser does (puppeteer serialises the function)
+    const reject = (name, message) => new Function(`window.__gdm = 0; navigator.mediaDevices.getDisplayMedia = () => { window.__gdm++; return Promise.reject(new DOMException(${JSON.stringify(message)}, ${JSON.stringify(name)})); };`);
+    const sys = await shareAlerts(mem, reject("NotAllowedError", "Permission denied by system"));
+    check("the system blocking screen capture is explained, with no other message flashing first", sys.length === 1 && /blocked screen sharing/.test(sys[0]), JSON.stringify(sys));
+    const cancel = await shareAlerts(mem, reject("NotAllowedError", "Permission denied"));
+    const asked = await mem.page.evaluate(() => ({ calls: window.__gdm, sharing: window.__og.state.sharing }));
+    check("cancelling the picker shows nothing at all", cancel.length === 0 && asked.calls === 1 && !asked.sharing, JSON.stringify({ cancel, asked }));
+    const busy = await shareAlerts(mem, reject("NotReadableError", "Could not start video source"));
+    check("a capture that cannot start gets a screen-specific message", busy.length === 1 && /screen/i.test(busy[0]) && !/camera/i.test(busy[0]), JSON.stringify(busy));
+    await mem.page.evaluate(() => { delete navigator.mediaDevices.getDisplayMedia; }); // back to the real browser function
+
+    // --- the reason is visible on a touch phone, where screen capture does not exist
+    const phone = await joinAs(browser, "Phone" + t, { viewport: { width: 390, height: 844, isMobile: true, hasTouch: true } });
+    await phone.page.evaluate(() => window.__og.session.setConsent(true));
+    await waitFor(() => phone.page.$('.bar button[aria-label="Share screen"]'), { what: "share button on the phone" });
+    const outside = await shareAlerts(phone, () => {}, "tap");
+    check("outside a call, tapping Share screen says to walk up to someone", outside.length === 1 && /Walk up to someone/.test(outside[0]), JSON.stringify(outside));
+    const noCapture = await shareAlerts(phone, () => { Object.defineProperty(MediaDevices.prototype, "getDisplayMedia", { value: undefined, configurable: true }); }, "tap");
+    check("a browser without screen capture says so when tapped", noCapture.length === 1 && /cannot share a screen/.test(noCapture[0]), JSON.stringify(noCapture));
+    await phone.ctx.close();
 
     // --- leaving the private room revokes SFU access
     const before = await metrics();

@@ -41,6 +41,29 @@ export function describeMediaError(e: unknown): string {
   return t("media.failed");
 }
 
+/** Screen capture needs getDisplayMedia: phones and some embedded browsers do not have it. */
+export const canShareScreen = () => typeof navigator.mediaDevices?.getDisplayMedia === "function";
+
+/** Why a screen share did not start, or "" when the person simply closed the picker. */
+export function describeShareError(e: unknown): string {
+  const { name = "", message = "" } = (e ?? {}) as { name?: string; message?: string };
+  if (name === "NotAllowedError") {
+    if (/system/i.test(message)) return t("share.systemDenied");
+    if (/policy/i.test(message)) return t("share.blocked");
+    return ""; // the person closed the picker
+  }
+  if (name === "SecurityError") return t("share.blocked");
+  if (name === "NotSupportedError") return t("share.unsupported");
+  return t("share.couldNotStart");
+}
+
+const SHARE_MESSAGES = ["share.unsupported", "share.systemDenied", "share.blocked", "share.couldNotStart", "share.needCall"] as const;
+/** Clears a message about screen sharing, leaving camera and microphone problems on screen. */
+export function clearShareMessage() {
+  const cur = getState().deviceError;
+  if (cur && SHARE_MESSAGES.some((k) => t(k) === cur)) setState({ deviceError: "" });
+}
+
 /**
  * Owns the LiveKit connection for the *current* conversation group only.
  * The server decides the room and issues a scoped token; leaving the group
@@ -48,6 +71,7 @@ export function describeMediaError(e: unknown): string {
  */
 export class MediaManager {
   private room: Room | null = null;
+  private startingShare = false;
   private roomName = "";
   private gen = 0;
   private leaving = false;
@@ -182,7 +206,9 @@ export class MediaManager {
     }));
     on(RoomEvent.Reconnecting, guard(() => this.setPlaybackState("reconnecting")));
     on(RoomEvent.Reconnected, guard(() => { this.setPlaybackState("live"); this.refresh(); }));
-    on(RoomEvent.MediaDevicesError, ((e: unknown) => setState({ deviceError: describeMediaError(e) })) as never);
+    // LiveKit reports a failed screen capture here too, before setShare's own catch: ignore it while a
+    // share is starting, so a closed picker never flashes the camera/microphone message.
+    on(RoomEvent.MediaDevicesError, ((e: unknown) => { if (!this.startingShare) setState({ deviceError: describeMediaError(e) }); }) as never);
     on(RoomEvent.Disconnected, guard(() => {
       if (this.leaving) return;
       // Unexpected drop: the server keeps the membership, so ask for a fresh token and rejoin.
@@ -324,11 +350,19 @@ export class MediaManager {
 
   async setShare(on: boolean) {
     if (!this.room || !this.publishing) return;
+    clearShareMessage();
+    if (on && !canShareScreen()) {
+      setState({ deviceError: t("share.unsupported") });
+      return;
+    }
+    this.startingShare = true;
     try {
       await this.room.localParticipant.setScreenShareEnabled(on, on ? { audio: true, contentHint: "detail", resolution: { width: 1920, height: 1080, frameRate: 15 }, surfaceSwitching: "include", selfBrowserSurface: "exclude" } : undefined);
     } catch (e) {
-      const name = (e as { name?: string })?.name;
-      if (name !== "NotAllowedError") setState({ deviceError: describeMediaError(e) });
+      const msg = describeShareError(e);
+      if (msg) setState({ deviceError: msg });
+    } finally {
+      this.startingShare = false;
     }
     this.refresh();
   }

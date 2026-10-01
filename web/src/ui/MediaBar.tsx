@@ -1,6 +1,6 @@
 import { session } from "../session";
-import { activeMedia } from "../media/MediaManager";
-import { savePrefs, toast, useStore } from "../store";
+import { activeMedia, canShareScreen } from "../media/MediaManager";
+import { savePrefs, setState, toast, useStore } from "../store";
 import { t } from "../i18n";
 import { CamIcon, CamOffIcon, GearIcon, LeaveIcon, MicIcon, MicOffIcon, ScreenIcon } from "./Icons";
 
@@ -49,7 +49,15 @@ export function MediaBar({ onEnable, onSettings }: { onEnable: () => void; onSet
           <>
             <button className={"round" + (micOn ? "" : " off")} onClick={toggleMic} title={micOn ? t("media.mute") : t("media.unmute")} aria-pressed={micOn}>{micOn ? <MicIcon /> : <MicOffIcon />}</button>
             <button className={"round" + (camOn && !audioOnly ? "" : " off")} onClick={toggleCam} disabled={audioOnly} title={camOn ? t("media.camOff") : t("media.camOn")} aria-pressed={camOn}>{camOn && !audioOnly ? <CamIcon /> : <CamOffIcon />}</button>
-            <button className={"round" + (sharing ? " on" : "")} disabled={!live} onClick={() => activeMedia().setShare(!sharing)} title={sharing ? t("media.stopShare") : t("media.share")} aria-pressed={sharing}><ScreenIcon /></button>
+            {/* aria-disabled keeps the button focusable and tappable, so it can say why sharing is not possible */}
+            <button className={"round" + (sharing ? " on" : "")} aria-disabled={!live || !canShareScreen()}
+              onClick={() => {
+                if (!canShareScreen()) setState({ deviceError: t("share.unsupported") });
+                else if (!live) setState({ deviceError: t("share.needCall") });
+                else void activeMedia().setShare(!sharing);
+              }}
+              aria-label={t("media.share")} aria-pressed={sharing}
+              title={!canShareScreen() ? t("share.unsupported") : !live ? t("share.needCall") : sharing ? t("media.stopShare") : t("media.share")}><ScreenIcon /></button>
             <button className="round danger" onClick={() => { session.setConsent(false); toast(t("media.disabledHint")); }} title={t("media.leave")}><LeaveIcon /></button>
           </>
         )}
