@@ -53,6 +53,7 @@ const (
 	evKnock
 	evKnockAns
 	evBoard
+	evReset
 )
 
 type ev struct {
@@ -300,6 +301,35 @@ func (w *World) Evict(ctx context.Context, id uint32) {
 	w.post(ctx, ev{kind: evEvict, id: id})
 }
 
+// ResetContent restores a demo office: the given map, no whiteboards, no office chat history. People
+// stay connected; anyone standing inside a wall is moved, open boards are closed.
+func (w *World) ResetContent(ctx context.Context, cm *gamemap.Compiled) error {
+	errc := make(chan error, 1)
+	if !w.post(ctx, ev{kind: evReset, cm: cm, errc: errc}) {
+		return ctx.Err()
+	}
+	select {
+	case err := <-errc:
+		return err
+	case <-ctx.Done():
+		return ctx.Err()
+	}
+}
+
+func (w *World) doResetContent(cm *gamemap.Compiled, now time.Time) error {
+	if err := w.doReloadMap(cm, now); err != nil {
+		return err
+	}
+	for _, b := range w.boards {
+		for p := range b.viewers {
+			w.closeBoard(p)
+		}
+	}
+	clear(w.boards) // already wiped in the store; nothing left to save
+	w.hist = w.hist[:0]
+	return nil
+}
+
 // UpdateProfile applies a name/avatar change to an online player (no-op if offline).
 func (w *World) UpdateProfile(ctx context.Context, id uint32, name string, avatar json.RawMessage) {
 	w.post(ctx, ev{kind: evProfile, id: id, info: UserInfo{Name: name, Avatar: avatar}})
@@ -321,6 +351,9 @@ func (w *World) handle(e ev, now time.Time) {
 		return
 	case evMap:
 		e.errc <- w.doReloadMap(e.cm, now)
+		return
+	case evReset:
+		e.errc <- w.doResetContent(e.cm, now)
 		return
 	case evSnapshot:
 		out := make(map[string]map[string]bool, len(w.groups)+1)

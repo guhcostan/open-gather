@@ -8,7 +8,8 @@ export function App() {
   useEffect(() => {
     fetch("/api/me")
       .then((r) => r.json())
-      .then((j: { authenticated?: boolean }) => setState({ phase: j.authenticated ? "play" : "join" }))
+      .then((j: { authenticated?: boolean; demo?: { resetHours: number; nextReset: number } | null }) =>
+        setState({ phase: j.authenticated ? "play" : "join", demo: j.demo ?? null }))
       .catch(() => setState({ phase: "join" }));
   }, []);
   if (phase === "boot") return <div className="boot" />;

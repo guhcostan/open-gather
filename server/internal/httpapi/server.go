@@ -45,6 +45,7 @@ type Server struct {
 	mapLim   *limiter
 	profLim  *limiter
 	adminLim *limiter
+	demoLim  *limiter
 }
 
 type chatSave struct {
@@ -78,9 +79,13 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger, st *store.St
 		log.Error("instance id", "err", err)
 	}
 	s.auditQ = make(chan actionSave, 128)
+	s.demoLim = newLimiter(0.2, 5) // demo: about one new account per 5 s per IP, burst 5
 	s.workers.Add(1)
 	go func() { defer s.workers.Done(); s.savePositions(ctx) }()
 	go s.reconcileMedia(ctx)
+	if cfg.Demo {
+		go s.demoLoop(ctx)
+	}
 	return s
 }
 
@@ -306,6 +311,14 @@ func (s *Server) join(w http.ResponseWriter, r *http.Request) {
 		}
 		forced = inv.Role
 		o, err = s.st.OfficeByID(r.Context(), inv.OfficeID)
+	case s.cfg.Demo:
+		// Public sandbox: no invite, always a plain member (never the office's first admin), tight per-IP limit.
+		if !s.demoLim.Allow(clientIP(r)) {
+			writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "rate limited"})
+			return
+		}
+		forced = "member"
+		o, err = s.st.OfficeBySlug(r.Context(), s.cfg.OfficeSlug)
 	case s.cfg.Dev():
 		o, err = s.st.OfficeBySlug(r.Context(), s.cfg.OfficeSlug)
 	default:
@@ -345,10 +358,10 @@ func (s *Server) session(r *http.Request) (*store.Session, error) {
 func (s *Server) me(w http.ResponseWriter, r *http.Request) {
 	se, err := s.session(r)
 	if err != nil {
-		writeJSON(w, http.StatusOK, map[string]any{"authenticated": false, "dev": s.cfg.Dev()})
+		writeJSON(w, http.StatusOK, map[string]any{"authenticated": false, "dev": s.cfg.Dev(), "demo": s.demoInfo()})
 		return
 	}
-	writeJSON(w, http.StatusOK, map[string]any{"authenticated": true, "id": se.UserID, "name": se.Name, "role": se.Role, "avatar": se.Avatar, "dev": s.cfg.Dev()})
+	writeJSON(w, http.StatusOK, map[string]any{"authenticated": true, "id": se.UserID, "name": se.Name, "role": se.Role, "avatar": se.Avatar, "dev": s.cfg.Dev(), "demo": s.demoInfo()})
 }
 
 var errBadOrigin = errors.New("origin not allowed")

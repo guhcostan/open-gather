@@ -1,5 +1,7 @@
 # Multi-stage build: web bundle + static Go binary in a distroless image.
-FROM node:24-alpine AS web
+# Multi-arch (linux/amd64, linux/arm64): the web bundle and the Go cross-compile run on the build host,
+# only the final distroless layer is per-architecture, so no emulation is needed.
+FROM --platform=$BUILDPLATFORM node:24-alpine AS web
 WORKDIR /w
 RUN corepack enable
 COPY web/package.json web/pnpm-lock.yaml ./
@@ -7,12 +9,14 @@ RUN pnpm install --frozen-lockfile
 COPY web/ ./
 RUN pnpm build
 
-FROM golang:1.26-alpine AS server
+FROM --platform=$BUILDPLATFORM golang:1.26-alpine AS server
+ARG TARGETOS=linux
+ARG TARGETARCH
 WORKDIR /s
 COPY server/go.mod server/go.sum ./
 RUN go mod download
 COPY server/ ./
-RUN CGO_ENABLED=0 go build -trimpath -ldflags="-s -w" -o /out/opengather ./cmd/opengather \
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/opengather ./cmd/opengather \
  && mkdir /data
 
 FROM gcr.io/distroless/static-debian12:nonroot

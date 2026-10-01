@@ -149,6 +149,9 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .reaction-row .chip { padding: 3px 7px; font-family: system-ui; font-size: 19px; }
 .follow-hint { background: #fff; padding: 4px 8px; border-radius: 8px; display: flex; gap: 8px; align-items: center; }
 .object-note { white-space: pre-wrap; overflow-wrap: anywhere; }
+.demo-note { border: 3px solid #b77908; background: #fff6d8; color: #3a2400; border-radius: 8px; padding: 8px 12px; font-size: 13px; }
+.demo-note p { margin: 4px 0 0; }
+.demo-note a { color: #1d4ea8; }
 .spotlight-dock { position: absolute; left: 12px; bottom: 120px; width: min(300px, 40vw); padding: 8px; background: #fff; border: 3px solid #b77908; border-radius: 10px; max-height: 50vh; overflow: auto; z-index: 5; }
 .spotlight-dock p { margin: 0 0 8px; color: #484850; }
 .object-embed { width: 100%; height: min(50vh, 420px); border: 1px solid #aaa; background: #fff; }

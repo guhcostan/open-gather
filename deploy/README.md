@@ -25,6 +25,32 @@ docker compose -f deploy/docker-compose.local.yml up --build
 4. Create the first administrator invite: `docker compose -f deploy/docker-compose.yml --env-file deploy/.env run --rm opengather -invite admin` prints `/?invite=…`; open it on your domain. Then invite others from *Settings → Invite people* (admins only).
 5. `docker compose -f deploy/docker-compose.yml --env-file deploy/.env up -d --build`.
 
+The stack uses the prebuilt image `ghcr.io/guhcostan/open-gather:latest` (linux/amd64 and linux/arm64, published by `.github/workflows/docker.yml`). Drop `--build` to pull it instead of building on the server; set `OG_IMAGE` in `.env` to pin a version.
+
+### No domain yet?
+
+Any wildcard-IP DNS service works for a first try, for example `APP_DOMAIN=office.203-0-113-7.sslip.io` and `LIVEKIT_DOMAIN=rtc.203-0-113-7.sslip.io` (replace with your public IP, dots as dashes). Caddy gets real certificates for them. Use your own domain for anything that matters: these hostnames depend on a third-party resolver and share Let's Encrypt rate limits with everyone else using them.
+
+## Public demo mode
+
+`DEMO=1` turns a production stack into a public sandbox ([decision 0011](../docs/decisions/0011-public-demo.md)):
+
+- anyone can join **without an invite, always as a member** (never as administrator, even as the first visitor); anonymous sign-ups are limited to about one every 5 s per IP, burst 5;
+- every `DEMO_RESET_HOURS` (default 6, on wall-clock boundaries) the office map is restored to the starter office and the office chat and all whiteboards are wiped; members and their sessions are kept;
+- the join screen and the top bar tell visitors it is a public demo and when it resets.
+
+Recommended with it: `MAX_PLAYERS=60`, `SESSION_DAYS=1`. The operator still creates an administrator with a CLI invite (step 4 above). Production guard rails stay on (HTTPS, real LiveKit keys, origin list).
+
+## Oracle Cloud "Always Free"
+
+Scripts in [`deploy/oracle/`](oracle/) reproduce the public demo host:
+
+1. `deploy/oracle/provision.sh` (needs the OCI CLI configured) creates a VCN, an internet gateway, a security list that opens exactly 22, 80, 443, 7881/tcp, 7882/udp and 3478/udp, a public subnet and an Ubuntu 24.04 VM, and prints its public IP. Default shape: Ampere A1 (2 OCPU, 12 GB). A1 capacity is often exhausted ("Out of host capacity"); `OG_OCI_SHAPE=VM.Standard.E2.1.Micro` uses the always-free AMD micro VM (1 GB RAM) instead.
+2. `ssh ubuntu@IP "bash -s" < deploy/oracle/bootstrap-host.sh` opens the host firewall (Oracle's Ubuntu image rejects everything but SSH even when the security list allows it), adds 2 GB of swap and installs Docker with Compose.
+3. Copy `deploy/` to the VM, write `deploy/.env` and start the stack as above.
+
+Nothing here is billed while you stay inside the Always Free limits. The micro VM's CPU is small: it is fine for a handful of people in calls, not for a large meeting (no capacity was measured on it).
+
 ### HTTPS, ICE, STUN/TURN and credentials
 
 - Browsers only allow camera, microphone and screen capture on HTTPS (or localhost), so TLS is not optional. Caddy obtains and renews certificates; ports 80/443 must be reachable for the ACME challenge.

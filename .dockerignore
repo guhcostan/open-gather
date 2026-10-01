@@ -1,0 +1,15 @@
+# Keep the build context small and never ship local databases, logs or dependencies.
+.git
+**/node_modules
+web/dist
+site/dist
+server/data
+**/*.db
+**/*.db-*
+.run
+bin
+bench
+e2e
+site
+docs
+deploy/.env

@@ -25,6 +25,7 @@ export function OfficeScreen() {
   const role = useStore((s) => s.role);
   const object = useStore((s) => s.object);
   const boardKey = useStore((s) => s.boardKey);
+  const demo = useStore((s) => s.demo);
   const [editing, setEditing] = useState(false);
   const [dialog, setDialog] = useState<"" | "media" | "settings" | "admin">("");
 
@@ -40,6 +41,7 @@ export function OfficeScreen() {
       <header className="topbar">
         <strong className="brand">{office || t("app.name")}</strong>
         {area && <span className="pill">{area}</span>}
+        {demo && <span className="pill" title={t("demo.reset", { time: new Date(demo.nextReset * 1000).toLocaleTimeString("en", { hour: "2-digit", minute: "2-digit" }) })}>{t("demo.pill")}</span>}
         {conn !== "open" && conn !== "connecting" && <span className="pill warn" role="status">{conn === "replaced" ? t("conn.replaced") : t("conn.reconnecting")}</span>}
         <span className="spacer" />
         <AdminButton onOpen={() => setDialog("admin")} />

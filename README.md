@@ -27,6 +27,8 @@
 
 > **MVP / alpha.** The whole loop works and is tested in real browsers: avatars, movement, proximity audio and video through a real SFU, private meeting rooms, screen sharing, chat, invites, an admin map editor and a Docker install. **Capacity on a real server has not been measured yet**: the load numbers we have come from a laptop with the generator on the same machine. Read [Status](#status) before you rely on anything. "Open Gather" is a **provisional name** and the project is not affiliated with the original Gather product.
 
+**Try it:** a public demo runs at **[office.152-67-49-137.sslip.io](https://office.152-67-49-137.sslip.io)** on a free Oracle Cloud VM (1 GB of RAM, so be gentle). No sign-up beyond a name; everything is public and resets every 6 hours. Like it? Run your own with the Docker image `ghcr.io/guhcostan/open-gather` ([deploy guide](deploy/README.md)).
+
 ## Why Open Gather
 
 Virtual offices are usually heavy on the browser, the server and the bill. Open Gather is built around an efficiency budget:
@@ -136,7 +138,8 @@ Last updated 2026-09-29. Everything below was executed on macOS (Apple M1 Pro), 
 | --- | --- |
 | Go tests (world rules, proximity groups, dead reckoning, map reload, store, media tokens and reconciliation), also with the race detector | **pass** |
 | Real-browser suite (Chrome + real LiveKit): proximity calls with real audio/video RTP, consent and busy, private rooms, screen share, invites and admin-only actions, map editor, chat and profile, token replay/tamper/expiry attacks, reconnection and restart persistence, member administration, an automated accessibility audit (axe-core), reactions/objects/follow/portals/lockable rooms/whiteboards, and spotlight broadcasts with real RTP | **pass** |
-| Docker: image builds, Compose local stack passes the browser scenarios, production mode in the container refuses insecure config and requires invites | **verified locally**; the production Compose file with Caddy/TLS/TURN on a public host is **not tested** |
+| Docker: image builds, Compose local stack passes the browser scenarios, production mode in the container refuses insecure config and requires invites | **verified locally** |
+| Production Compose (Caddy, TLS, LiveKit) on a public host: the public demo on an Oracle Always Free micro VM, real audio/video over UDP across the internet | **verified** (one smoke run, 2 people); TURN relay through UDP-blocked networks and load on that host are **not tested** |
 | Load, scenario A (no media, up to 1,000 bots) and a 500-client mass reconnect | **run locally, generator on the same host**: not a capacity claim, see [results](docs/benchmark-results.md) |
 | Media through a real SFU with synthetic Opus/VP8 (scenarios B and D, a scaled C): clean up to 40 people in calls, 20-person meeting with 6-video cap and a screen share, all 0 % loss | **run locally, generator on the same laptop**; full-size C (100 people) attempted and **invalid** on one machine |
 | TURN through restrictive networks, two-hour soak (a 10-minute presence soak was run), browser FPS on the *reference* laptop (an M1 Pro reaches 60 FPS with 300 bots around), the 2 vCPU / 4 GB reference server | **not run** |

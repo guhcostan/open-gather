@@ -5,6 +5,8 @@
 name: opengather
 services:
   opengather:
+    # Prebuilt multi-arch image (amd64/arm64) published by .github/workflows/docker.yml. "--build" builds locally.
+    image: "${OG_IMAGE:-ghcr.io/guhcostan/open-gather:latest}"
     build: { context: .., dockerfile: deploy/Dockerfile }
     restart: unless-stopped
     environment:
@@ -13,6 +15,11 @@ services:
       OG_ALLOWED_ORIGINS: "${APP_DOMAIN:?set APP_DOMAIN}"
       OG_OFFICE_NAME: "${OFFICE_NAME:-Office}"
       OG_METRICS_TOKEN: "${METRICS_TOKEN:-}"
+      # Public sandbox (see deploy/README.md "Public demo"): invite-less member joins, content reset every N hours.
+      OG_DEMO: "${DEMO:-}"
+      OG_DEMO_RESET_HOURS: "${DEMO_RESET_HOURS:-6}"
+      OG_MAX_PLAYERS: "${MAX_PLAYERS:-2000}"
+      OG_SESSION_DAYS: "${SESSION_DAYS:-30}"
       LIVEKIT_URL: "wss://${LIVEKIT_DOMAIN:?set LIVEKIT_DOMAIN}"
       LIVEKIT_API_URL: http://livekit:7880
       LIVEKIT_API_KEY: "${LIVEKIT_API_KEY:?set LIVEKIT_API_KEY}"

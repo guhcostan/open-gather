@@ -22,6 +22,7 @@ Environment: macOS (Apple M1 Pro, arm64), Go 1.26.5, Google Chrome with fake cam
 | `features` | keys 1-7 show reactions on both avatars; X opens a nearby note whose content is absent from the public map; follow walks around walls to the leader and stops on input; portals teleport once per arrival; a locked room blocks outsiders and admits one visitor after a knock; edited notes and whiteboards persist across a restart |
 | `spotlight` | stepping on the pad with consent goes on air; a listener in a separate private call receives real audio, video and screen share RTP; audience tokens are subscribe-only and scoped; withdrawing consent or stepping off empties the SFU room |
 | Docker | image builds (24 MB, non-root); the local Compose stack passes `proximity`, `consent` and `rooms`; in the container, production mode returns 403 without an invite, issues a Secure cookie with one, and refuses insecure configuration |
+| Public demo on a real host (2026-09-30) | the production Compose file (Caddy + Open Gather + LiveKit 1.13.7) runs on an Oracle Cloud Always Free AMD micro VM (1 GB RAM + 2 GB swap, São Paulo) with `DEMO=1`; Caddy obtained Let's Encrypt certificates; LiveKit discovered and validated the public IP. `e2e/demo-smoke.mjs` from a laptop in São Paulo over the public internet: invite-less join as member, proximity call live, **real audio and video RTP received, over UDP** (selected ICE pair udp, RTT 10 ms). Demo-mode unit tests: no invite needed, never admin, per-IP sign-up limit, reset restores map and wipes chat and boards |
 
 GitHub Actions (`.github/workflows/ci.yml`) runs the Go tests with `-race`, the web typecheck/build and this whole browser suite on an Ubuntu runner (software-rendered Chrome, real LiveKit); the run for the latest commit is green. The runner is much slower than a laptop (10-16 FPS), so the test walker steers frame by frame inside the page.
 
@@ -49,6 +50,6 @@ Scenario A (no media) up to 1,000 bots and a 500-client reconnect storm, with th
 3. Invites, presence, chat, persistence. **Done** (see limitations above).
 4. Rooms, screen sharing, personalisation, basic editor. **Done.**
 5. Benchmarks and evidence-driven optimisation. **Started:** scenario A and one optimisation done; media scenarios pending.
-6. Reproducible self-hosted install and documentation. **Started:** Docker verified locally; production host untested.
+6. Reproducible self-hosted install and documentation. **Started:** the production Compose stack runs the public demo on a free Oracle VM (scripts in `deploy/oracle/`); multi-arch image published to GHCR. Not tested: TURN relay for UDP-blocked networks (the relay port range is closed on the demo host), load on the demo host.
 
 Deferred on purpose: recording, AI transcription, native apps, marketplace, enterprise integrations and 3D worlds.

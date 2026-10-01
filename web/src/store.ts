@@ -58,6 +58,8 @@ export interface State {
   myAvatar: AvatarSpec;
   /** One-off message shown on the join screen (for example after being removed). */
   notice: string;
+  /** Set when this server is a public demo: content resets periodically. */
+  demo: { resetHours: number; nextReset: number } | null;
   nearby: Prop | null;
   object: ObjectReply | null;
   following: { id: number; name: string } | null;
@@ -100,6 +102,7 @@ const initial: State = {
   toast: "",
   myAvatar: load<AvatarSpec>("og.avatar", { sk: 1, hs: 0, hc: 1, sh: 4, pa: 1 }),
   notice: "",
+  demo: null,
   nearby: null,
   object: null,
   following: null,

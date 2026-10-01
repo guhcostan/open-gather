@@ -36,6 +36,12 @@ type Config struct {
 	MediaTTL       time.Duration // validity of a media join token
 	MediaReconcile time.Duration // how often SFU rooms are compared with the world's membership
 	JoinRate       int           // dev /api/join requests per second per IP (raise for load tests only)
+
+	// Demo turns a production deployment into a public sandbox: anyone may join WITHOUT an invite (always
+	// as a member, never as admin), joins are rate limited per IP, and the office content (map, office chat,
+	// whiteboards) is reset to the starter office every DemoReset.
+	Demo      bool
+	DemoReset time.Duration
 }
 
 func env(k, d string) string {
@@ -77,6 +83,8 @@ func Load() (*Config, error) {
 		JoinRate:       envInt("OG_JOIN_RATE", 20),
 		MediaTTL:       time.Duration(envInt("OG_MEDIA_TOKEN_TTL_SECONDS", 30)) * time.Second,
 		MediaReconcile: time.Duration(envInt("OG_MEDIA_RECONCILE_SECONDS", 10)) * time.Second,
+		Demo:           env("OG_DEMO", "") == "1" || env("OG_DEMO", "") == "true",
+		DemoReset:      time.Duration(envInt("OG_DEMO_RESET_HOURS", 6)) * time.Hour,
 	}
 	if o := env("OG_ALLOWED_ORIGINS", ""); o != "" {
 		c.AllowedOrigins = strings.Split(o, ",")

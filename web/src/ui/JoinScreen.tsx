@@ -9,6 +9,7 @@ export function JoinScreen() {
   const [busy, setBusy] = useState(false);
   const [err, setErr] = useState("");
   const notice = useStore((s) => s.notice);
+  const demo = useStore((s) => s.demo);
   const invite = new URLSearchParams(location.search).get("invite") ?? "";
 
   const submit = async (e: React.FormEvent) => {
@@ -33,6 +34,13 @@ export function JoinScreen() {
       <form className="join-card" onSubmit={submit}>
         <h1>{t("join.title")}</h1>
         {notice && <p className="error" role="alert">{notice}</p>}
+        {demo && (
+          <div className="demo-note" role="note">
+            <strong>{t("demo.title")}</strong>
+            <p>{t("demo.join", { hours: demo.resetHours })}</p>
+            <p><a href="https://github.com/guhcostan/open-gather" target="_blank" rel="noopener noreferrer">{t("demo.repo")}</a></p>
+          </div>
+        )}
         <p className="muted">{t("join.subtitle")}</p>
         <label className="field">
           <span>{t("join.name")}</span>
