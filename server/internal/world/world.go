@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"errors"
+	"fmt"
 	"log/slog"
 	"math"
 	"math/rand/v2"
@@ -96,6 +97,7 @@ type World struct {
 	// RoomPrefix namespaces SFU room names, e.g. "3fa9c1d2.o1". Empty means "o<office id>".
 	RoomPrefix string
 	m          *gamemap.Compiled
+	mapW, mapH int // fixed for the life of the world (reloads keep the size); safe to read anywhere
 	media      Media
 	log        *slog.Logger
 	St         Stats
@@ -142,7 +144,7 @@ type World struct {
 }
 
 func New(cfg Config, officeID int64, name string, m *gamemap.Compiled, md Media, log *slog.Logger) *World {
-	w := &World{cfg: cfg, OfficeID: officeID, Name: name, m: m, media: md, log: log,
+	w := &World{cfg: cfg, OfficeID: officeID, Name: name, m: m, mapW: m.W, mapH: m.H, media: md, log: log,
 		players: map[uint32]*Player{}, movers: map[*Player]struct{}{},
 		followers: map[*Player]struct{}{}, locks: map[string]*lockState{}, knocks: map[uint32]knockReq{},
 		onSpotSet: map[*Player]struct{}{}, boards: map[string]*board{},
@@ -344,6 +346,9 @@ func (w *World) ResetContent(ctx context.Context, cm *gamemap.Compiled) error {
 	}
 }
 
+// SameSize reports whether cm can replace the running map without a restart.
+func (w *World) SameSize(cm *gamemap.Compiled) bool { return cm.W == w.mapW && cm.H == w.mapH }
+
 func (w *World) doResetContent(cm *gamemap.Compiled, now time.Time) error {
 	if err := w.doReloadMap(cm, now); err != nil {
 		return err
@@ -538,6 +543,19 @@ func (w *World) doJoin(e ev, now time.Time) {
 func (w *World) doReloadMap(cm *gamemap.Compiled, now time.Time) error {
 	if cm.W != w.m.W || cm.H != w.m.H {
 		return errors.New("changing the map size requires a restart")
+	}
+	// An office that changed hands (or became free or assigned) starts with a clean door: admissions
+	// and lock state from the previous arrangement do not carry over.
+	before := map[string]string{}
+	for _, a := range w.m.Map.Areas {
+		if a.Access.Mode == gamemap.AccessOffice {
+			before[a.ID] = fmt.Sprint(a.Access.Users)
+		}
+	}
+	for _, a := range cm.Map.Areas {
+		if old, ok := before[a.ID]; a.Access.Mode == gamemap.AccessOffice && (!ok || old != fmt.Sprint(a.Access.Users)) {
+			delete(w.locks, a.ID)
+		}
 	}
 	w.m = cm
 	w.pruneLocks(true, now)
@@ -791,6 +809,17 @@ func (w *World) canEnterArea(p *Player, ai int) bool {
 	if a.Kind != gamemap.KindRoom {
 		return true
 	}
+	if isOwnedOffice(a) {
+		// owners and admins always; everybody else only once an owner inside has let them in
+		if p.Role == "admin" || ownsOffice(a, p.ID) {
+			return true
+		}
+		if ls := w.locks[a.ID]; ls != nil {
+			_, ok := ls.admitted[p.ID]
+			return ok
+		}
+		return false
+	}
 	if !AllowedIn(a, p.ID, p.Role) {
 		return false
 	}
@@ -819,6 +848,32 @@ func AllowedIn(a *gamemap.Area, uid uint32, role string) bool {
 			if u == int64(uid) {
 				return true
 			}
+		}
+	case gamemap.AccessOffice:
+		return role == "admin" || !isOwnedOffice(a) || ownsOffice(a, uid)
+	}
+	return false
+}
+
+// isOwnedOffice reports a private office that has been assigned to somebody.
+func isOwnedOffice(a *gamemap.Area) bool {
+	return a.Kind == gamemap.KindRoom && a.Access.Mode == gamemap.AccessOffice && len(a.Access.Users) > 0
+}
+
+func ownsOffice(a *gamemap.Area, uid uint32) bool {
+	for _, u := range a.Access.Users {
+		if u == int64(uid) {
+			return true
+		}
+	}
+	return false
+}
+
+// isOwnedOfficeID: knocks on an assigned office stay pending even though it has no lock record.
+func (w *World) isOwnedOfficeID(id string) bool {
+	for i := range w.m.Map.Areas {
+		if w.m.Map.Areas[i].ID == id {
+			return isOwnedOffice(&w.m.Map.Areas[i])
 		}
 	}
 	return false

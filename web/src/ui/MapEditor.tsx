@@ -8,6 +8,14 @@ import { t } from "../i18n";
 type Tool = "wall" | "prop" | "erase" | "room" | "unroom" | "desk" | "content";
 const INTERACTIVE = ["note", "embed", "image", "portal", "whiteboard", "spotlight"];
 
+/** The server limits names in UTF-8 bytes; cut whole characters until the name fits. */
+function fitBytes(s: string, max: number) {
+  const enc = new TextEncoder();
+  const chars = Array.from(s);
+  while (chars.length && enc.encode(chars.join("")).length > max) chars.pop();
+  return chars.join("");
+}
+
 export function MapEditor({ onClose }: { onClose: () => void }) {
   const roster = useStore((s) => s.roster);
   const [tool, setTool] = useState<Tool>("wall");
@@ -107,6 +115,15 @@ export function MapEditor({ onClose }: { onClose: () => void }) {
         const [w, h] = propSize(q);
         return x >= q.x && x < q.x + w && y >= q.y && y < q.y + h;
       });
+      // elsewhere inside a private office: assign it (or free it with Nobody); its name shows the owner
+      const office = p ? undefined : d.areas.find((a) => a.kind === "room" && a.access.mode === "office" && x >= a.x && x < a.x + a.w && y >= a.y && y < a.y + a.h);
+      if (office) {
+        const base = office.name.split(" · ")[0];
+        office.access = { mode: "office", users: assignTo ? [assignTo] : [] };
+        office.name = fitBytes(assignTo ? t("editor.officeOf", { office: base, name: roster.get(assignTo)?.n ?? "" }) : base, 60);
+        apply();
+        return;
+      }
       if (p && assignTo) {
         p.assign = assignTo;
         p.label = t("editor.deskOf", { name: roster.get(assignTo)?.n ?? "" }).slice(0, 40);
@@ -216,8 +233,9 @@ export function MapEditor({ onClose }: { onClose: () => void }) {
         </div>}
         {tool === "desk" && (
           <label className="field"><span>{t("editor.assign")}</span>
+            <small className="muted">{t("editor.assignHint")}</small>
             <select value={assignTo} onChange={(e) => setAssignTo(Number(e.target.value))}>
-              <option value={0}>—</option>
+              <option value={0}>{t("editor.nobody")}</option>
               {[...roster.values()].map((p) => <option key={p.id} value={p.id}>{p.n}</option>)}
             </select>
           </label>

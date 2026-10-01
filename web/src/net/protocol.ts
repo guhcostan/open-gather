@@ -30,9 +30,14 @@ export interface Area {
   w: number;
   h: number;
   floor: string;
+  /** mode: open | members | admins | list | office. An office with users is a private office owned by them. */
   access: { mode: string; users?: number[] };
   capacity?: number;
 }
+
+/** A private office assigned to somebody (closed to everybody else unless an owner lets them in). */
+export const isOwnedOffice = (a: Area) => a.kind === "room" && a.access.mode === "office" && (a.access.users?.length ?? 0) > 0;
+export const isMyOffice = (a: Area, me: number) => isOwnedOffice(a) && (a.access.users ?? []).includes(me);
 export interface Prop {
   t: string;
   x: number;

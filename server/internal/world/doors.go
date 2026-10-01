@@ -12,6 +12,10 @@ import (
 // inside answer. The state lives only in memory: an empty room unlocks itself and a restart unlocks
 // everything. Movement is what enforces it (canEnterArea), and media follows position, so a locked
 // call cannot be joined from outside.
+//
+// An assigned private office is always closed: it is announced as locked, its owners never need to
+// be let in, and the lock control does nothing there. Visitors an owner admits are remembered in the
+// same lockState until the office is empty again.
 
 const (
 	knockReach = 40.0 // px from the room's rectangle
@@ -37,7 +41,7 @@ func (w *World) appendLocked(b []byte) []byte {
 	b = append(b, '[')
 	first := true
 	for i := range w.m.Map.Areas {
-		if w.locks[w.m.Map.Areas[i].ID] == nil {
+		if w.locks[w.m.Map.Areas[i].ID] == nil && !isOwnedOffice(&w.m.Map.Areas[i]) {
 			continue
 		}
 		if !first {
@@ -84,7 +88,7 @@ func (w *World) doLock(p *Player, on bool) {
 		return
 	}
 	a := &w.m.Map.Areas[p.area]
-	if a.Kind != gamemap.KindRoom {
+	if a.Kind != gamemap.KindRoom || isOwnedOffice(a) {
 		return
 	}
 	_, locked := w.locks[a.ID]
@@ -144,7 +148,7 @@ func (w *World) pruneLocks(force bool, now time.Time) {
 		}
 	}
 	for id, k := range w.knocks {
-		if _, ok := w.locks[k.area]; !ok {
+		if _, ok := w.locks[k.area]; !ok && !w.isOwnedOfficeID(k.area) {
 			delete(w.knocks, id)
 		}
 	}
@@ -159,22 +163,34 @@ func (w *World) doKnock(p *Player, areaIdx int, now time.Time) {
 	}
 	a := &w.m.Map.Areas[areaIdx]
 	ls := w.locks[a.ID]
-	if a.Kind != gamemap.KindRoom || ls == nil || p.Role == "admin" {
+	office := isOwnedOffice(a)
+	if a.Kind != gamemap.KindRoom || (ls == nil && !office) || p.Role == "admin" || (office && ownsOffice(a, p.ID)) {
 		return
 	}
-	if _, in := ls.admitted[p.ID]; in {
-		return
+	if ls != nil {
+		if _, in := ls.admitted[p.ID]; in {
+			return
+		}
 	}
 	x, y, ww, hh := w.areaRect(a)
 	if rectDist(p.X, p.Y, x, y, ww, hh) > knockReach {
 		return
 	}
 	p.knockAt = now
-	if !AllowedIn(a, p.ID, p.Role) { // the room is not for them even when unlocked
+	if !office && !AllowedIn(a, p.ID, p.Role) { // the room is not for them even when unlocked
 		w.sendJSON(p, map[string]any{"t": "knr", "st": "no", "a": a.Name})
 		return
 	}
 	occ := w.occupants(areaIdx)
+	if office { // in somebody's office only the owner (or an admin) decides who comes in
+		hosts := occ[:0]
+		for _, o := range occ {
+			if o.Role == "admin" || ownsOffice(a, o.ID) {
+				hosts = append(hosts, o)
+			}
+		}
+		occ = hosts
+	}
 	if len(occ) == 0 {
 		w.sendJSON(p, map[string]any{"t": "knr", "st": "empty", "a": a.Name})
 		return
@@ -199,6 +215,9 @@ func (w *World) doKnockAns(p *Player, id uint32, allow bool, now time.Time) {
 	if p.area < 0 || w.m.Map.Areas[p.area].ID != k.area {
 		return // only somebody inside can answer
 	}
+	if a := &w.m.Map.Areas[p.area]; isOwnedOffice(a) && p.Role != "admin" && !ownsOffice(a, p.ID) {
+		return // a guest cannot let more people into somebody's office
+	}
 	delete(w.knocks, id)
 	for _, o := range w.occupants(p.area) { // the other people inside can dismiss their prompt
 		if o != p {
@@ -214,7 +233,12 @@ func (w *World) doKnockAns(p *Player, id uint32, allow bool, now time.Time) {
 		w.sendJSON(q, map[string]any{"t": "knr", "st": "no", "a": name})
 		return
 	}
-	if ls := w.locks[k.area]; ls != nil {
+	ls := w.locks[k.area]
+	if ls == nil && isOwnedOffice(&w.m.Map.Areas[p.area]) { // first guest of an office
+		ls = &lockState{admitted: map[uint32]struct{}{}}
+		w.locks[k.area] = ls
+	}
+	if ls != nil {
 		ls.admitted[id] = struct{}{}
 	}
 	w.sendJSON(q, map[string]any{"t": "knr", "st": "ok", "a": name})

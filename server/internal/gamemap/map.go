@@ -20,7 +20,11 @@ const (
 	AccessMembers = "members"
 	AccessAdmins  = "admins"
 	AccessList    = "list"
-	KindRoom      = "room"
+	// AccessOffice is a private office: open to anybody while Users is empty; once assigned, only its
+	// owners (Users, at most MaxOfficeOwners), admins and visitors an owner lets in may enter.
+	AccessOffice    = "office"
+	MaxOfficeOwners = 4
+	KindRoom        = "room"
 )
 
 type Access struct {
@@ -247,12 +251,15 @@ func Validate(m *Map) error {
 			return fmt.Errorf("area %d out of bounds", i)
 		}
 		switch a.Access.Mode {
-		case "", AccessOpen, AccessMembers, AccessAdmins, AccessList:
+		case "", AccessOpen, AccessMembers, AccessAdmins, AccessList, AccessOffice:
 		default:
 			return fmt.Errorf("area %d: invalid access mode", i)
 		}
 		if len(a.Access.Users) > 500 {
 			return fmt.Errorf("area %d: access list too large", i)
+		}
+		if a.Access.Mode == AccessOffice && (len(a.Access.Users) > MaxOfficeOwners || a.Kind != KindRoom) {
+			return fmt.Errorf("area %d: an office is a room with at most %d owners", i, MaxOfficeOwners)
 		}
 	}
 	if m.Spawn.X < 0 || m.Spawn.Y < 0 || m.Spawn.X >= m.W || m.Spawn.Y >= m.H {

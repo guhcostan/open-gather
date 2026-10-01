@@ -85,6 +85,9 @@ func New(ctx context.Context, cfg *config.Config, log *slog.Logger, st *store.St
 	go func() { defer s.workers.Done(); s.savePositions(ctx) }()
 	go s.reconcileMedia(ctx)
 	if cfg.Demo {
+		if err := s.demoStartup(ctx); err != nil {
+			log.Error("demo startup", "err", err)
+		}
 		go s.demoLoop(ctx)
 	}
 	return s

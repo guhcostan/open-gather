@@ -4,6 +4,7 @@ import (
 	"context"
 	"encoding/json"
 	"net/http"
+	"strings"
 	"testing"
 	"time"
 
@@ -84,6 +85,58 @@ func TestDemoResetRestoresMapAndWipesChatAndBoards(t *testing.T) {
 	}
 	if _, me := u.do("GET", "/api/me", nil); me["authenticated"] != true {
 		t.Fatal("members keep their sessions across a demo reset")
+	}
+}
+
+// A demo that saved an older starter map (another size) picks up the new one when it starts: the
+// running world cannot change size, so a scheduled reset alone would fail half-way.
+func TestDemoStartupInstallsAResizedStarterMap(t *testing.T) {
+	r := demoRig(t)
+	ctx := context.Background()
+	office, _ := r.st.OfficeBySlug(ctx, "default")
+	old := gamemap.Default()
+	old.H = 36
+	old.Walls = append([]string(nil), old.Walls[:36]...)
+	old.Walls[35] = strings.Repeat("#", old.W)
+	var areas []gamemap.Area
+	for _, a := range old.Areas {
+		if a.Y+a.H <= 35 {
+			areas = append(areas, a)
+		}
+	}
+	old.Areas = areas
+	var props []gamemap.Prop
+	for _, p := range old.Props {
+		if p.Y < 35 {
+			props = append(props, p)
+		}
+	}
+	old.Props = props
+	if _, err := gamemap.Compile(old); err != nil {
+		t.Fatal(err)
+	}
+	raw, _ := json.Marshal(old)
+	r.st.SaveMap(ctx, office.ID, string(raw))
+
+	if err := r.srv.demoStartup(ctx); err != nil {
+		t.Fatal(err)
+	}
+	o, _ := r.st.OfficeBySlug(ctx, "default")
+	var back gamemap.Map
+	json.Unmarshal([]byte(o.MapJSON), &back)
+	if back.H != gamemap.Default().H {
+		t.Fatalf("the demo must start on the current starter map, got height %d", back.H)
+	}
+	// a same-size demo keeps its content across restarts
+	u, _ := r.join("Visitor", "")
+	if err := r.st.AppendChat(ctx, office.ID, u.ID, "kept", 1); err != nil {
+		t.Fatal(err)
+	}
+	if err := r.srv.demoStartup(ctx); err != nil {
+		t.Fatal(err)
+	}
+	if rows, _ := r.st.RecentChat(ctx, office.ID, 10); len(rows) != 1 {
+		t.Fatalf("a restart on the current map must not wipe the demo: %v", rows)
 	}
 }
 

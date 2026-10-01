@@ -24,8 +24,8 @@ Every connection starts with a full `hello`; the same happens on every reconnect
 | `fol` | `id` (0 stops) | follow that player; any movement key stops it |
 | `lead` | `id` | ask that player to follow you (they decide) |
 | `lock` | `b` | lock or unlock the meeting room you are standing in |
-| `knock` | `n` area index | knock on a locked room you stand close to |
-| `kans` | `id`, `b` | admit or decline a knock (only from inside the room) |
+| `knock` | `n` area index | knock on a locked room or an assigned private office you stand close to |
+| `kans` | `id`, `b` | admit or decline a knock (only from inside the room; in an assigned office only an owner or an admin) |
 | `wb` | drawing ops | whiteboard edits: `draw` (batched pen points or one text), `del`, `undo`, `clear` (admin), `close`; all bounded, see decision 0010 |
 | `ping` | `c` | round-trip probe |
 

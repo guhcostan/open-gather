@@ -2,11 +2,12 @@ package gamemap
 
 import "strings"
 
-// Default builds the bundled starter office (60x36 tiles): reception, twelve
-// individual desks, four meeting rooms with different access rules and a
-// social area. All layout data is original to this project.
+// Default builds the bundled starter office (60x46 tiles): reception, twelve
+// individual desks, four meeting rooms with different access rules, a social
+// area and, behind a hall, six private offices. All layout data is original to
+// this project.
 func Default() *Map {
-	const W, H = 60, 36
+	const W, H = 60, 46
 	g := make([][]byte, H)
 	for y := range g {
 		g[y] = []byte(strings.Repeat(".", W))
@@ -45,10 +46,20 @@ func Default() *Map {
 	door(44, 10, 44, 11)
 	hwall(44, W-1, 7)
 	// Social | rooms C and D
-	vwall(41, 14, H-1)
+	vwall(41, 14, 35)
 	door(41, 19, 41, 20)
 	door(41, 29, 41, 30)
 	hwall(41, W-1, 25)
+	// Social | hall, then the hall | six private offices (rows 39..44).
+	hwall(0, W-1, 35)
+	door(20, 35, 21, 35)
+	hwall(0, W-1, 38)
+	for i, x := range officeX {
+		if i > 0 {
+			vwall(x-1, 38, H-1)
+		}
+		door(x+3, 38, x+4, 38)
+	}
 
 	walls := make([]string, H)
 	for i := range g {
@@ -128,6 +139,15 @@ func Default() *Map {
 	add("chair", 29, 28)
 	add("bookshelf", 3, 15)
 
+	// Private offices: a desk, a chair, a plant and a lamp each, clear of the door.
+	for _, x := range officeX {
+		add("desk", x+5, 41)
+		add("chair", x+5, 42)
+		add("plant", x, 39)
+		add("lamp", x, 44)
+		add("bookshelf", x+6, 39)
+	}
+
 	areas := []Area{
 		{ID: "reception", Name: "Reception", Kind: "reception", X: 1, Y: 1, W: 17, H: 13, Floor: "wood_light"},
 		{ID: "desks", Name: "Individual desks", Kind: "desks", X: 19, Y: 1, W: 25, H: 13, Floor: "carpet_blue"},
@@ -136,9 +156,21 @@ func Default() *Map {
 		{ID: "boardroom", Name: "Boardroom", Kind: KindRoom, X: 45, Y: 8, W: 14, H: 6, Floor: "carpet_plum", Access: Access{Mode: AccessAdmins}, Capacity: 12},
 		{ID: "horizon", Name: "Horizon room", Kind: KindRoom, X: 42, Y: 15, W: 17, H: 10, Floor: "carpet_teal", Access: Access{Mode: AccessOpen}, Capacity: 30},
 		{ID: "focus", Name: "Focus room (members)", Kind: KindRoom, X: 42, Y: 26, W: 17, H: 9, Floor: "carpet_green", Access: Access{Mode: AccessMembers}, Capacity: 20},
+		{ID: "hall", Name: "Offices hall", Kind: "social", X: 1, Y: 36, W: 58, H: 2, Floor: "wood_light"},
+	}
+	floors := []string{"carpet_blue", "carpet_plum", "carpet_teal", "carpet_green", "carpet_blue", "carpet_plum"}
+	for i, x := range officeX {
+		w := 9
+		if x+w > W-1 {
+			w = W - 1 - x
+		}
+		areas = append(areas, Area{ID: "office-" + itoa(i+1), Name: "Office " + itoa(i+1), Kind: KindRoom, X: x, Y: 39, W: w, H: 6, Floor: floors[i], Access: Access{Mode: AccessOffice}, Capacity: 8})
 	}
 	return &Map{Version: 1, W: W, H: H, Walls: walls, Props: props, Areas: areas, Spawn: Point{X: 9, Y: 7}}
 }
+
+// officeX holds the first column of each private office (each 9 tiles wide, the last 8).
+var officeX = []int{1, 11, 21, 31, 41, 51}
 
 func itoa(n int) string {
 	if n < 10 {

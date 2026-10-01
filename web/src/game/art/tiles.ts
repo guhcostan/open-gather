@@ -407,9 +407,10 @@ export function bakeMapCanvas(map: MapData): HTMLCanvasElement {
         px(ctx, x, y + 3, T, 2, "rgba(40,24,90,0.10)");
       }
       if (isWall(tx - 1, ty)) px(ctx, x, y, 2, T, "rgba(40,24,90,0.14)");
-      // doorway threshold: an open tile squeezed between walls gets a doormat
+      // doorway threshold: an open tile squeezed between walls gets a doormat. The walls on both sides
+      // must run on past the gap (a door frame), so a narrow corridor between two walls gets none.
       const scan = (dx: number, dy: number) => {
-        for (let k = 1; k <= 2; k++) if (isWall(tx + dx * k, ty + dy * k)) return true;
+        for (let k = 1; k <= 2; k++) if (isWall(tx + dx * k, ty + dy * k)) return isWall(tx + dx * (k + 1), ty + dy * (k + 1));
         return false;
       };
       if ((scan(-1, 0) && scan(1, 0)) || (scan(0, -1) && scan(0, 1))) {

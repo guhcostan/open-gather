@@ -17,7 +17,7 @@ A person is eligible only if **all** of these are true:
 There are two kinds of group, each mapped to one small SFU room (see [decision 0003](0003-media-rooms.md)):
 
 - **Proximity groups** form between free people outside meeting rooms, up to 8 people.
-- **Meeting rooms** correspond to map areas with an explicit access rule: open, members only, admins only, or a list.
+- **Meeting rooms** correspond to map areas with an explicit access rule: open, members only, admins only, a list, or a private office (open while unassigned; then its owners, admins and visitors an owner lets in).
 
 | Rule | Default |
 | --- | --- |

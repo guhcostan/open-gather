@@ -23,6 +23,7 @@ try {
   const role = await a.page.evaluate(() => window.__og.state.role);
   check("demo visitors join without an invite, as members", role === "member", role);
   check("the page announces the public demo", await a.page.evaluate(() => !!window.__og.state.demo));
+  check("the demo serves the starter office with its six private offices", (await a.page.evaluate(() => window.__og.view.map.areas.filter((x) => x.access.mode === "office").length)) === 6);
   await walkTo(a, 22 * 16 + 8, 30 * 16 + 8);
   await walkTo(b, 24 * 16 + 8, 30 * 16 + 8);
   await Promise.all([a, b].map((u) => u.page.evaluate(() => window.__og.session.setConsent(true))));
@@ -36,6 +37,20 @@ try {
   const c = await candidate(a);
   console.log("ICE path:", JSON.stringify(c));
   check("media uses UDP (not the TCP fallback)", c?.protocol === "udp", JSON.stringify(c));
+  // the chat as a person uses it: both panels open, messages typed into the composer
+  for (const u of [a, b]) { await u.page.click('.tabs button[title="Chat"]'); await u.page.waitForSelector(".composer input"); }
+  const said = [];
+  for (let i = 1; i <= 3; i++) {
+    const msg = "smoke " + t + " #" + i;
+    said.push(msg);
+    await a.page.click(".composer input");
+    await a.page.keyboard.type(msg);
+    await a.page.keyboard.press("Enter");
+    await sleep(600);
+  }
+  const shown = (u) => u.page.evaluate((said) => said.filter((m) => [...document.querySelectorAll(".msgs .msg span")].some((s) => s.textContent === m)).length, said);
+  await waitFor(async () => (await shown(a)) === 3 && (await shown(b)) === 3, { timeout: 15000, what: "chat rendered" }).catch(() => {});
+  check("chat typed in the composer renders for sender and receiver and the app stays up", (await shown(a)) === 3 && (await shown(b)) === 3 && !!(await a.page.$(".composer input")) && !!(await b.page.$(".composer input")), (await shown(a)) + "/" + (await shown(b)));
   const errs = [a, b].flatMap((u) => u.logs);
   check("no console errors", errs.length === 0, errs.slice(0, 2).join(" | "));
 } finally {

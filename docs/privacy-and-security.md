@@ -5,7 +5,7 @@ This page states what the current code does and, just as important, what it does
 ## Implemented and tested
 
 - **Consent gate:** media capture only starts after an explicit opt-in and never for people whose status is not *Available*. Leaving a conversation stops local capture. (Browser test.)
-- **Server-side room access:** meeting rooms have access rules (open, members, admins, list). The world refuses to move a player into a room they cannot use and only issues a media token for the room the player is legitimately in. Bypassing the client with raw inputs does not help. (Browser and unit tests.)
+- **Server-side room access:** meeting rooms have access rules (open, members, admins, list, office). The world refuses to move a player into a room they cannot use and only issues a media token for the room the player is legitimately in. Bypassing the client with raw inputs does not help. (Browser and unit tests.)
 - **Scoped, short-lived media tokens:** one room, one identity, publish limited to microphone/camera/screen share, data channels off, **valid 30 seconds, plus a 60 s clock-skew tolerance applied by LiveKit** ([decision 0008](0008-token-lifetime-and-reconciliation.md)). (Unit and browser tests decode the token.)
 - **Revocation and reconciliation:** leaving a group removes the participant from the SFU at once (with retries), and a reconciler removes any SFU participant the server does not consider a member every 10 s. Replayed, edited and expired tokens were tried against a real LiveKit server. (Browser test.)
 - **Invites and roles:** hashed, use-limited, expiring invites; administrator-only invite and map endpoints; production joins require an invite. (Store, HTTP and browser tests.)
