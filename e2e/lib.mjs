@@ -28,7 +28,8 @@ export async function waitForEmptyOffice() {
 }
 
 export async function launch(extra = [], { waitEmpty = true } = {}) {
-  if (waitEmpty) await waitForEmptyOffice();
+  // OG_SHARED_OFFICE=1: a public instance (the demo) may have real visitors and no /metrics; do not wait.
+  if (waitEmpty && !process.env.OG_SHARED_OFFICE) await waitForEmptyOffice();
   return puppeteer.launch({
     executablePath: CHROME,
     headless: true,
