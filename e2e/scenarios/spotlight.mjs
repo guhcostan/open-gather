@@ -25,11 +25,10 @@ export async function run(ctx) {
     await listener.page.evaluate(() => window.__og.session.setConsent(true));
     await waitFor(() => listener.page.evaluate(() => window.__og.state.conv?.state === "live"), { what: "private room call" });
     const privateRoom = await listener.page.evaluate(() => window.__og.media.currentRoom);
-    await walkTo(speaker, 34 * 16 + 8, 18 * 16 + 8);
     await speaker.page.evaluate(() => window.__og.session.setConsent(true));
-    await speaker.page.evaluate(() => window.__og.view.setDirection(0, 1));
+    // Stand still ON the pad (tile 34,19); a slow CI browser would otherwise walk past it.
+    await walkTo(speaker, 34 * 16 + 8, 19 * 16 + 8);
     await waitFor(async () => (await state(speaker))?.state === "live" && (await state(listener))?.state === "live", { timeout: 30000, what: "spotlight speaker and listener connected" });
-    await speaker.page.evaluate(() => window.__og.view.setDirection(0, 0));
     check("stepping onto the pad goes on air only with consent", (await state(speaker)).me === true);
     check("listener keeps their isolated private call", await listener.page.evaluate((r) => window.__og.media.currentRoom === r && window.__og.state.conv.state === "live", privateRoom));
     const room = await speaker.page.evaluate(() => window.__og.spotlightMedia.currentRoom);
