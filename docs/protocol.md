@@ -8,14 +8,18 @@ Every connection starts with a full `hello`; the same happens on every reconnect
 
 | Message | Fields | Meaning |
 | --- | --- | --- |
-| `in` | `s` seq, `x`, `y` (-1, 0, 1) | movement intent; sent on change and every 400 ms while held |
+| `in` | `s` seq, `x`, `y` (-1, 0, 1), `b` run | movement intent; sent on change and every 400 ms while held. `b: true` runs at `cfg.run` times the walking speed |
+| `go` | `x`, `y` tile, or `id` of a player | run there along a path the server finds (walls, locked and forbidden rooms respected, portals avoided); any movement key cancels it |
 | `st` | `v` | set status: `available`, `busy`, `away`, `invisible` |
 | `consent` | `b` | opt in or out of automatic conversations |
 | `chat` | `sc` (`o` office, `g` group, `d` direct), `text`, `id` (peer for `d`) | send a message |
 | `loc` | `id` | ask where a person is |
 | `sync` | none | ask for the current state of everything in view (sent when a hidden tab becomes visible) |
 | `tok` | none | request a fresh media token for the current conversation |
-| `emo` | `n` 1-7 | show a reaction above your avatar (700 ms server cooldown) |
+| `emo` | `n` 1-8 | show a reaction above your avatar (700 ms server cooldown); 8 is a short dance (key Z) |
+| `hand` | `b` | raise or lower your hand (shown in the roster and over the avatar) |
+| `note` | `text` | set your status note, one line, at most 60 characters ("" clears it); kept in memory only |
+| `wave` | `id` | wave at somebody anywhere in the office (2 s cooldown); busy and away people are not disturbed |
 | `use` | `x`, `y` tile | interact with the object at that tile (note, site, image, whiteboard); the server checks distance and area access |
 | `fol` | `id` (0 stops) | follow that player; any movement key stops it |
 | `lead` | `id` | ask that player to follow you (they decide) |
@@ -29,10 +33,10 @@ Every connection starts with a full `hello`; the same happens on every reconnect
 
 | Message | Fields | Meaning |
 | --- | --- | --- |
-| `hello` | `you`, `role`, `status`, `office`, `cfg`, `map`, `roster`, `chat` | initial state; `cfg` has speed, tick, media availability, your position and the areas denied to you; `chat` is the persisted office chat |
+| `hello` | `you`, `role`, `status`, `office`, `cfg`, `map`, `roster`, `chat` | initial state; `cfg` has speed, the run multiplier (`run`), tick, media availability, your position and the areas denied to you; `chat` is the persisted office chat |
 | `w` | `k` tick, `m` [[id, x, y, d]...], `l` [id...] | **state records** in your area of interest and entities that left it |
 | `a` | `s`, `x`, `y` | acknowledgement with the authoritative position at the time of input `s` |
-| `p` | `a` people added/updated, `d` ids removed | presence roster changes |
+| `p` | `a` people added/updated, `d` ids removed | presence roster changes; a person is `{id, n, av, s, r}` plus `h: 1` (hand raised) and `m` (status note) when set |
 | `c` | `sc`, `f` from, `to`, `x` text, `ts` | chat message |
 | `conv` | `op` = `join` / `m` / `leave` | conversation lifecycle, including room name and token on `join` |
 | `map` | `map`, `deny`, optional `x`/`y` | the office map changed (admin edit); `x`/`y` present if you were moved |
@@ -40,7 +44,11 @@ Every connection starts with a full `hello`; the same happens on every reconnect
 | `e` | `id`, `v` 1-7 | somebody's reaction; rendered above their avatar |
 | `obj` | `k` note/embed/image, `l` label, `d` content | object content, only after a nearby authorised `use` (never in the map) |
 | `fol` | `id`, `n` | you are now following (or stopped, `id` 0) |
-| `self` | `x`, `y`, `dx`, `dy`, `d`, `tp` | your authoritative position while following or after a portal (`tp`) |
+| `wv` | `from`, `n` | somebody waved at you |
+| `wvr` | `id`, `st` ok / busy / away / offline | what happened to your wave |
+| `ac` | `c` [count per area] | visible people per map area, in map order; sent with `hello` and then at most every 2 s when a count changes |
+| `go` | `ok`, `x`, `y` | a walk-to was accepted (the server now steers you, `self` carries the positions) or refused (`ok: false`: no path, nobody there); its end arrives as `fol` with `id` 0 |
+| `self` | `x`, `y`, `dx`, `dy`, `d`, `tp` | your authoritative position while following or walking to a place, once more where a guided walk stops, and after a portal (`tp`) |
 | `lreq` | `from`, `n` | somebody asks you to follow them |
 | `deny` | `d` denied areas, `lk` locked rooms | your blocked-area list (locks change it for everyone) |
 | `knk` | `id`, `n`, `a` | somebody knocks on the room you are in (`done` dismisses) |
@@ -54,11 +62,13 @@ Every connection starts with a full `hello`; the same happens on every reconnect
 A record is **not** a position sample: it is the state to extrapolate from ([decision 0006](0006-state-change-records.md)). `d` packs the facing direction and the movement:
 
 ~~~text
-d = facing | (dx + 1) << 2 | (dy + 1) << 4     facing: 0 down, 1 left, 2 right, 3 up; dx, dy in -1..1
+d = facing | (dx + 1) << 2 | (dy + 1) << 4 | run << 6     facing: 0 down, 1 left, 2 right, 3 up; dx, dy in -1..1
 idle = dx = dy = 0
 ~~~
 
-Clients keep moving the entity with the same rules as the server (speed from `cfg.speed`, diagonals scaled by 1/sqrt(2), axis-separated collision against the static walls of the map, 1/60 s sub-steps). The server sends a new record when the direction changes, when reality diverges from that extrapolation, as a 1 s resync, and when you start seeing the entity.
+Clients keep moving the entity with the same rules as the server (speed from `cfg.speed`, times `cfg.run` when the run bit is set, diagonals scaled by 1/sqrt(2), axis-separated collision against the static walls of the map, 1/60 s sub-steps). The server sends a new record when the direction or the run state changes, when reality diverges from that extrapolation, as a 1 s resync, and when you start seeing the entity. The run bit is only set while moving.
+
+Avatars are `{sk, hs, hc, sh, pa, pt}` small integers; `pt` is the companion pet (0 none, 1-8). The server clamps unknown values to 0 and drops unknown fields.
 
 ## HTTP endpoints
 

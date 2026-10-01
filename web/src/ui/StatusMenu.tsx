@@ -9,10 +9,12 @@ export const statusColor: Record<string, string> = { available: "#5ec26a", busy:
 
 export function StatusMenu() {
   const status = useStore((s) => s.status);
+  const myNote = useStore((s) => s.roster.get(s.meId)?.m ?? "");
   const [open, setOpen] = useState(false);
+  const [note, setNote] = useState("");
   return (
     <div className="status-menu">
-      <button className="btn" aria-expanded={open} aria-controls="status-menu" onClick={() => setOpen(!open)}>
+      <button className="btn" aria-expanded={open} aria-controls="status-menu" onClick={() => { setNote(myNote); setOpen(!open); }} title={myNote || undefined}>
         <i className="dot" style={{ background: statusColor[status] }} />
         {t(("status." + status) as Key)}
       </button>
@@ -26,6 +28,13 @@ export function StatusMenu() {
               </button>
             </li>
           ))}
+          <li>
+            <form className="note-form" onSubmit={(e) => { e.preventDefault(); session.note(note.trim()); setOpen(false); }}>
+              <input value={note} maxLength={60} onChange={(e) => setNote(e.target.value)} placeholder={t("note.placeholder")} aria-label={t("note.label")} />
+              <button className="btn" type="submit">{t("note.save")}</button>
+              {myNote && <button className="btn" type="button" onClick={() => { session.note(""); setNote(""); setOpen(false); }}>{t("note.clear")}</button>}
+            </form>
+          </li>
         </ul>
       )}
     </div>

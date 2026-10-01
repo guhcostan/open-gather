@@ -24,6 +24,9 @@ export interface Settings {
   maxVideos: number;
   audioOnly: boolean;
   debug: boolean;
+  sounds: boolean;
+  notify: boolean;
+  minimap: boolean;
 }
 
 export interface MediaPrefs {
@@ -67,6 +70,12 @@ export interface State {
   locked: number[];
   knock: { id: number; name: string; area: string } | null;
   boardKey: string;
+  /** The local player runs (Shift held, or "always run" on). */
+  running: boolean;
+  /** Somebody waved at me (shown until dismissed). */
+  wave: { id: number; name: string } | null;
+  /** Visible people per map area (index), for the minimap. */
+  areaCounts: number[];
   spotlight: { id: number; name: string; me: boolean; state: ConvState } | null;
 }
 
@@ -92,7 +101,7 @@ const initial: State = {
   conv: null,
   chat: [],
   unread: 0,
-  settings: load<Settings>("og.settings", { eco: false, maxVideos: 6, audioOnly: false, debug: false }),
+  settings: load<Settings>("og.settings", { eco: false, maxVideos: 6, audioOnly: false, debug: false, sounds: true, notify: false, minimap: true }),
   prefs: load<MediaPrefs>("og.prefs", { micOn: true, camOn: false, micId: "", camId: "", spkId: "" }),
   mic: false,
   cam: false,
@@ -110,6 +119,9 @@ const initial: State = {
   locked: [],
   knock: null,
   boardKey: "",
+  running: false,
+  wave: null,
+  areaCounts: [],
   spotlight: null,
 };
 

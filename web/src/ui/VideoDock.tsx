@@ -1,4 +1,4 @@
-import { useEffect, useRef, useSyncExternalStore } from "react";
+import { useEffect, useRef, useState, useSyncExternalStore } from "react";
 import { media, spotlightMedia, type Tile } from "../media/MediaManager";
 import { useStore } from "../store";
 import { t } from "../i18n";
@@ -41,9 +41,38 @@ export function SpotlightDock() {
     {!consent && <p>{t("spot.listen")}</p>}
     {tiles.filter((tile) => Number(tile.identity) === spot.id).map((tile) => <div key={tile.identity}>
       <TileView tile={tile} />
-      {tile.screen && <TileView tile={tile} big />}
+      {tile.screen && <ShareView tile={tile} />}
     </div>)}
   </section>;
+}
+
+/** A shared screen with view controls: expand over the map, full screen, picture-in-picture. */
+function ShareView({ tile }: { tile: Tile }) {
+  const [focus, setFocus] = useState(false);
+  const box = useRef<HTMLDivElement>(null);
+  const roster = useStore((s) => s.roster);
+  const name = tile.local ? t("media.you") : roster.get(Number(tile.identity))?.n ?? tile.name;
+  useEffect(() => {
+    if (!focus) return;
+    const k = (e: KeyboardEvent) => { if (e.key === "Escape") setFocus(false); };
+    window.addEventListener("keydown", k);
+    return () => window.removeEventListener("keydown", k);
+  }, [focus]);
+  const fullscreen = () => {
+    if (document.fullscreenElement) void document.exitFullscreen();
+    else void box.current?.requestFullscreen?.().catch(() => {});
+  };
+  const pip = () => void tile.screen?.requestPictureInPicture?.().catch(() => {});
+  return (
+    <div ref={box} className={"share" + (focus ? " focus" : "")} role="group" aria-label={t("media.sharing", { name })}>
+      <TileView tile={tile} big />
+      <div className="share-tools">
+        <button className="chip" onClick={() => setFocus(!focus)} aria-pressed={focus} aria-label={focus ? t("share.shrink") : t("share.expand")} title={focus ? t("share.shrink") : t("share.expand")}>{focus ? "⤡" : "⤢"}</button>
+        <button className="chip" onClick={fullscreen} aria-label={t("share.fullscreen")} title={t("share.fullscreen")}>⛶</button>
+        {document.pictureInPictureEnabled && <button className="chip" onClick={pip} aria-label={t("share.pip")} title={t("share.pip")}>⧉</button>}
+      </div>
+    </div>
+  );
 }
 
 export function VideoDock() {
@@ -55,9 +84,7 @@ export function VideoDock() {
   return (
     <section className={"dock" + (eco ? " eco" : "")} aria-label={t("chat.conversation")}>
       {shares.map((s) => (
-        <div key={"s" + s.identity} className="share">
-          <TileView tile={s} big />
-        </div>
+        <ShareView key={"s" + s.identity} tile={s} />
       ))}
       <div className="grid">
         {tiles.map((x) => (

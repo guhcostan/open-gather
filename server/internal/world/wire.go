@@ -104,7 +104,16 @@ func (w *World) entry(p *Player) []byte {
 	b = append(b, publicStatus(p)...)
 	b = append(b, `","r":"`...)
 	b = append(b, p.Role...)
-	b = append(b, '"', '}')
+	b = append(b, '"')
+	if p.hand {
+		b = append(b, `,"h":1`...)
+	}
+	if p.note != "" {
+		b = append(b, `,"m":`...)
+		nb, _ := json.Marshal(p.note)
+		b = append(b, nb...)
+	}
+	b = append(b, '}')
 	return b
 }
 
@@ -121,6 +130,8 @@ func (w *World) sendHello(p *Player) {
 	b = append(b, nb...)
 	b = append(b, `,"cfg":{"speed":`...)
 	b = strconv.AppendFloat(b, w.cfg.Speed, 'f', -1, 64)
+	b = append(b, `,"run":`...)
+	b = strconv.AppendFloat(b, w.cfg.RunMul, 'f', -1, 64)
 	b = append(b, `,"tick":`...)
 	b = strconv.AppendInt(b, int64(w.cfg.TickHz), 10)
 	b = append(b, `,"media":`...)
@@ -287,7 +298,7 @@ func (w *World) tick(now time.Time) {
 		} else {
 			w.publish(p, false)
 		}
-		if p.follow != 0 {
+		if p.guided() {
 			w.sendSelf(p, false) // authoritative guided movement, bounded by the 15 Hz world tick
 		}
 	}
@@ -312,6 +323,7 @@ func (w *World) tick(now time.Time) {
 	}
 	w.reconcileSpot(now)
 	w.flushRoster()
+	w.publishCounts(now)
 	for _, p := range w.list {
 		w.flush(p)
 	}

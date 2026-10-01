@@ -13,6 +13,14 @@ export function SocialControls() {
   const knock = useStore((s) => s.knock);
   const locked = useStore((s) => s.locked);
   const currentArea = useStore((s) => s.currentArea);
+  const running = useStore((s) => s.running);
+  const wave = useStore((s) => s.wave);
+  const handUp = useStore((s) => s.roster.get(s.meId)?.h === 1);
+  useEffect(() => {
+    if (!wave) return;
+    const timer = window.setTimeout(() => setState({ wave: null }), 20000);
+    return () => clearTimeout(timer);
+  }, [wave]);
   const [knockArea, setKnockArea] = useState<{ index: number; name: string } | null>(null);
   useEffect(() => {
     const update = () => {
@@ -35,7 +43,20 @@ export function SocialControls() {
       <div className="social-controls" role="region" aria-label={t("emote.title")}>
         <div className="reaction-row">
           {EMOTES.map((emoji, i) => <button key={i} className="chip" aria-label={t(`emote.${i + 1}` as Key)} title={`${i + 1} · ${t(`emote.${i + 1}` as Key)}`} onClick={() => session.emote(i + 1)}>{emoji}</button>)}
+          <button className={"chip run-toggle" + (running ? " on" : "")} aria-pressed={running} aria-label={t("run.toggle")} title={t("run.hint")} onClick={() => session.toggleRun()}>🏃</button>
+          <button className="chip" aria-label={t("dance.action")} title={t("dance.action")} onClick={() => session.emote(8)}>💃</button>
+          <button className={"chip" + (handUp ? " on" : "")} aria-pressed={handUp} aria-label={handUp ? t("hand.lower") : t("hand.raise")} title={handUp ? t("hand.lower") : t("hand.raise")} onClick={() => session.hand(!handUp)}>✋</button>
         </div>
+        {wave && (
+          <div className="wave-card" role="alert">
+            <span>{t("wave.incoming", { name: wave.name })}</span>
+            <div className="modal-actions">
+              <button className="btn" onClick={() => { session.wave(wave.id); setState({ wave: null }); }}>{t("wave.back")}</button>
+              <button className="primary" onClick={() => { session.goToPerson(wave.id); setState({ wave: null }); }}>{t("wave.walk")}</button>
+              <button className="btn" aria-label={t("wave.dismiss")} title={t("wave.dismiss")} onClick={() => setState({ wave: null })}>×</button>
+            </div>
+          </div>
+        )}
         {nearby && <button className="btn interaction-hint" onClick={() => session.view?.interact()}>{t("object.use", { name: nearby.label || t(`object.${nearby.t}` as Key) })}</button>}
         {following && <div className="follow-hint"><span>{t("follow.active", { name: following.name })}</span> <button className="btn" onClick={() => session.follow(0)}>{t("follow.stop")}</button></div>}
         {roomIndex >= 0 && <button className="btn" onClick={() => session.lock(!locked.includes(roomIndex))}>{t(locked.includes(roomIndex) ? "door.unlock" : "door.lock")}</button>}

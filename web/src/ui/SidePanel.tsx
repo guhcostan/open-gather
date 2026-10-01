@@ -51,12 +51,15 @@ function People({ onDm }: { onDm: (id: number) => void }) {
           <li key={p.id}>
             <AvatarCanvas av={p.av} size={2} />
             <div className="who">
-              <span className="nm">{p.n}{p.id === me && <em> ({t("hud.you")})</em>}</span>
+              <span className="nm">{p.n}{p.id === me && <em> ({t("hud.you")})</em>}{p.h === 1 && <span role="img" aria-label={t("hand.raised")}> ✋</span>}</span>
               <span className="st"><i className="dot" style={{ background: statusColor[p.s] }} />{t(("status." + p.s) as Key)}{p.r === "admin" ? " · admin" : ""}</span>
+              {p.m && <span className="note">{p.m}</span>}
             </div>
             {p.id !== me && p.s !== "offline" && (
               <div className="acts">
                 <button title={t("follow.action")} aria-label={`${t("follow.action")} ${p.n}`} onClick={() => session.follow(p.id)}>↗</button>
+                <button title={t("go.action")} aria-label={`${t("go.action")} ${p.n}`} onClick={() => session.goToPerson(p.id)}>🏃</button>
+                <button title={t("wave.action")} aria-label={`${t("wave.action")} ${p.n}`} onClick={() => session.wave(p.id)}>👋</button>
                 <button title={t("follow.lead")} aria-label={`${t("follow.lead")} ${p.n}`} onClick={() => session.lead(p.id)}>→</button>
                 <button title={t("roster.locate")} aria-label={t("roster.locate")} onClick={() => session.locate(p.id)}><PinIcon /></button>
                 <button title={t("roster.dm")} aria-label={t("roster.dm")} onClick={() => onDm(p.id)}><ChatIcon /></button>

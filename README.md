@@ -56,6 +56,11 @@ Virtual offices are usually heavy on the browser, the server and the bill. Open 
 | **Avatars** | Procedural pixel-art characters with big heads and a three-frame walk cycle: skin, six hairstyles, hair colour, shirt, trousers. |
 | **Look** | 16 px tiles, outlined and shaded props, textured floors and walls, dialog-window UI and a pixel font. All original. |
 | **World** | Keyboard movement with collisions, camera follow, animation, prediction for you and dead-reckoned movement for others. |
+| **Getting around** | Run with Shift or toggle it with R (2x speed); double-click any spot to run there along a path the server finds; "Walk to" anyone from the people panel. |
+| **Pets** | Pick a companion (cat, dog, bunny, fox, chick, slime, owl, axolotl) that trots after you. Drawn by code, animated locally: zero bandwidth. |
+| **Presence** | Wave at anyone in the office (they can run straight to you), raise your hand (H), set a status note, dance (Z). Busy means do not disturb. |
+| **Minimap** | The whole office at a glance with live head counts per area; click to run there (M toggles). |
+| **Phones and tablets** | An on-screen movement pad appears on touch screens. Optional sounds and desktop notifications for waves, knocks and direct messages. |
 | **Proximity conversations** | Audio and video start when you get close and stop when you leave, with hysteresis and small groups. |
 | **Consent and status** | Nothing is captured before you opt in. Available, busy, away and invisible; busy never joins a call automatically. |
 | **Meeting rooms** | Map areas with explicit access rules (open, members, admins, list) enforced by the server. |
@@ -69,7 +74,7 @@ Virtual offices are usually heavy on the browser, the server and the bill. Open 
 | **Invites, roles and administration** | Administrators mint, list and revoke invite links, promote or demote members, remove people and read an activity log; production joins require an invite. |
 | **Office editor** | Administrators paint walls, place objects, draw meeting rooms with access rules and assign desks; changes go live for everyone and persist. |
 | **Profile** | Change your name and avatar any time. |
-| **Screen sharing** | Inside a live conversation. |
+| **Screen sharing** | Inside a live conversation, up to 1080p with cheap low layers for small tiles; expand over the map, full screen or picture-in-picture; a badge shows who is presenting. |
 | **Self-hosted** | One Go binary, SQLite in WAL mode, LiveKit. No paid service required. |
 
 <p align="center">
@@ -132,12 +137,12 @@ World state, durable data and media transport are deliberately separate, so the 
 
 ## Status
 
-Last updated 2026-09-29. Everything below was executed on macOS (Apple M1 Pro), Go 1.26.5, Google Chrome with fake camera and microphone, LiveKit 1.13.7. Details and the exact counts: [Status](docs/status.md).
+Last updated 2026-09-30. Everything below was executed on macOS (Apple M1 Pro), Go 1.26.5, Google Chrome with fake camera and microphone, LiveKit 1.13.7. Details and the exact counts: [Status](docs/status.md).
 
 | Area | State |
 | --- | --- |
 | Go tests (world rules, proximity groups, dead reckoning, map reload, store, media tokens and reconciliation), also with the race detector | **pass** |
-| Real-browser suite (Chrome + real LiveKit): proximity calls with real audio/video RTP, consent and busy, private rooms, screen share, invites and admin-only actions, map editor, chat and profile, token replay/tamper/expiry attacks, reconnection and restart persistence, member administration, an automated accessibility audit (axe-core), reactions/objects/follow/portals/lockable rooms/whiteboards, and spotlight broadcasts with real RTP | **pass** |
+| Real-browser suite (Chrome + real LiveKit): proximity calls with real audio/video RTP, consent and busy, private rooms, screen share, invites and admin-only actions, map editor, chat and profile, token replay/tamper/expiry attacks, reconnection and restart persistence, member administration, an automated accessibility audit (axe-core), reactions/objects/follow/portals/lockable rooms/whiteboards, spotlight broadcasts with real RTP, running and walk-to, pets, shared-screen view controls, waves, raised hands, status notes, the minimap and the touch pad | **pass** |
 | Docker: image builds, Compose local stack passes the browser scenarios, production mode in the container refuses insecure config and requires invites | **verified locally** |
 | Production Compose (Caddy, TLS, LiveKit) on a public host: the public demo on an Oracle Always Free micro VM, real audio/video over UDP across the internet | **verified** (one smoke run, 2 people); TURN relay through UDP-blocked networks and load on that host are **not tested** |
 | Load, scenario A (no media, up to 1,000 bots) and a 500-client mass reconnect | **run locally, generator on the same host**: not a capacity claim, see [results](docs/benchmark-results.md) |

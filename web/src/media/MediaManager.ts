@@ -2,6 +2,7 @@ import {
   ConnectionState,
   Room,
   RoomEvent,
+  ScreenSharePresets,
   Track,
   VideoPresets,
   type Participant,
@@ -53,6 +54,8 @@ export class MediaManager {
   private speakingTimer = 0;
   tiles: Tile[] = [];
   onSpeaking: (ids: Set<number>) => void = () => {};
+  /** Who shares a screen in this call (drawn as a badge over their avatar). */
+  onSharing: (ids: Set<number>) => void = () => {};
   onNeedToken: () => void = () => {};
 
   private publishing = true;
@@ -93,7 +96,13 @@ export class MediaManager {
       disconnectOnPageLeave: true,
       audioCaptureDefaults: { deviceId: prefs.micId || undefined, echoCancellation: true, noiseSuppression: true, autoGainControl: true },
       videoCaptureDefaults: { deviceId: prefs.camId || undefined, resolution: VideoPresets.h360.resolution },
-      publishDefaults: { simulcast: true, videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360], dtx: true, red: true },
+      // Screens go out at 1080p for readable text, with two cheap layers: small tiles and slow links
+      // receive those (adaptive stream picks the layer from the rendered size).
+      publishDefaults: {
+        simulcast: true, videoSimulcastLayers: [VideoPresets.h180, VideoPresets.h360], dtx: true, red: true,
+        screenShareEncoding: ScreenSharePresets.h1080fps15.encoding,
+        screenShareSimulcastLayers: [ScreenSharePresets.h360fps3, ScreenSharePresets.h720fps5],
+      },
     });
     this.room = room;
     this.roomName = info.room;
@@ -140,6 +149,7 @@ export class MediaManager {
     this.tiles = [];
     if (this.publishing && (this.target === "spotlight" || !getState().spotlight?.me)) setState({ mic: false, cam: false, sharing: false });
     this.onSpeaking(new Set());
+    this.onSharing(new Set());
     this.emit();
   }
 
@@ -156,6 +166,7 @@ export class MediaManager {
       RoomEvent.LocalTrackPublished,
       RoomEvent.LocalTrackUnpublished,
       RoomEvent.TrackUnsubscribed,
+      RoomEvent.TrackUnpublished,
     ])
       on(ev, guard(() => this.refresh()));
     on(RoomEvent.TrackPublished, guard(() => { this.applySubscriptions(); this.refresh(); }));
@@ -259,6 +270,9 @@ export class MediaManager {
     const speaking = new Set<number>();
     for (const tl of list) if (tl.speaking) speaking.add(Number(tl.identity));
     this.onSpeaking(speaking);
+    const sharingIds = new Set<number>();
+    for (const tl of list) if (tl.screen) sharingIds.add(Number(tl.identity));
+    this.onSharing(sharingIds);
     const st = getState();
     const lp = room.localParticipant;
     const sharing = lp.isScreenShareEnabled;
@@ -296,7 +310,7 @@ export class MediaManager {
   async setShare(on: boolean) {
     if (!this.room || !this.publishing) return;
     try {
-      await this.room.localParticipant.setScreenShareEnabled(on, on ? { audio: true, contentHint: "detail", resolution: { width: 1280, height: 720, frameRate: 15 } } : undefined);
+      await this.room.localParticipant.setScreenShareEnabled(on, on ? { audio: true, contentHint: "detail", resolution: { width: 1920, height: 1080, frameRate: 15 }, surfaceSwitching: "include", selfBrowserSurface: "exclude" } : undefined);
     } catch (e) {
       const name = (e as { name?: string })?.name;
       if (name !== "NotAllowedError") setState({ deviceError: describeMediaError(e) });

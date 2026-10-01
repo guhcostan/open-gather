@@ -1,6 +1,6 @@
 # Status and roadmap
 
-Open Gather is at **MVP / alpha** level. This page separates what has been run from what has not. Last updated on 2026-09-29.
+Open Gather is at **MVP / alpha** level. This page separates what has been run from what has not. Last updated on 2026-09-30.
 
 ## Verified (executed)
 
@@ -21,6 +21,9 @@ Environment: macOS (Apple M1 Pro, arm64), Go 1.26.5, Google Chrome with fake cam
 | `resilience` | WebSocket drop keeps position, call and audio; flooding cannot speed a player up; oversized frames close the socket; session and position survive a server restart |
 | `features` | keys 1-7 show reactions on both avatars; X opens a nearby note whose content is absent from the public map; follow walks around walls to the leader and stops on input; portals teleport once per arrival; a locked room blocks outsiders and admits one visitor after a knock; edited notes and whiteboards persist across a restart |
 | `spotlight` | stepping on the pad with consent goes on air; a listener in a separate private call receives real audio, video and screen share RTP; audience tokens are subscribe-only and scoped; withdrawing consent or stepping off empties the SFU room |
+| `movement` | walking measures 72 px/s and running (R / Shift) 144 px/s in the browser; another browser sees the run bit and agrees on where the runner stops (< 1 px); double-clicking the map runs there along a server path; "Walk to" in the people panel crosses the office around walls in ~3 s; a member cannot be routed into an admin-only room; pets picked on the join screen are stored, drawn next to their owner for others, trot after them, and change live through the profile; unknown pets are rejected |
+| `rooms` (screen share) | besides isolation: the receiving browser expands the shared screen over the map (360 -> 1240 px) and shrinks it with Escape; the presenter's avatar shows a screen badge that clears when sharing stops; the capture runs at 1920x1080 |
+| `presence` | a wave crosses the office (behind a wall, out of view) and "Walk to them" runs to the waver; busy people are not disturbed and the sender is told; H raises a hand others see over the avatar and in the roster, H again lowers it; a note typed in the status menu appears in the other person's people panel; Z dances for people nearby; the minimap shows server head counts and clicking it runs there; M hides it; on an emulated phone (390x844, touch) the on-screen pad walks the avatar |
 | Docker | image builds (24 MB, non-root); the local Compose stack passes `proximity`, `consent` and `rooms`; in the container, production mode returns 403 without an invite, issues a Secure cookie with one, and refuses insecure configuration |
 | Public demo on a real host (2026-09-30) | the production Compose file (Caddy + Open Gather + LiveKit 1.13.7) runs on an Oracle Cloud Always Free AMD micro VM (1 GB RAM + 2 GB swap, São Paulo) with `DEMO=1`; Caddy obtained Let's Encrypt certificates; LiveKit discovered and validated the public IP. `e2e/demo-smoke.mjs` from a laptop in São Paulo over the public internet: invite-less join as member, proximity call live, **real audio and video RTP received, over UDP** (selected ICE pair udp, RTT 10 ms). Demo-mode unit tests: no invite needed, never admin, per-IP sign-up limit, reset restores map and wipes chat and boards |
 

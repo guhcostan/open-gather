@@ -7,6 +7,7 @@ const (
 	nSkin  = 6
 	nHair  = 6 // styles
 	nColor = 8
+	nPet   = 9 // 0 = no pet, then cat, dog, bunny, fox, chick, slime, owl, axolotl
 )
 
 type avatar struct {
@@ -15,6 +16,7 @@ type avatar struct {
 	HairColor int `json:"hc"`
 	Shirt     int `json:"sh"`
 	Pants     int `json:"pa"`
+	Pet       int `json:"pt"`
 }
 
 func clamp(v, n int) int {
@@ -28,7 +30,7 @@ func clamp(v, n int) int {
 func NormalizeAvatar(raw json.RawMessage) json.RawMessage {
 	var a avatar
 	_ = json.Unmarshal(raw, &a)
-	a = avatar{clamp(a.Skin, nSkin), clamp(a.Hair, nHair), clamp(a.HairColor, nColor), clamp(a.Shirt, nColor), clamp(a.Pants, nColor)}
+	a = avatar{clamp(a.Skin, nSkin), clamp(a.Hair, nHair), clamp(a.HairColor, nColor), clamp(a.Shirt, nColor), clamp(a.Pants, nColor), clamp(a.Pet, nPet)}
 	b, _ := json.Marshal(a)
 	return b
 }

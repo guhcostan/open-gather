@@ -14,6 +14,8 @@ import { AdminButton, AdminDialog } from "./AdminDialog";
 import { SocialControls } from "./SocialControls";
 import { ObjectDialog } from "./ObjectDialog";
 import { WhiteboardDialog } from "./WhiteboardDialog";
+import { Minimap } from "./Minimap";
+import { TouchPad } from "./TouchPad";
 
 export function OfficeScreen() {
   const host = useRef<HTMLDivElement>(null);
@@ -50,6 +52,8 @@ export function OfficeScreen() {
       </header>
       <SidePanel />
       {!editing && <SocialControls />}
+      {!editing && <Minimap />}
+      {!editing && <TouchPad />}
       {editing && <MapEditor onClose={() => setEditing(false)} />}
       <VideoDock />
       <SpotlightDock />

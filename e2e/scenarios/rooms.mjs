@@ -53,7 +53,28 @@ export async function run(ctx) {
     await mem.page.evaluate(() => window.__og.media.setShare(true));
     const shared = await waitFor(() => m2.page.evaluate(() => window.__og.media.tiles.some((tl) => !tl.local && tl.screen)), { timeout: 15000, what: "m2 sees screen share" }).catch(() => false);
     check("screen share published by one participant is received by the other", !!shared);
-    if (shared) await mem.page.evaluate(() => window.__og.media.setShare(false));
+    if (shared) {
+      // The viewer's dock offers view controls; expanding grows the video to the stage, Escape shrinks it back.
+      await waitFor(() => m2.page.$(".share-tools"), { what: "share view controls" });
+      const small = await m2.page.$eval(".share .tile", (el) => el.getBoundingClientRect().width);
+      await m2.page.click('.share-tools [aria-label="Expand the shared screen"]');
+      await waitFor(() => m2.page.$(".share.focus"), { what: "expanded share" });
+      const big = await m2.page.$eval(".share.focus .tile", (el) => el.getBoundingClientRect().width);
+      await m2.page.keyboard.press("Escape");
+      await waitFor(async () => !(await m2.page.$(".share.focus")), { what: "share shrinks on Escape" });
+      check("a shared screen can be expanded over the map and shrunk with Escape", big > small * 1.8, Math.round(small) + " -> " + Math.round(big) + " px");
+      const badge = await waitFor(() => m2.page.evaluate((id) => window.__og.view.ents.get(id)?.sharing === true, mem.id), { what: "presenter badge" }).catch(() => false);
+      check("the presenter's avatar carries a screen badge on the map", !!badge);
+      const enc = await mem.page.evaluate(() => {
+        const pub = [...window.__og.media.room.localParticipant.trackPublications.values()].find((p) => p.source === "screen_share");
+        const s = pub?.track?.mediaStreamTrack?.getSettings();
+        return s ? { w: s.width, h: s.height } : null;
+      });
+      check("screens are captured at up to 1080p for readable text", !!enc && enc.h >= 720, JSON.stringify(enc));
+      await mem.page.evaluate(() => window.__og.media.setShare(false));
+      const gone = await waitFor(() => m2.page.evaluate((id) => window.__og.view.ents.get(id)?.sharing === false, mem.id), { what: "badge clears" }).catch(() => false);
+      check("stopping the share removes the badge", !!gone);
+    }
 
     // --- leaving the private room revokes SFU access
     const before = await metrics();

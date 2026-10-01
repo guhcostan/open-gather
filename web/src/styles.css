@@ -35,7 +35,21 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 
 /* avatar editor */
 .avatar-editor { display: grid; grid-template-columns: 110px 1fr; gap: 16px; align-items: start; }
-.ae-preview { background: #120f24; border: 1px solid var(--line); border-radius: 12px; display: grid; place-items: center; padding: 12px 0; }
+.ae-preview { background: #120f24; border: 1px solid var(--line); border-radius: 12px; display: flex; justify-content: center; align-items: flex-end; gap: 6px; padding: 12px 0; }
+.chips.pets { gap: 4px; }
+.pet-chip { display: inline-flex; align-items: center; gap: 4px; }
+.run-toggle.on { outline: 2px solid var(--amber); }
+.minimap { position: absolute; left: 12px; bottom: 14px; z-index: 4; border: 3px solid #1a1526; border-radius: 8px; overflow: hidden; line-height: 0; box-shadow: 0 3px 0 #1a1526; background: #1a1526; }
+.minimap canvas { display: block; cursor: crosshair; }
+.wave-card { background: #fff; color: #1a1526; padding: 8px 12px; border-radius: 10px; display: grid; gap: 6px; justify-items: center; box-shadow: 0 3px 0 #1a1526; }
+.people .note { display: block; font-size: 12px; font-style: italic; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; max-width: 150px; }
+.note-form { display: flex; gap: 4px; padding: 6px; }
+.note-form input { min-width: 0; flex: 1; padding: 4px 6px; }
+.touchpad { position: absolute; left: 16px; bottom: 120px; z-index: 6; display: grid; grid-template-columns: repeat(3, 48px); grid-template-rows: repeat(3, 48px); gap: 4px; touch-action: none; user-select: none; }
+.touchpad button { border-radius: 12px; font-size: 18px; background: #ffffffd0; border: 3px solid #1a1526; color: #1a1526; touch-action: none; }
+.touchpad .tp-up { grid-area: 1 / 2; } .touchpad .tp-left { grid-area: 2 / 1; } .touchpad .tp-right { grid-area: 2 / 3; } .touchpad .tp-down { grid-area: 3 / 2; } .touchpad .tp-run { grid-area: 2 / 2; }
+.touchpad .tp-run.on { background: var(--amber); }
+@media (pointer: coarse) { .minimap { bottom: auto; top: 64px; } }
 .ae-controls { display: grid; gap: 8px; }
 .ae-row { display: grid; gap: 4px; }
 .ae-label { font-size: 12px; color: var(--muted); }
@@ -111,6 +125,13 @@ button:focus-visible, input:focus-visible, select:focus-visible { outline: 2px s
 .tile video { object-fit: cover; display: block; }
 .mirror video, video.mirror { transform: scaleX(-1); }
 .share .tile { aspect-ratio: 16/9; } .share .tile video { object-fit: contain; background: #000; }
+.share { position: relative; }
+.share-tools { position: absolute; top: 6px; right: 6px; display: flex; gap: 4px; opacity: .85; }
+.share-tools .chip { padding: 0 8px; font-size: 16px; line-height: 24px; }
+.share.focus { position: fixed; inset: 64px 12px 96px 12px; z-index: 30; display: grid; place-items: center; background: rgba(10, 8, 20, .92); border-radius: 12px; padding: 8px; }
+.share.focus .tile { width: 100%; height: 100%; aspect-ratio: auto; }
+.share:fullscreen { background: #000; display: grid; place-items: center; }
+.share:fullscreen .tile { width: 100vw; height: 100vh; aspect-ratio: auto; border: 0; border-radius: 0; }
 .avatar-fallback { font-size: 34px; font-weight: 700; color: var(--amber); }
 .tag { position: absolute; left: 6px; bottom: 6px; background: #000a; border-radius: 6px; padding: 2px 7px; font-size: 12px; display: flex; gap: 4px; align-items: center; }
 .tag svg { width: 13px; height: 13px; color: #ff9a92; }

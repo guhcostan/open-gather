@@ -173,7 +173,9 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request) {
 			if m.X < -1 || m.X > 1 || m.Y < -1 || m.Y > 1 {
 				continue
 			}
-			conn.Input(ctx, m.S, int8(m.X), int8(m.Y))
+			conn.Input(ctx, m.S, int8(m.X), int8(m.Y), m.B)
+		case "go":
+			conn.GoTo(ctx, m.X, m.Y, m.ID)
 		case "st":
 			conn.SetStatus(ctx, m.V)
 		case "consent":
@@ -187,6 +189,15 @@ func (s *Server) ws(w http.ResponseWriter, r *http.Request) {
 			conn.Locate(ctx, m.ID)
 		case "emo":
 			conn.Emote(ctx, m.N)
+		case "hand":
+			conn.Hand(ctx, m.B)
+		case "note":
+			if len(m.Text) > 400 {
+				continue
+			}
+			conn.Note(ctx, m.Text)
+		case "wave":
+			conn.Wave(ctx, m.ID)
 		case "use":
 			conn.Use(ctx, m.X, m.Y)
 		case "fol":

@@ -1,8 +1,9 @@
 import { Application, BitmapText, Container, Graphics, Sprite, Text } from "pixi.js";
 import type { Ack, AvatarSpec, MapData, Person, Prop, SelfPosition, WorldDelta } from "../net/protocol";
-import { EMOTES } from "./emotes";
+import { DANCE, EMOTES } from "./emotes";
 import { propSize } from "./mapModel";
 import { avatarFrames, FEET_Y, CELL_H, type AvatarFrames } from "./avatars";
+import { petFrames, PET_FEET_Y, PET_H, type PetFrames } from "./pets";
 import { bakeMap } from "./mapArt";
 
 const T = 16;
@@ -15,6 +16,7 @@ const BOX_HH = 3;
 const SHADOW_STEP = 1 / 60; // fixed sub-step used by server and client so extrapolation matches
 const OFFSET_TAU = 0.08; // seconds over which a correction blends in
 const HEARTBEAT_MS = 400; // re-send held input so the server can correct drift
+const PET_SNAP = 140; // px: a pet farther than this from its spot (teleport, portal) jumps there
 const STATUS_COLOR: Record<string, number> = { available: 0x5ec26a, busy: 0xe5584f, away: 0xf2d14b, offline: 0x8e8e9a, invisible: 0x8e8e9a };
 const DEFAULT_AV: AvatarSpec = { sk: 1, hs: 0, hc: 1, sh: 4, pa: 1 };
 
@@ -27,6 +29,8 @@ interface Ent {
   text: BitmapText;
   dot: Graphics;
   ring: Graphics | null;
+  hand: Text | null;
+  danceUntil: number;
   // Remote entities are dead-reckoned: the server sends state changes (position + direction),
   // the client keeps walking the entity with the same collision rules. (tx,ty) is the extrapolated
   // truth, (ox,oy) a short-lived offset that hides corrections.
@@ -40,21 +44,34 @@ interface Ent {
   y: number;
   dir: number;
   moving: boolean;
+  run: boolean;
+  pet: Sprite | null;
+  petKind: number;
+  petFrames: PetFrames | null;
+  px: number;
+  py: number;
+  pdir: number;
+  pmoving: boolean;
   speaking: boolean;
+  sharing: boolean;
   inConv: boolean;
   status: string;
   name: string;
   drawnStatus: string;
   drawnConv: boolean;
+  drawnShare: boolean;
 }
 
 export interface ViewHooks {
-  sendInput(seq: number, dx: number, dy: number): void;
+  sendInput(seq: number, dx: number, dy: number, run: boolean): void;
   onArea(name: string): void;
   onResume(): void;
   onEmote?(kind: number): void;
+  onHand?(): void;
   onInteract?(prop: Prop): void;
   onNearby?(prop: Prop | null): void;
+  onGoto?(tx: number, ty: number): void;
+  onRun?(on: boolean): void;
 }
 
 export interface ViewStats {
@@ -86,6 +103,11 @@ export class WorldView {
   private areaAt = new Int16Array(0);
   private deny = new Set<number>();
   private speed = 72;
+  private runMul = 2;
+  private runHeld = false; // Shift
+  private runToggle = false; // "always run" (R or the HUD button)
+  private dest: { x: number; y: number } | null = null;
+  private baked: HTMLCanvasElement | null = null;
   private S = 3;
   private camX = 0;
   private camY = 0;
@@ -157,7 +179,7 @@ export class WorldView {
 
     const kd = (e: KeyboardEvent) => this.key(e, true);
     const ku = (e: KeyboardEvent) => this.key(e, false);
-    const blur = () => this.releaseKeys();
+    const blur = () => { this.releaseKeys(); this.setRunHeld(false); };
     const vis = () => {
       if (document.hidden) {
         this.releaseKeys();
@@ -171,7 +193,16 @@ export class WorldView {
     window.addEventListener("keyup", ku);
     window.addEventListener("blur", blur);
     document.addEventListener("visibilitychange", vis);
+    // Double-click (or double-tap) a spot on the map to run there along a server-computed path.
+    const dbl = (e: MouseEvent) => {
+      if (document.querySelector(".scrim, .editor")) return;
+      const [tx, ty] = this.screenToTile(e.clientX, e.clientY);
+      if (!this.map || tx < 0 || ty < 0 || tx >= this.map.w || ty >= this.map.h) return;
+      this.goTo(tx, ty);
+    };
+    app.canvas.addEventListener("dblclick", dbl);
     this.cleanup.push(() => {
+      app.canvas.removeEventListener("dblclick", dbl);
       window.removeEventListener("keydown", kd);
       window.removeEventListener("keyup", ku);
       window.removeEventListener("blur", blur);
@@ -197,6 +228,10 @@ export class WorldView {
   private key(e: KeyboardEvent, down: boolean) {
     const el = e.target as HTMLElement | null;
     if (el && (el.tagName === "INPUT" || el.tagName === "TEXTAREA" || el.tagName === "SELECT" || el.isContentEditable)) return;
+    if (e.key === "Shift") {
+      this.setRunHeld(down);
+      return;
+    }
     if (e.ctrlKey || e.metaKey || e.altKey) return;
     const k = e.key.toLowerCase();
     // Modal controls and the editor own their keyboard interaction.
@@ -209,6 +244,21 @@ export class WorldView {
     if (down && !e.repeat && k === "x") {
       e.preventDefault();
       this.interact();
+      return;
+    }
+    if (down && !e.repeat && k === "r") {
+      e.preventDefault();
+      this.toggleRun();
+      return;
+    }
+    if (down && !e.repeat && k === "z") {
+      e.preventDefault();
+      this.hooks.onEmote?.(DANCE);
+      return;
+    }
+    if (down && !e.repeat && k === "h") {
+      e.preventDefault();
+      this.hooks.onHand?.();
       return;
     }
     const map: Record<string, string> = { arrowleft: "l", a: "l", arrowright: "r", d: "r", arrowup: "u", w: "u", arrowdown: "d", s: "d" };
@@ -233,7 +283,7 @@ export class WorldView {
 
   /** Public so tests can drive movement without synthesising key events. */
   setDirection(dx: number, dy: number) {
-    if (dx || dy) this.guided = false;
+    if (dx || dy) { this.guided = false; this.dest = null; }
     if (dx === this.dx && dy === this.dy) return;
     this.dx = dx;
     this.dy = dy;
@@ -248,8 +298,36 @@ export class WorldView {
     this.seq++;
     this.hist.set(this.seq, { x: this.mx, y: this.my });
     if (this.hist.size > 64) this.hist.delete(this.hist.keys().next().value!);
-    this.hooks.sendInput(this.seq, this.dx, this.dy);
+    this.hooks.sendInput(this.seq, this.dx, this.dy, this.running);
     this.lastBeat = performance.now();
+  }
+
+  // ---- running ----
+  /** Shift inverts "always run", so either habit works. */
+  get running() {
+    return this.runHeld !== this.runToggle;
+  }
+  private setRunHeld(on: boolean) {
+    if (on === this.runHeld) return;
+    const was = this.running;
+    this.runHeld = on;
+    if (was !== this.running) this.runChanged();
+  }
+  /** Public: the HUD button and tests switch "always run". */
+  toggleRun(on = !this.runToggle) {
+    if (on === this.runToggle) return;
+    this.runToggle = on;
+    this.runChanged();
+  }
+  private runChanged() {
+    this.hooks.onRun?.(this.running);
+    if (this.dx || this.dy || this.guided) this.sendDir(); // a stopped avatar sends it with its next input
+  }
+
+  /** Run to a tile; the server finds the path (walls, locked rooms) and steers. */
+  goTo(tx: number, ty: number) {
+    this.dest = { x: tx * T + T / 2, y: ty * T + T / 2 };
+    this.hooks.onGoto?.(tx, ty);
   }
 
   // ---- data ----
@@ -266,6 +344,7 @@ export class WorldView {
       });
     this.mapSprite?.destroy({ texture: true, textureSource: true }); // do not leak a GPU texture per edit
     const tex = bakeMap(this.app.renderer, map);
+    this.baked = tex.source.resource as HTMLCanvasElement;
     this.mapSprite = new Sprite(tex);
     this.world.addChildAt(this.mapSprite, 0);
     this.areaLabels.forEach((l) => l.text.destroy());
@@ -293,11 +372,12 @@ export class WorldView {
     this.layout();
   }
 
-  setMe(id: number, x: number, y: number, speed: number) {
+  setMe(id: number, x: number, y: number, speed: number, runMul = 2) {
     this.meId = id;
     this.mx = x;
     this.my = y;
     this.speed = speed;
+    this.runMul = runMul;
     this.mArea = this.areaIndex(x, y);
     this.hooks.onArea(this.map && this.mArea >= 0 ? this.map.areas[this.mArea].name : "");
     if (this.map && this.mArea >= 0) this.showBanner(this.map.areas[this.mArea].name);
@@ -323,6 +403,10 @@ export class WorldView {
 
   setInConversation(ids: Set<number>) {
     for (const e of this.ents.values()) e.inConv = ids.has(e.id);
+  }
+
+  setSharing(ids: Set<number>) {
+    for (const e of this.ents.values()) e.sharing = ids.has(e.id);
   }
 
   // ---- map editor support ----
@@ -354,7 +438,29 @@ export class WorldView {
 
   setGuided(on: boolean) {
     this.guided = on;
-    this.releaseKeys();
+    if (on) {
+      this.keys.clear();
+      return;
+    }
+    this.dest = null;
+    // the server stopped steering: hand control back to whatever keys are held now
+    this.dx = this.dy = 0;
+    this.applyKeys();
+  }
+
+  /** The server refused or finished a walk-to. */
+  clearDest() {
+    this.dest = null;
+  }
+
+  /** Where a walk-to is heading (world px), for the minimap. */
+  destination() {
+    return this.dest;
+  }
+
+  /** The baked office picture (shared with the minimap, never re-rendered for it). */
+  mapImage() {
+    return this.baked;
   }
 
   applySelf(m: SelfPosition) {
@@ -376,6 +482,11 @@ export class WorldView {
   }
 
   showEmote(id: number, kind: number) {
+    if (kind === DANCE) {
+      const e = this.ents.get(id);
+      if (e) e.danceUntil = performance.now() + 2400;
+      return;
+    }
     const emoji = EMOTES[kind - 1];
     if (!emoji || !this.ents.has(id)) return;
     this.emotes.get(id)?.text.destroy();
@@ -436,6 +547,7 @@ export class WorldView {
         e.dir = d & 3;
         e.dx = dx;
         e.dy = dy;
+        e.run = ((d >> 6) & 1) === 1;
         e.moving = dx !== 0 || dy !== 0;
       }
     }
@@ -489,8 +601,9 @@ export class WorldView {
     label.addChild(dot, text);
     this.hud.addChild(label);
     const e: Ent = {
-      id, key: "", frames, spr, label, text, dot, ring: null, tx: 0, ty: 0, ox: 0, oy: 0, dx: 0, dy: 0, x: 0, y: 0, dir: 0, moving: false,
-      speaking: false, inConv: false, status: p?.s ?? "available", name: p?.n ?? "", drawnStatus: "", drawnConv: false,
+      id, key: "", frames, spr, label, text, dot, ring: null, hand: null, danceUntil: 0, tx: 0, ty: 0, ox: 0, oy: 0, dx: 0, dy: 0, x: 0, y: 0, dir: 0, moving: false, run: false,
+      pet: null, petKind: 0, petFrames: null, px: NaN, py: NaN, pdir: 0, pmoving: false,
+      speaking: false, sharing: false, inConv: false, status: p?.s ?? "available", name: p?.n ?? "", drawnStatus: "", drawnConv: false, drawnShare: false,
     };
     this.refreshEnt(e);
     return e;
@@ -507,12 +620,69 @@ export class WorldView {
     }
     e.status = p.s;
     e.spr.alpha = p.s === "offline" ? 0.5 : 1;
+    const up = p.h === 1;
+    if (up !== !!e.hand) {
+      if (up) {
+        e.hand = new Text({ text: "✋", style: { fontSize: 15 } });
+        e.hand.anchor.set(0, 1);
+        e.label.addChild(e.hand);
+      } else {
+        e.hand!.destroy();
+        e.hand = null;
+      }
+      e.drawnStatus = ""; // re-lay out the badges
+    }
+    this.setPet(e, p.av.pt ?? 0);
+    if (e.pet) e.pet.alpha = e.spr.alpha;
+  }
+
+  private setPet(e: Ent, kind: number) {
+    if (kind === e.petKind) return;
+    e.petKind = kind;
+    e.petFrames = petFrames(kind);
+    if (!e.petFrames) {
+      e.pet?.destroy();
+      e.pet = null;
+      return;
+    }
+    if (!e.pet) {
+      e.pet = new Sprite(e.petFrames[0][0]);
+      e.pet.anchor.set(0.5, PET_FEET_Y / PET_H);
+      this.entLayer.addChild(e.pet);
+      e.px = e.py = NaN; // placed next to the owner on the next frame
+    }
+  }
+
+  /** A pet trots to a spot behind its owner, a little faster than a runner so it never lags far. */
+  private stepPet(e: Ent, dt: number, now: number) {
+    const pet = e.pet!;
+    const back = [[-7, -9], [12, -2], [-12, -2], [7, 9]][e.dir] ?? [0, -9];
+    const gx = e.x + back[0], gy = e.y + back[1];
+    if (!Number.isFinite(e.px) || Math.hypot(gx - e.px, gy - e.py) > PET_SNAP) { e.px = gx; e.py = gy; }
+    const ddx = gx - e.px, ddy = gy - e.py;
+    const d = Math.hypot(ddx, ddy);
+    if (d > 1.5) {
+      const v = Math.max(this.speed * this.runMul * 1.08, d * 5) * dt;
+      const k = Math.min(1, v / d);
+      e.px += ddx * k;
+      e.py += ddy * k;
+      e.pmoving = d > 4;
+      if (e.pmoving) e.pdir = Math.abs(ddx) > Math.abs(ddy) ? (ddx < 0 ? 1 : 2) : ddy < 0 ? 3 : 0;
+    } else {
+      e.pmoving = false;
+      if (!e.moving) e.pdir = e.dir;
+    }
+    const ph = e.pmoving ? [1, 0, 2, 0][Math.floor((now / 1000) * 10) & 3] : 0;
+    pet.texture = e.petFrames![e.pdir]?.[ph] ?? e.petFrames![0][0];
+    pet.position.set(Math.round(e.px), Math.round(e.py));
+    pet.zIndex = e.py;
   }
 
   private removeEnt(id: number) {
     const e = this.ents.get(id);
     if (!e) return;
     e.spr.destroy();
+    e.pet?.destroy();
     e.label.destroy({ children: true });
     e.ring?.destroy();
     this.ents.delete(id);
@@ -574,7 +744,7 @@ export class WorldView {
     let vx = e.dx, vy = e.dy;
     if (vx && vy) { vx *= Math.SQRT1_2; vy *= Math.SQRT1_2; }
     const n = Math.max(1, Math.ceil(dt / SHADOW_STEP));
-    const step = (this.speed * dt) / n;
+    const step = (this.speed * (e.run ? this.runMul : 1) * dt) / n;
     for (let i = 0; i < n; i++) {
       const nx = e.tx + vx * step;
       if (vx && this.canStandStatic(nx, e.ty)) e.tx = nx;
@@ -587,7 +757,7 @@ export class WorldView {
     if (!this.map || (!this.dx && !this.dy)) return;
     let vx = this.dx, vy = this.dy;
     if (vx && vy) { vx *= Math.SQRT1_2; vy *= Math.SQRT1_2; }
-    const step = this.speed * dt;
+    const step = this.speed * (this.running ? this.runMul : 1) * dt;
     const nx = this.mx + vx * step;
     if (vx && this.canStand(nx, this.my)) this.mx = nx;
     const ny = this.my + vy * step;
@@ -650,15 +820,30 @@ export class WorldView {
       const on = sx > -40 && sx < W + 40 && sy > -60 && sy < H + 60;
       e.spr.visible = on;
       e.label.visible = on;
+      if (e.pet) {
+        e.pet.visible = on;
+        if (on) this.stepPet(e, dt, now);
+        else e.px = NaN; // re-enters the view next to its owner
+      }
       if (e.ring) e.ring.visible = on && e.speaking;
       if (!on) continue;
       visible++;
-      const phase = e.moving ? [1, 0, 2, 0][Math.floor((now / 1000) * walkRate) & 3] : 0;
-      e.spr.texture = e.frames[e.dir]?.[phase] ?? e.frames[0][0];
-      e.spr.position.set(Math.round(e.x), Math.round(e.y));
+      const fast = isMe ? this.running || this.guided : e.run;
+      let phase = e.moving ? [1, 0, 2, 0][Math.floor((now / 1000) * walkRate * (fast ? 1.6 : 1)) & 3] : 0;
+      let dir = e.dir;
+      let hop = 0;
+      if (e.danceUntil > now && !e.moving) {
+        // a little spin-and-step dance: turn every beat, alternate feet, hop on the off-beat
+        const beat = Math.floor(now / 170);
+        dir = [0, 2, 3, 1][beat & 3];
+        phase = (beat & 1) + 1;
+        hop = beat & 1 ? -1 : 0;
+      }
+      e.spr.texture = e.frames[dir]?.[phase] ?? e.frames[0][0];
+      e.spr.position.set(Math.round(e.x), Math.round(e.y) + hop);
       e.spr.zIndex = e.y;
       e.label.position.set(sx, sy - (CELL_H - 2) * S * 0.9);
-      if (e.drawnStatus !== e.status || e.drawnConv !== e.inConv) this.drawDot(e);
+      if (e.drawnStatus !== e.status || e.drawnConv !== e.inConv || e.drawnShare !== e.sharing) this.drawDot(e);
       if (e.speaking) {
         if (!e.ring) { e.ring = new Graphics(); this.world.addChildAt(e.ring, 1); }
         e.ring.clear().ellipse(0, 0, 9, 4).stroke({ color: 0x3cc9b0, width: 1.5 });
@@ -694,6 +879,12 @@ export class WorldView {
     // locate marker
     this.fxG.clear();
     if (this.hover) this.fxG.rect(this.hover.x * T, this.hover.y * T, this.hover.w * T, this.hover.h * T).stroke({ color: 0xffb84d, width: 1 }).fill({ color: 0xffb84d, alpha: 0.18 });
+    if (this.dest) {
+      const k = (now % 700) / 700;
+      const r = 3 + k * 3;
+      this.fxG.poly([this.dest.x, this.dest.y - r, this.dest.x + r, this.dest.y, this.dest.x, this.dest.y + r, this.dest.x - r, this.dest.y]).stroke({ color: 0x3cc9b0, width: 1, alpha: 1 - k * 0.6 });
+      this.fxG.circle(this.dest.x, this.dest.y, 1.5).fill(0x3cc9b0);
+    }
     this.hudG.clear();
     if (this.locate) {
       if (now > this.locate.until) this.locate = null;
@@ -741,8 +932,15 @@ export class WorldView {
   private drawDot(e: Ent) {
     e.drawnStatus = e.status;
     e.drawnConv = e.inConv;
+    e.drawnShare = e.sharing;
     const w = e.text.width;
     e.dot.clear().circle(-w / 2 - 6, -6, 3).fill(STATUS_COLOR[e.status] ?? 0x8e8e9a);
     if (e.inConv) e.dot.roundRect(w / 2 + 3, -10, 6, 8, 2).fill(0x3cc9b0);
+    if (e.sharing) {
+      // a tiny monitor: everybody in the call can see who is presenting
+      const x = w / 2 + (e.inConv ? 12 : 3);
+      e.dot.roundRect(x, -12, 12, 9, 1).fill(0x1a1526).roundRect(x + 1.5, -10.5, 9, 6, 1).fill(0x6ec8ff).rect(x + 4, -3, 4, 2).fill(0x1a1526);
+    }
+    if (e.hand) e.hand.position.set(w / 2 + 3 + (e.inConv ? 9 : 0) + (e.sharing ? 15 : 0), 0);
   }
 }

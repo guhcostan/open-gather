@@ -12,6 +12,7 @@ import (
 type Config struct {
 	TickHz      int     // world tick rate (10-15 recommended)
 	Speed       float64 // walking speed, px/s
+	RunMul      float64 // speed multiplier while running (sprint or a guided "walk to")
 	CellPx      int     // spatial hash cell size, px
 	AOICells    int     // interest radius in cells (Chebyshev)
 	OutQueue    int     // per-client outbound queue (frames)
@@ -36,7 +37,7 @@ type ProxConfig struct {
 
 func DefaultConfig() Config {
 	return Config{
-		TickHz: 15, Speed: 72, CellPx: 128, AOICells: 2, OutQueue: 128,
+		TickHz: 15, Speed: 72, RunMul: 2, CellPx: 128, AOICells: 2, OutQueue: 128,
 		Grace: 10 * time.Second, MaxPlayers: 2000, ProxEvery: 250 * time.Millisecond, MaxChatRune: 500,
 		Prox: ProxConfig{
 			JoinR: 64, LeaveR: 96, CentJoin: 80, CentLeave: 112, MaxGroup: 8,
@@ -100,6 +101,7 @@ type Player struct {
 	X, Y     float64
 	Dx, Dy   int8
 	dir      uint8
+	run      bool // the player holds the run key (or has "always run" on)
 	lastAdv  time.Time
 	last     posRec
 	ix, iy   float64   // what clients extrapolate to (dead-reckoning shadow)
@@ -140,10 +142,17 @@ type Player struct {
 	fpath     []tile    // remaining tiles to the followed player
 	fgoal     tile      // tile of the followed player when fpath was computed
 	fcalc     time.Time // do not recompute the path before this time
+	destOn    bool      // a "walk to" is in progress (guided walk towards dest)
+	dest      tile      // target tile of the walk
+	destGap   float64   // stop this close to the target (0 = on the tile)
+	destID    uint32    // player walked to (0 = a map tile)
 	portalOn  int       // tile index of the portal the player last arrived on (-1 = none)
 	onSpot    bool      // standing on a spotlight pad
 	spotSince time.Time
-	board     string // key of the whiteboard the player has open ("" = none)
+	board     string    // key of the whiteboard the player has open ("" = none)
+	hand      bool      // raised hand
+	note      string    // short custom status line, in memory only
+	waveAt    time.Time // last wave sent (cooldown)
 }
 
 // tile is a map cell coordinate.

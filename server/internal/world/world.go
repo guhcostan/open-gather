@@ -54,6 +54,10 @@ const (
 	evKnockAns
 	evBoard
 	evReset
+	evGoto
+	evHand
+	evNote
+	evWave
 )
 
 type ev struct {
@@ -110,6 +114,9 @@ type World struct {
 	// the next pass). final is true on shutdown: write synchronously.
 	OnBoardSave func(officeID int64, key string, data []byte, final bool) bool
 	bfs         bfsScratch
+	counts      []int     // scratch for publishCounts
+	lastCounts  []int     // last published head count per area
+	countsAt    time.Time // last head-count pass
 
 	players map[uint32]*Player
 	list    []*Player
@@ -217,8 +224,13 @@ func (w *World) Join(ctx context.Context, info UserInfo, kick func(reason KickRe
 func (c *Conn) Detach(ctx context.Context) {
 	c.w.post(ctx, ev{kind: evDetach, p: c.P, gen: c.Gen})
 }
-func (c *Conn) Input(ctx context.Context, seq uint32, dx, dy int8) {
-	c.w.post(ctx, ev{kind: evInput, p: c.P, gen: c.Gen, seq: seq, dx: dx, dy: dy})
+func (c *Conn) Input(ctx context.Context, seq uint32, dx, dy int8, run bool) {
+	c.w.post(ctx, ev{kind: evInput, p: c.P, gen: c.Gen, seq: seq, dx: dx, dy: dy, b: run})
+}
+
+// GoTo starts a guided walk to a map tile, or to another player when id != 0.
+func (c *Conn) GoTo(ctx context.Context, x, y int, id uint32) {
+	c.w.post(ctx, ev{kind: evGoto, p: c.P, gen: c.Gen, x: x, y: y, id: id})
 }
 func (c *Conn) SetStatus(ctx context.Context, s string) {
 	c.w.post(ctx, ev{kind: evStatus, p: c.P, gen: c.Gen, s: s})
@@ -235,6 +247,21 @@ func (c *Conn) Locate(ctx context.Context, id uint32) {
 
 func (c *Conn) Emote(ctx context.Context, kind int) {
 	c.w.post(ctx, ev{kind: evEmote, p: c.P, gen: c.Gen, x: kind})
+}
+
+// Hand raises or lowers the player's hand.
+func (c *Conn) Hand(ctx context.Context, up bool) {
+	c.w.post(ctx, ev{kind: evHand, p: c.P, gen: c.Gen, b: up})
+}
+
+// Note sets the player's short status line ("" clears it).
+func (c *Conn) Note(ctx context.Context, text string) {
+	c.w.post(ctx, ev{kind: evNote, p: c.P, gen: c.Gen, s: text})
+}
+
+// Wave pings another player.
+func (c *Conn) Wave(ctx context.Context, id uint32) {
+	c.w.post(ctx, ev{kind: evWave, p: c.P, gen: c.Gen, id: id})
 }
 func (c *Conn) Use(ctx context.Context, x, y int) {
 	c.w.post(ctx, ev{kind: evUse, p: c.P, gen: c.Gen, x: x, y: y})
@@ -388,7 +415,7 @@ func (w *World) handle(e ev, now time.Time) {
 		w.doDetach(p, now)
 	case evInput:
 		w.St.InputMsgs.Add(1)
-		w.doInput(p, e.seq, e.dx, e.dy, now)
+		w.doInput(p, e.seq, e.dx, e.dy, e.b, now)
 	case evStatus:
 		w.doStatus(p, e.s)
 	case evConsent:
@@ -418,6 +445,14 @@ func (w *World) handle(e ev, now time.Time) {
 		w.doUse(p, e.x, e.y, now)
 	case evFollow:
 		w.doFollow(p, e.id, now)
+	case evGoto:
+		w.doGoto(p, e.x, e.y, e.id, now)
+	case evHand:
+		w.doHand(p, e.b)
+	case evNote:
+		w.doNote(p, e.s)
+	case evWave:
+		w.doWave(p, e.id, now)
 	case evLead:
 		w.doLead(p, e.id, now)
 	case evLock:
@@ -479,6 +514,9 @@ func (w *World) doJoin(e ev, now time.Time) {
 	p.out = out
 	w.resub(p)
 	w.sendHello(p)
+	if len(w.lastCounts) > 0 {
+		w.sendCopy(p, w.countsMsg())
+	}
 	if p.group != nil {
 		w.sendConvJoin(p, p.group)
 	}
@@ -553,18 +591,27 @@ func (w *World) removePlayer(p *Player) {
 	}
 }
 
-func (w *World) doInput(p *Player, seq uint32, dx, dy int8, now time.Time) {
+func (w *World) doInput(p *Player, seq uint32, dx, dy int8, run bool, now time.Time) {
 	if dx < -1 || dx > 1 || dy < -1 || dy > 1 {
 		return
 	}
-	if p.follow != 0 {
+	runChanged := run != p.run
+	if runChanged {
+		w.advance(p, now) // integrate at the old speed up to the switch
+		p.run = run
+	}
+	if p.guided() {
 		if dx == 0 && dy == 0 {
+			if runChanged && (p.Dx != 0 || p.Dy != 0) {
+				p.shadowAt = now
+				w.sendState(p, now)
+			}
 			return // a released key must not stop the guided walk; only a movement key does
 		}
 		w.stopFollow(p, now, true, false)
 	}
 	w.advance(p, now)
-	changed := dx != p.Dx || dy != p.Dy
+	changed := dx != p.Dx || dy != p.Dy || (runChanged && (dx != 0 || dy != 0))
 	p.Dx, p.Dy = dx, dy
 	if dx != 0 || dy != 0 {
 		switch {
@@ -707,7 +754,23 @@ func (w *World) doLocate(p *Player, id uint32) {
 // so records are only sent when the state changes (see sendState / tick).
 func (p *Player) rec() posRec {
 	d := p.dir | uint8(p.Dx+1)<<2 | uint8(p.Dy+1)<<4
+	if p.running() && (p.Dx != 0 || p.Dy != 0) {
+		d |= 1 << 6
+	}
 	return posRec{x: int16(math.Round(p.X)), y: int16(math.Round(p.Y)), d: d}
+}
+
+// guided reports whether the server is steering the player (follow or "walk to").
+func (p *Player) guided() bool { return p.follow != 0 || p.destOn }
+
+// running reports whether the player moves at run speed. A "walk to" always runs.
+func (p *Player) running() bool { return p.run || p.destOn }
+
+func (w *World) speedOf(p *Player) float64 {
+	if p.running() && w.cfg.RunMul > 1 {
+		return w.cfg.Speed * w.cfg.RunMul
+	}
+	return w.cfg.Speed
 }
 
 func (w *World) canEnterArea(p *Player, ai int) bool {
@@ -785,7 +848,7 @@ func (w *World) advance(p *Player, now time.Time) {
 		vx *= 0.70710678
 		vy *= 0.70710678
 	}
-	step := w.cfg.Speed * dt
+	step := w.speedOf(p) * dt
 	if nx := p.X + vx*step; vx != 0 && w.canStand(p, nx, p.Y) {
 		p.X = nx
 	}
@@ -940,7 +1003,7 @@ func (w *World) sendState(p *Player, now time.Time) {
 	p.ix, p.iy = float64(p.last.x), float64(p.last.y)
 	p.sentAt = now
 	w.publish(p, true)
-	if p.follow != 0 {
+	if p.guided() {
 		w.sendSelf(p, false) // the guided player is moved by the server: tell its own client
 	}
 }
@@ -981,7 +1044,7 @@ func (w *World) advanceShadow(p *Player, now time.Time) {
 	}
 	n := int(math.Ceil(dt / shadowStep))
 	h := dt / float64(n)
-	step := w.cfg.Speed * h
+	step := w.speedOf(p) * h
 	for i := 0; i < n; i++ {
 		if nx := p.ix + vx*step; vx != 0 && w.staticCanStand(nx, p.iy) {
 			p.ix = nx

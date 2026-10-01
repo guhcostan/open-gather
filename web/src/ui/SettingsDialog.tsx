@@ -4,6 +4,7 @@ import { session } from "../session";
 import { saveAvatar, saveSettings, toast, useStore } from "../store";
 import type { AvatarSpec } from "../net/protocol";
 import { AvatarEditor } from "./AvatarEditor";
+import { askNotifyPermission } from "../notify";
 import { t } from "../i18n";
 import { Modal } from "./Modal";
 
@@ -46,6 +47,22 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
       <label className="check">
         <input type="checkbox" checked={s.debug} onChange={(e) => saveSettings({ debug: e.target.checked })} />
         <span>{t("settings.debug")}</span>
+      </label>
+      <label className="check">
+        <input type="checkbox" checked={s.minimap} onChange={(e) => saveSettings({ minimap: e.target.checked })} />
+        <span>{t("settings.minimap")}</span>
+      </label>
+      <label className="check">
+        <input type="checkbox" checked={s.sounds} onChange={(e) => saveSettings({ sounds: e.target.checked })} />
+        <span>{t("settings.sounds")}</span>
+      </label>
+      <label className="check">
+        <input type="checkbox" checked={s.notify} onChange={async (e) => {
+          const on = e.target.checked;
+          if (on && !(await askNotifyPermission())) return toast(t("settings.notifyDenied"));
+          saveSettings({ notify: on });
+        }} />
+        <span>{t("settings.notify")}</span>
       </label>
       <div className="modal-actions"><button className="primary" onClick={onClose}>{t("settings.close")}</button></div>
     </Modal>

@@ -3,6 +3,7 @@
 // to write the sprite sheets and the baked map used by the README and the website.
 import { bakeMapCanvas } from "../src/game/art/tiles";
 import { CELL_H, CELL_W, drawSheet } from "../src/game/art/characters";
+import { drawPetSheet, PET_H, PET_KINDS, PET_W } from "../src/game/art/pets";
 import { HAIR, PANTS, SHIRT, SKIN } from "../src/game/palette";
 import map from "./default-map.json";
 
@@ -36,9 +37,20 @@ for (const [name, sk, hs, hc, sh, pa] of [...CAST, ...extra]) {
   c.style.width = c.width * scale + "px";
   host.appendChild(c);
 }
+const pets: Record<string, string> = {};
+for (let k = 1; k < PET_KINDS.length; k++) {
+  const c = document.createElement("canvas");
+  c.width = PET_W * 3;
+  c.height = PET_H * 4;
+  c.className = "pet";
+  drawPetSheet(c.getContext("2d", { willReadFrequently: true })!, k);
+  pets[PET_KINDS[k]] = c.toDataURL("image/png");
+  c.style.width = c.width * scale + "px";
+  host.appendChild(c);
+}
 const mc = bakeMapCanvas({ ...(map as object), tile: 16, solid: [] } as never);
 mc.style.width = mc.width * (scale / 2) + "px";
 mc.id = "map";
 document.getElementById("map")!.replaceWith(mc);
-(window as unknown as { artExport: unknown }).artExport = { sheets, map: mc.toDataURL("image/png") };
+(window as unknown as { artExport: unknown }).artExport = { sheets, pets, map: mc.toDataURL("image/png") };
 (window as unknown as { ready: boolean }).ready = true;

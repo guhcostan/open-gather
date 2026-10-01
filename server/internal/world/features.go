@@ -13,7 +13,7 @@ import (
 
 const (
 	emoteCooldown = 700 * time.Millisecond
-	emoteKinds    = 7
+	emoteKinds    = 8    // 1-7 bubbles, 8 dance
 	useReach      = 20.0 // px between the player's feet and the object's rectangle
 	followGap     = 26.0 // a follower stops this close to the leader
 	maxFollowers  = 64   // bounds the path-finding work per tick
@@ -136,17 +136,67 @@ func (w *World) doFollow(p *Player, id uint32, now time.Time) {
 // stopFollow ends a guided walk. halt also stops the avatar; it is false when the player's own input
 // is what ended the walk.
 func (w *World) stopFollow(p *Player, now time.Time, notify, halt bool) {
-	if p.follow == 0 {
+	if !p.guided() {
 		return
 	}
-	p.follow, p.fpath = 0, nil
+	wasRunning := p.running()
+	w.advance(p, now)
+	p.follow, p.fpath, p.destOn, p.destID = 0, nil, false, 0
 	delete(w.followers, p)
 	if halt && (p.Dx != 0 || p.Dy != 0) {
 		w.setDrive(p, 0, 0, now)
+	} else if wasRunning != p.running() && (p.Dx != 0 || p.Dy != 0) {
+		p.shadowAt = now
+		w.sendState(p, now) // the speed changed under a direction clients already extrapolate
+	}
+	if halt {
+		w.sendSelf(p, false) // the final resting point: the client stops predicting after this
 	}
 	if notify && p.out != nil {
 		w.sendFollow(p, 0, "")
 	}
+}
+
+// doGoto starts a guided run to a tile (id == 0) or next to another player. It reuses the follow
+// machinery: the path is searched on the server, so walls and locked rooms are respected.
+func (w *World) doGoto(p *Player, x, y int, id uint32, now time.Time) {
+	var dest tile
+	gap := 0.0
+	if id != 0 {
+		q := w.players[id]
+		if q == nil || q == p || q.Status == StatusInvisible || q.out == nil {
+			w.sendJSON(p, map[string]any{"t": "go", "ok": false})
+			return
+		}
+		dest, gap = tileOf(q.X, q.Y), followGap
+	} else {
+		if x < 0 || y < 0 || x >= w.m.W || y >= w.m.H {
+			return
+		}
+		dest = tile{int16(x), int16(y)}
+	}
+	if _, ok := w.followers[p]; !ok && len(w.followers) >= maxFollowers {
+		w.sendJSON(p, map[string]any{"t": "go", "ok": false})
+		return
+	}
+	if p.follow != 0 {
+		w.stopFollow(p, now, true, false)
+	}
+	from := tileOf(p.X, p.Y)
+	path := w.findPath(p, from, dest)
+	if path == nil && from != dest {
+		w.sendJSON(p, map[string]any{"t": "go", "ok": false})
+		return
+	}
+	w.advance(p, now)
+	p.destOn, p.dest, p.destGap, p.destID = true, dest, gap, id
+	p.fpath, p.fcalc = path, now.Add(time.Hour) // a fixed target: one search is enough
+	w.followers[p] = struct{}{}
+	if p.Dx != 0 || p.Dy != 0 {
+		p.shadowAt = now
+		w.sendState(p, now) // now at run speed
+	}
+	w.sendJSON(p, map[string]any{"t": "go", "ok": true, "x": dest.x, "y": dest.y})
 }
 
 // setDrive applies a server-chosen direction, exactly like a client input would.
@@ -180,50 +230,84 @@ func (w *World) driveFollowers(now time.Time) {
 	if len(w.followers) == 0 {
 		return
 	}
-	step := w.cfg.Speed / float64(w.cfg.TickHz)
-	fix := func(cur, target float64) int8 {
-		d := target - cur
-		if math.Abs(d) <= step*0.6 { // residual after a step is < 0.4 step, so this cannot oscillate
-			return 0
-		}
-		if d > 0 {
-			return 1
-		}
-		return -1
-	}
 	for p := range w.followers {
-		q := w.players[p.follow]
-		if q == nil || q.Status == StatusInvisible || q.out == nil || p.out == nil {
-			w.stopFollow(p, now, true, true)
-			continue
+		step := w.speedOf(p) / float64(w.cfg.TickHz)
+		fix := func(cur, target float64) int8 {
+			d := target - cur
+			if math.Abs(d) <= step*0.6 { // residual after a step is < 0.4 step, so this cannot oscillate
+				return 0
+			}
+			if d > 0 {
+				return 1
+			}
+			return -1
 		}
 		w.advance(p, now)
-		if dist(p.X, p.Y, q.X, q.Y) <= followGap {
-			w.setDrive(p, 0, 0, now)
-			continue
-		}
-		cur, goal := tileOf(p.X, p.Y), tileOf(q.X, q.Y)
-		if !now.Before(p.fcalc) { // the leader moves: search again, but at most every pathEvery
-			p.fpath = w.findPath(p, cur, goal)
-			p.fgoal = goal
-			p.fcalc = now.Add(pathEvery)
+		cur := tileOf(p.X, p.Y)
+		if p.destOn {
+			if p.out == nil {
+				w.stopFollow(p, now, false, true)
+				continue
+			}
+			arrived := cur == p.dest
+			if p.destGap > 0 {
+				if q := w.players[p.destID]; q != nil && q.out != nil {
+					arrived = arrived || dist(p.X, p.Y, q.X, q.Y) <= p.destGap
+				}
+			}
+			if arrived {
+				w.stopFollow(p, now, true, true)
+				continue
+			}
+		} else {
+			q := w.players[p.follow]
+			if q == nil || q.Status == StatusInvisible || q.out == nil || p.out == nil {
+				w.stopFollow(p, now, true, true)
+				continue
+			}
+			if dist(p.X, p.Y, q.X, q.Y) <= followGap {
+				w.setDrive(p, 0, 0, now)
+				continue
+			}
+			goal := tileOf(q.X, q.Y)
+			if !now.Before(p.fcalc) { // the leader moves: search again, but at most every pathEvery
+				p.fpath = w.findPath(p, cur, goal)
+				p.fgoal = goal
+				p.fcalc = now.Add(pathEvery)
+			}
 		}
 		for len(p.fpath) > 0 && p.fpath[0] == cur {
 			p.fpath = p.fpath[1:]
 		}
 		if len(p.fpath) == 0 {
+			if p.destOn { // the way closed (a door was locked meanwhile): give up
+				w.stopFollow(p, now, true, true)
+				w.sendJSON(p, map[string]any{"t": "go", "ok": false})
+				continue
+			}
 			w.setDrive(p, 0, 0, now) // unreachable (a locked door, another floor...): wait
 			continue
 		}
 		nxt := p.fpath[0]
 		tx, ty := tileCenter(nxt)
+		// Snap the cross axis onto the lane once it is within one step: at run speed the residual
+		// would otherwise be large enough for the collision box to catch a wall corner.
+		snap := func() {
+			if nxt.x != cur.x && p.Y != ty && w.canStand(p, p.X, ty) {
+				p.Y = ty
+			} else if nxt.y != cur.y && p.X != tx && w.canStand(p, tx, p.Y) {
+				p.X = tx
+			}
+		}
 		var dx, dy int8
 		if nxt.x != cur.x { // horizontal step: line up with the row first so the box never clips a wall
 			if dy = fix(p.Y, ty); dy == 0 {
+				snap()
 				dx = fix(p.X, tx)
 			}
 		} else {
 			if dx = fix(p.X, tx); dx == 0 {
+				snap()
 				dy = fix(p.Y, ty)
 			}
 		}

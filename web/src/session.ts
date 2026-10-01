@@ -5,6 +5,7 @@ import { boardModel } from "./game/boardModel";
 import { media, spotlightMedia } from "./media/MediaManager";
 import { getState, setState, toast, type ChatMsg } from "./store";
 import { t } from "./i18n";
+import { chime, desktopNotify } from "./notify";
 
 const AWAY_AFTER_MS = 5 * 60 * 1000;
 
@@ -22,10 +23,13 @@ class Session {
   async start(host: HTMLElement) {
     this.stopped = false;
     const view = new WorldView({
-      sendInput: (seq, dx, dy) => this.socket?.send({ t: "in", s: seq, x: dx, y: dy }),
+      sendInput: (seq, dx, dy, run) => this.socket?.send(run ? { t: "in", s: seq, x: dx, y: dy, b: true } : { t: "in", s: seq, x: dx, y: dy }),
+      onGoto: (x, y) => this.socket?.send({ t: "go", x, y }),
+      onRun: (running) => setState({ running }),
       onArea: (name) => setState({ currentArea: name }),
       onResume: () => this.socket?.send({ t: "sync" }),
       onEmote: (kind) => this.emote(kind),
+      onHand: () => this.hand(!getState().roster.get(getState().meId)?.h),
       onInteract: (prop) => { view.setDirection(0, 0); this.socket?.send({ t: "use", x: prop.x, y: prop.y }); },
       onNearby: (nearby) => setState({ nearby }),
     });
@@ -36,6 +40,7 @@ class Session {
     }
     this.view = view;
     media.onSpeaking = (ids) => view.setSpeaking(ids);
+    media.onSharing = (ids) => view.setSharing(ids);
     media.onNeedToken = () => this.socket?.send({ t: "tok" });
     spotlightMedia.onNeedToken = () => this.socket?.send({ t: "tok" });
     this.socket = new Socket((m) => this.onMessage(m), (s) => this.onConn(s), () => void this.onEvicted());
@@ -71,7 +76,7 @@ class Session {
     this.view?.destroy();
     this.view = null;
     boardModel.apply({ t: "wb", op: "closed" });
-    setState({ conv: null, spotlight: null, roster: new Map(), object: null, nearby: null, following: null, leadRequest: null, boardKey: "", knock: null });
+    setState({ conv: null, spotlight: null, roster: new Map(), object: null, nearby: null, following: null, leadRequest: null, boardKey: "", knock: null, wave: null, areaCounts: [] });
   }
 
   /** An admin removed us or changed our role. A role change keeps the session (reconnect); removal ends it. */
@@ -103,11 +108,13 @@ class Session {
         setState({ meId: m.you, role: m.role, status: m.status, office: m.office, mediaAvailable: m.cfg.media, roster, phase: "play", locked: m.cfg.lk ?? [] });
         view.setMap(m.map, m.cfg.deny);
         view.clearRemote();
-        view.setMe(m.you, m.cfg.x, m.cfg.y, m.cfg.speed);
+        view.setMe(m.you, m.cfg.x, m.cfg.y, m.cfg.speed, m.cfg.run ?? 2);
         view.setPeople(roster);
         const s = getState();
         if (s.consent) this.socket?.send({ t: "consent", b: true });
         if (s.status !== "available") this.socket?.send({ t: "st", v: s.status });
+        const note = localStorage.getItem("og.note");
+        if (note) this.socket?.send({ t: "note", text: note }); // the note lives in memory on the server
         break;
       }
       case "w":
@@ -130,6 +137,10 @@ class Session {
         const msg: ChatMsg = { id: ++this.chatId, sc: m.sc, from: m.f, to: m.to, text: m.x, ts: m.ts };
         const s = getState();
         setState({ chat: [...s.chat.slice(-299), msg], unread: m.f === s.meId ? s.unread : s.unread + 1 });
+        if (m.sc === "d" && m.f !== s.meId) {
+          chime("dm");
+          desktopNotify(t("notify.dm", { name: s.roster.get(m.f)?.n ?? "?" }), t("notify.open"));
+        }
         break;
       }
       case "conv":
@@ -152,11 +163,27 @@ class Session {
         setState({ following: m.id ? { id: m.id, name: m.n } : null });
         break;
       case "self": view.applySelf(m); break;
+      case "go":
+        if (m.ok) view.setGuided(true);
+        else { view.clearDest(); toast(t("go.unreachable")); }
+        break;
+      case "wv":
+        setState({ wave: { id: m.from, name: m.n } });
+        chime("wave");
+        desktopNotify(t("wave.incoming", { name: m.n }), t("notify.open"));
+        break;
+      case "wvr": {
+        const name = getState().roster.get(m.id)?.n ?? "?";
+        toast(t(`wave.${m.st}`, { name }));
+        break;
+      }
+      case "ac": setState({ areaCounts: m.c }); break;
       case "lreq": setState({ leadRequest: { id: m.from, name: m.n } }); break;
       case "deny": view.setDeny(m.d); setState({ locked: m.lk }); break;
       case "knk":
         if (m.done) { if (getState().knock?.id === m.id) setState({ knock: null }); }
         else setState({ knock: { id: m.id, name: m.n ?? "", area: m.a ?? "" } });
+        if (!m.done) { chime("knock"); desktopNotify(t("door.knock", { area: m.a ?? "" }), t("notify.open")); }
         break;
       case "knr": toast(t(`door.${m.st}`, { area: m.a })); break;
       case "wb":
@@ -220,6 +247,16 @@ class Session {
   }
   emote(kind: number) { this.socket?.send({ t: "emo", n: kind }); }
   follow(id: number) { this.socket?.send({ t: "fol", id }); }
+  /** Run next to another person (server-side path finding). */
+  goToPerson(id: number) { this.socket?.send({ t: "go", id }); }
+  wave(id: number) { this.socket?.send({ t: "wave", id }); }
+  hand(up: boolean) { this.socket?.send({ t: "hand", b: up }); }
+  note(text: string) {
+    if (text) localStorage.setItem("og.note", text);
+    else localStorage.removeItem("og.note");
+    this.socket?.send({ t: "note", text });
+  }
+  toggleRun() { this.view?.toggleRun(); }
   lead(id: number) { this.socket?.send({ t: "lead", id }); }
   lock(on: boolean) { this.socket?.send({ t: "lock", b: on }); }
   knock(area: number) { this.socket?.send({ t: "knock", n: area }); }

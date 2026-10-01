@@ -8,6 +8,7 @@ export interface AvatarSpec {
   hc: number; // hair color
   sh: number; // shirt
   pa: number; // pants
+  pt?: number; // companion pet (0 = none), see game/art/pets.ts
 }
 
 export interface Person {
@@ -16,6 +17,8 @@ export interface Person {
   av: AvatarSpec;
   s: PublicStatus;
   r: Role;
+  h?: 1; // hand raised
+  m?: string; // short status note
 }
 
 export interface Area {
@@ -59,7 +62,7 @@ export interface Hello {
   role: Role;
   status: Status;
   office: string;
-  cfg: { speed: number; tick: number; media: boolean; x: number; y: number; deny: number[]; lk?: number[] };
+  cfg: { speed: number; run?: number; tick: number; media: boolean; x: number; y: number; deny: number[]; lk?: number[] };
   map: MapData;
   roster: Person[];
   chat?: { f: number; n: string; x: string; ts: number }[];
@@ -102,6 +105,10 @@ export interface MapUpdate { t: "map"; deny: number[]; x?: number; y?: number; m
 export interface Emote { t: "e"; id: number; v: number }
 export interface ObjectReply { t: "obj"; k: "note" | "embed" | "image"; l: string; d: string }
 export interface Follow { t: "fol"; id: number; n: string }
+export interface GoResult { t: "go"; ok: boolean; x?: number; y?: number }
+export interface Wave { t: "wv"; from: number; n: string }
+export interface WaveResult { t: "wvr"; id: number; st: "ok" | "busy" | "away" | "offline" }
+export interface AreaCounts { t: "ac"; c: number[] }
 export interface SelfPosition { t: "self"; x: number; y: number; dx: number; dy: number; d: number; tp: boolean }
 export interface LeadRequest { t: "lreq"; from: number; n: string }
 export interface DoorState { t: "deny"; d: number[]; lk: number[] }
@@ -117,4 +124,4 @@ export type BoardEvent =
 export type BoardCommand = { op: "draw" | "del" | "undo" | "clear" | "close"; bk: string; i?: number; o?: number; k?: number; c?: number; w?: number; p?: number[]; tx?: string };
 export type Spotlight = { t: "spot"; op: "off" } | { t: "spot"; op: "on"; sid: number; n: string; me: boolean; room?: string; url?: string; tok?: string };
 
-export type ServerMsg = MapUpdate | Hello | WorldDelta | Ack | RosterDelta | ChatIn | ConvJoin | ConvMembers | ConvLeave | Loc | Pong | Emote | ObjectReply | Follow | SelfPosition | LeadRequest | DoorState | Knock | KnockResult | BoardEvent | Spotlight;
+export type ServerMsg = MapUpdate | Hello | WorldDelta | Ack | RosterDelta | ChatIn | ConvJoin | ConvMembers | ConvLeave | Loc | Pong | Emote | ObjectReply | Follow | GoResult | Wave | WaveResult | AreaCounts | SelfPosition | LeadRequest | DoorState | Knock | KnockResult | BoardEvent | Spotlight;
