@@ -79,13 +79,21 @@ try {
   }, { timeout: 15000, what: "inbound video bytes" });
   check("Ana receives real video RTP from Bruno", vb > 5000, `${vb} bytes`);
 
+  // Per-person volume, local to Ana: 100% -> 50% -> muted for me -> 100%.
+  await ana.page.click(".dock .tile .vol");
+  const half = await waitFor(() => ana.page.evaluate((id) => window.__og.media.room.remoteParticipants.get(String(id))?.getVolume() === 0.5, bruno.id), { what: "half volume" }).catch(() => false);
+  await ana.page.click(".dock .tile .vol");
+  const muted = await waitFor(() => ana.page.evaluate((id) => window.__og.media.room.remoteParticipants.get(String(id))?.getVolume() === 0, bruno.id), { what: "muted for me" }).catch(() => false);
+  await ana.page.click(".dock .tile .vol");
+  check("Ana can turn Bruno down or mute him for herself only", !!half && !!muted && (await ana.page.evaluate((id) => window.__og.media.room.remoteParticipants.get(String(id))?.getVolume(), bruno.id)) === 1);
+
   // Walk away: hysteresis + dwell, then server revokes SFU access.
   const before = await metrics();
   await walkTo(bruno, 34 * 16 + 8, 28 * 16 + 8);
   await waitFor(async () => (await st(ana)).conv === null && (await st(bruno)).conv === null, { timeout: 15000, what: "conversation ends" });
   check("moving away ends the conversation for both", true);
-  await sleep(1500);
-  const after = await metrics();
+  // revocation runs in the background with retries: give it a few seconds on a loaded machine
+  const after = await waitFor(async () => { const m = await metrics(); return m.og_media_revocations_total - before.og_media_revocations_total >= 2 ? m : null; }, { timeout: 8000, what: "revocations" }).catch(() => metrics());
   check("server revoked SFU access for both", after.og_media_revocations_total - before.og_media_revocations_total >= 2, `revocations +${after.og_media_revocations_total - before.og_media_revocations_total}`);
   check("SFU room is empty after leaving", (await lkParticipants(room)).length === 0);
   check("media capture stopped after leaving (mic/cam off)", (await st(ana)).mic === false && (await st(bruno)).cam === false);

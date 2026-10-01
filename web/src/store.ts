@@ -76,6 +76,8 @@ export interface State {
   wave: { id: number; name: string } | null;
   /** Visible people per map area (index), for the minimap. */
   areaCounts: number[];
+  /** The latest administrator announcement, until dismissed. */
+  announcement: { name: string; text: string } | null;
   spotlight: { id: number; name: string; me: boolean; state: ConvState } | null;
 }
 
@@ -122,6 +124,7 @@ const initial: State = {
   running: false,
   wave: null,
   areaCounts: [],
+  announcement: null,
   spotlight: null,
 };
 

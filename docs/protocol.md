@@ -47,6 +47,7 @@ Every connection starts with a full `hello`; the same happens on every reconnect
 | `wv` | `from`, `n` | somebody waved at you |
 | `wvr` | `id`, `st` ok / busy / away / offline | what happened to your wave |
 | `ac` | `c` [count per area] | visible people per map area, in map order; sent with `hello` and then at most every 2 s when a count changes |
+| `ann` | `n` sender name, `x` text | an administrator's announcement banner (one line, at most 280 characters, never stored) |
 | `go` | `ok`, `x`, `y` | a walk-to was accepted (the server now steers you, `self` carries the positions) or refused (`ok: false`: no path, nobody there); its end arrives as `fol` with `id` 0 |
 | `self` | `x`, `y`, `dx`, `dy`, `d`, `tp` | your authoritative position while following or walking to a place, once more where a guided walk stops, and after a portal (`tp`) |
 | `lreq` | `from`, `n` | somebody asks you to follow them |
@@ -86,6 +87,7 @@ Avatars are `{sk, hs, hc, sh, pa, pt}` small integers; `pt` is the companion pet
 | `PATCH /api/admin/members/{id}` | admin | change a role `{role: "admin"|"member"}`; the member is disconnected and reconnects with the new role. The last admin cannot be demoted (409) |
 | `DELETE /api/admin/members/{id}` | admin | remove a member: sessions deleted, socket closed, call ended. Not yourself, not the last admin (409) |
 | `GET /api/admin/audit` | admin | the latest 100 admin actions, newest first |
+| `POST /api/admin/announce` | admin | `{text}` (1-280 characters): banner to everybody online; one per 15 s per admin (burst 2); audited as `announce` without the text |
 | `PUT /api/map` | admin | validate, apply and save a new map |
 | `GET /api/admin/map` | admin | the saved map including hidden interactive-object content (the world map redacts it; editors must round-trip through this endpoint or they will erase object content) |
 | `GET /ws` | cookie | the world WebSocket |

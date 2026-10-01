@@ -45,6 +45,7 @@ type Server struct {
 	mapLim   *limiter
 	profLim  *limiter
 	adminLim *limiter
+	annLim   *limiter
 	demoLim  *limiter
 }
 
@@ -72,7 +73,7 @@ type posSave struct {
 
 func New(ctx context.Context, cfg *config.Config, log *slog.Logger, st *store.Store, md *media.Client) *Server {
 	s := &Server{cfg: cfg, log: log, st: st, media: md, ctx: ctx, worlds: map[int64]*world.World{},
-		posQ: make(chan posSave, 1024), chatQ: make(chan chatSave, 256), boardQ: make(chan boardSave, 64), joinLim: newLimiter(float64(cfg.JoinRate), float64(cfg.JoinRate)*2), mapLim: newLimiter(1, 5), profLim: newLimiter(0.5, 5), adminLim: newLimiter(5, 20)}
+		posQ: make(chan posSave, 1024), chatQ: make(chan chatSave, 256), boardQ: make(chan boardSave, 64), joinLim: newLimiter(float64(cfg.JoinRate), float64(cfg.JoinRate)*2), mapLim: newLimiter(1, 5), profLim: newLimiter(0.5, 5), adminLim: newLimiter(5, 20), annLim: newLimiter(1.0/15, 2)}
 	if id, err := st.InstanceID(ctx); err == nil {
 		s.inst = id
 	} else {
@@ -216,6 +217,7 @@ func (s *Server) Handler() http.Handler {
 	mux.HandleFunc("GET /api/admin/invites", s.listInvites)
 	mux.HandleFunc("DELETE /api/admin/invites/{id}", s.revokeInvite)
 	mux.HandleFunc("GET /api/admin/audit", s.listAudit)
+	mux.HandleFunc("POST /api/admin/announce", s.announce)
 	mux.HandleFunc("GET /api/admin/map", s.getFullMap)
 	mux.HandleFunc("PUT /api/map", s.putMap)
 	mux.HandleFunc("PUT /api/profile", s.putProfile)

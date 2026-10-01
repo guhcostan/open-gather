@@ -5,6 +5,8 @@ import (
 	"errors"
 	"net/http"
 	"strconv"
+	"strings"
+	"unicode/utf8"
 
 	"opengather/internal/store"
 )
@@ -51,6 +53,35 @@ func (s *Server) evict(r *http.Request, officeID, userID int64) {
 func pathID(r *http.Request) (int64, bool) {
 	id, err := strconv.ParseInt(r.PathValue("id"), 10, 64)
 	return id, err == nil && id > 0
+}
+
+// announce shows an administrator's one-line banner to everybody online. The audit row records that
+// an announcement was made, never its text; the text itself is not stored anywhere.
+func (s *Server) announce(w http.ResponseWriter, r *http.Request) {
+	se := s.adminSession(w, r)
+	if se == nil {
+		return
+	}
+	r.Body = http.MaxBytesReader(w, r.Body, 2048)
+	var req struct {
+		Text string `json:"text"`
+	}
+	if err := json.NewDecoder(r.Body).Decode(&req); err != nil || strings.TrimSpace(req.Text) == "" || utf8.RuneCountInString(req.Text) > 280 {
+		writeJSON(w, http.StatusBadRequest, map[string]string{"error": "1 to 280 characters"})
+		return
+	}
+	if !s.annLim.Allow(strconv.FormatInt(se.UserID, 10)) {
+		writeJSON(w, http.StatusTooManyRequests, map[string]string{"error": "rate limited"})
+		return
+	}
+	s.mu.Lock()
+	wd := s.worlds[se.OfficeID]
+	s.mu.Unlock()
+	if wd != nil {
+		wd.Announce(r.Context(), se.Name, req.Text)
+	}
+	s.audit(r, se, "announce", 0, "", "")
+	w.WriteHeader(http.StatusNoContent)
 }
 
 func (s *Server) listMembers(w http.ResponseWriter, r *http.Request) {

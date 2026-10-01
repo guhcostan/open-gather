@@ -3,7 +3,7 @@ import { toast, useStore } from "../store";
 import { hasKey, t, type Key } from "../i18n";
 import { Modal } from "./Modal";
 
-type Tab = "members" | "invites" | "activity";
+type Tab = "members" | "invites" | "activity" | "announce";
 interface Member { id: number; name: string; role: "admin" | "member"; joinedAt: number }
 interface InviteRow { id: number; role: string; maxUses: number; uses: number; expiresAt: number; createdAt: number; createdBy: string; status: string }
 interface AuditRow { id: number; actor: string; action: string; target: string; detail: string; at: number }
@@ -20,15 +20,34 @@ export function AdminDialog({ onClose }: { onClose: () => void }) {
   return (
     <Modal title={t("admin.title")} onClose={onClose} wide>
       <div className="chips" role="tablist" aria-label={t("admin.title")}>
-        {(["members", "invites", "activity"] as Tab[]).map((k) => (
+        {(["members", "invites", "activity", "announce"] as Tab[]).map((k) => (
           <button key={k} role="tab" aria-selected={tab === k} className={"chip" + (tab === k ? " on" : "")} onClick={() => setTab(k)}>{t(("admin.tab." + k) as Key)}</button>
         ))}
       </div>
       {tab === "members" && <Members />}
       {tab === "invites" && <Invites />}
       {tab === "activity" && <Activity />}
+      {tab === "announce" && <Announce />}
       <div className="modal-actions"><button className="primary" onClick={onClose}>{t("settings.close")}</button></div>
     </Modal>
+  );
+}
+
+/** A one-line banner for everybody online now. Not stored; the activity log records that it was sent. */
+function Announce() {
+  const [text, setText] = useState("");
+  const send = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const r = await api("POST", "/api/admin/announce", { text: text.trim() });
+    if (r.ok) { setText(""); toast(t("announce.sent")); } else toast(r.status === 429 ? t("announce.wait") : r.json.error ?? t("admin.error"));
+  };
+  return (
+    <form className="field" onSubmit={send}>
+      <label htmlFor="announce-text">{t("announce.label")}</label>
+      <textarea id="announce-text" value={text} maxLength={280} rows={3} onChange={(e) => setText(e.target.value)} placeholder={t("announce.placeholder")} />
+      <small className="muted">{t("announce.hint")}</small>
+      <button className="btn" type="submit" disabled={!text.trim()}>{t("announce.send")}</button>
+    </form>
   );
 }
 

@@ -178,6 +178,11 @@ class Session {
         break;
       }
       case "ac": setState({ areaCounts: m.c }); break;
+      case "ann":
+        setState({ announcement: { name: m.n, text: m.x } });
+        chime("wave");
+        desktopNotify(t("announce.title", { name: m.n }), t("notify.open"));
+        break;
       case "lreq": setState({ leadRequest: { id: m.from, name: m.n } }); break;
       case "deny": view.setDeny(m.d); setState({ locked: m.lk }); break;
       case "knk":

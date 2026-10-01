@@ -6,9 +6,11 @@
         <h1>Your team's <span class="teal">virtual office</span>, in pixel art. Light on every resource.</h1>
         <p class="lead">Walk around a 2D office, bump into teammates and talk by proximity. Built with Go, PixiJS and a real SFU, and designed from day one to be cheap to host.</p>
         <div class="cta">
-          <a class="btn primary" href="docs/getting-started/">Get started</a>
+          <a class="btn primary" href="https://office.152-67-49-137.sslip.io" rel="noopener">Try the live demo</a>
+          <a class="btn" href="docs/getting-started/">Get started</a>
           <a class="btn" href="{{REPO}}" rel="noopener">View on GitHub</a>
         </div>
+        <p class="note">The demo is a free, small server: content resets every few hours. Self-host it with one Docker Compose file or <code>ghcr.io/guhcostan/open-gather</code>.</p>
         <ul class="chips" aria-label="Stack">
           <li>Go</li><li>React</li><li>PixiJS</li><li>LiveKit</li><li>SQLite</li>
         </ul>
@@ -45,10 +47,17 @@
       <p class="sub">A complete loop from avatar to conversation, with the expensive parts handled by the right tool.</p>
       <div class="cards">
         <article class="card"><h3>Walk and meet</h3><p>Keyboard movement with collisions, a following camera and smooth remote avatars through prediction and interpolation.</p></article>
+        <article class="card"><h3>Get around fast</h3><p>Run with Shift or toggle it with R. Double-click any spot, or a point on the minimap, to run there along a path the server finds. "Walk to" anyone from the people panel.</p></article>
+        <article class="card"><h3>Pets</h3><p>Pick a cat, dog, bunny, fox, chick, slime, owl or axolotl that trots after you. Drawn in code and animated on each screen: zero bandwidth.</p></article>
+        <article class="card"><h3>Presence</h3><p>Wave at anyone in the office (they can run straight to you), raise your hand, set a status note, dance. Busy means do not disturb.</p></article>
         <article class="card"><h3>Proximity conversations</h3><p>Audio and video start when you get close and stop when you leave, with hysteresis so nothing flaps at the edge.</p></article>
         <article class="card"><h3>Consent and status</h3><p>Nothing is captured before you opt in. Busy, away and invisible people are never pulled into a call.</p></article>
-        <article class="card"><h3>Meeting rooms</h3><p>Areas with explicit access: open, members only, admins only or an allow list, enforced on the server.</p></article>
-        <article class="card"><h3>Chat and screen sharing</h3><p>Office chat, conversation chat and direct messages, plus screen sharing inside a live conversation.</p></article>
+        <article class="card"><h3>Meeting rooms</h3><p>Areas with explicit access: open, members only, admins only or an allow list, enforced on the server. Lock a room; outsiders knock.</p></article>
+        <article class="card"><h3>Screen sharing</h3><p>Up to 1080p for readable text, with cheap low layers for small tiles. Expand it over the map, go full screen or picture-in-picture.</p></article>
+        <article class="card"><h3>Spotlight and announcements</h3><p>Step on the stage to broadcast to the whole office. Administrators can send a banner to everyone online.</p></article>
+        <article class="card"><h3>Whiteboards, notes and portals</h3><p>Collaborative boards that persist, notes, embedded sites and images, portals across the office, and an editor to build your own map.</p></article>
+        <article class="card"><h3>Chat and minimap</h3><p>Office, conversation and direct messages. A minimap with live head counts per area shows where people are.</p></article>
+        <article class="card"><h3>Phones and tablets</h3><p>An on-screen movement pad on touch screens, and optional sounds and desktop notifications for waves, knocks and messages.</p></article>
         <article class="card"><h3>Self-hosted</h3><p>One Go binary, SQLite in WAL mode and a self-hosted LiveKit. No paid service is required to run the whole product.</p></article>
       </div>
     </div>
@@ -147,14 +156,15 @@
       <p class="sub">Alpha software. Here is what has actually been checked, and what has not.</p>
       <div class="cards three status">
         <article class="card ok"><h3>Verified</h3><ul>
-          <li>10 Go tests for the world simulation, also with the race detector</li>
-          <li>15/15 checks in a two-browser Chrome test: movement sync, proximity chat with real audio and video RTP through LiveKit, and revocation on leave</li>
+          <li>Go tests for the world, store, admin API and media tokens, also with the race detector</li>
+          <li>A real-browser suite (Chrome + a real LiveKit) of 14 scenarios on every push: proximity calls with real audio and video RTP, private rooms, screen sharing, invites, admin, editor, attacks on tokens, reconnection, accessibility (axe-core), and every social feature</li>
+          <li>The public demo on a free Oracle VM: real audio and video over UDP across the internet</li>
         </ul></article>
-        <article class="card mid"><h3>Built, not verified end to end</h3><ul>
-          <li>Screen sharing</li><li>Office and direct chat</li><li>Reconnection and persistence</li><li>Economy mode and device selection</li>
+        <article class="card mid"><h3>Measured locally only</h3><ul>
+          <li>Up to 1,000 bots without media and 40 people in calls, with the load generator on the same laptop: not a capacity claim</li>
         </ul></article>
         <article class="card todo"><h3>Not yet</h3><ul>
-          <li>Invites and access control</li><li>Map editor and desk assignment</li><li>Docker Compose install</li><li>Load tests, benchmarks and cost tables</li><li>Private-room isolation tests</li>
+          <li>TURN through UDP-blocked networks</li><li>Load on the demo host and a reference server</li><li>A two-hour soak</li><li>Screen reader testing by people</li><li>Verified prices</li>
         </ul></article>
       </div>
       <p class="more"><a href="docs/status/">Full status and roadmap →</a></p>

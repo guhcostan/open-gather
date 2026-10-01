@@ -58,6 +58,7 @@ const (
 	evHand
 	evNote
 	evWave
+	evAnnounce
 )
 
 type ev struct {
@@ -362,6 +363,12 @@ func (w *World) UpdateProfile(ctx context.Context, id uint32, name string, avata
 	w.post(ctx, ev{kind: evProfile, id: id, info: UserInfo{Name: name, Avatar: avatar}})
 }
 
+// Announce shows a banner to everybody connected to the office (an administrator's message).
+// The text is not stored; it reaches the people online now.
+func (w *World) Announce(ctx context.Context, from, text string) {
+	w.post(ctx, ev{kind: evAnnounce, s: text, info: UserInfo{Name: from}})
+}
+
 func (c *Conn) Sync(ctx context.Context) {
 	c.w.post(ctx, ev{kind: evSync, p: c.P, gen: c.Gen})
 }
@@ -381,6 +388,9 @@ func (w *World) handle(e ev, now time.Time) {
 		return
 	case evReset:
 		e.errc <- w.doResetContent(e.cm, now)
+		return
+	case evAnnounce:
+		w.doAnnounce(e.info.Name, e.s)
 		return
 	case evSnapshot:
 		out := make(map[string]map[string]bool, len(w.groups)+1)

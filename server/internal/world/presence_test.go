@@ -117,3 +117,21 @@ func TestDanceIsAnEmote(t *testing.T) {
 		t.Fatal("dancing is shown to people nearby")
 	}
 }
+
+func TestAnnouncementsReachEverybodyConnected(t *testing.T) {
+	h := newHarness(t)
+	a := h.add(1, "member", sx, sy)
+	far := h.add(2, "member", 3*16, 3*16)
+	drain(a)
+	drain(far)
+	h.w.handle(ev{kind: evAnnounce, s: "Fire drill\nat 3", info: UserInfo{Name: "Ana"}}, h.now)
+	for _, p := range []*Player{a, far} {
+		if got := frames(p); !strings.Contains(got, `{"n":"Ana","t":"ann","x":"Fire drill at 3"}`) {
+			t.Fatalf("everybody gets the banner on one line: %q", got)
+		}
+	}
+	h.w.handle(ev{kind: evAnnounce, s: "   ", info: UserInfo{Name: "Ana"}}, h.now)
+	if strings.Contains(frames(a), `"ann"`) {
+		t.Fatal("blank announcements are dropped")
+	}
+}

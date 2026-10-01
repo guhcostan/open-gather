@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState, useSyncExternalStore } from "react";
-import { media, spotlightMedia, type Tile } from "../media/MediaManager";
+import { media, spotlightMedia, type MediaManager, type Tile } from "../media/MediaManager";
 import { useStore } from "../store";
 import { t } from "../i18n";
 import { MicOffIcon } from "./Icons";
@@ -17,9 +17,11 @@ function Video({ el, mirror }: { el: HTMLVideoElement | null; mirror?: boolean }
   return <div ref={ref} className={"vid" + (mirror ? " mirror" : "")} />;
 }
 
-export function TileView({ tile, big }: { tile: Tile; big?: boolean }) {
+export function TileView({ tile, big, mgr = media }: { tile: Tile; big?: boolean; mgr?: MediaManager }) {
   const roster = useStore((s) => s.roster);
   const p = roster.get(Number(tile.identity));
+  const name = p?.n ?? tile.name;
+  const nextVol = tile.vol >= 1 ? 0.5 : tile.vol > 0 ? 0 : 1;
   return (
     <div className={"tile" + (tile.speaking ? " speaking" : "") + (big ? " big" : "")}>
       {big ? <Video el={tile.screen} /> : tile.cam ? <Video el={tile.video} mirror={tile.local} /> : <div className="avatar-fallback">{(p?.n ?? tile.name).slice(0, 1).toUpperCase()}</div>}
@@ -27,6 +29,11 @@ export function TileView({ tile, big }: { tile: Tile; big?: boolean }) {
         {tile.local ? t("media.you") : p?.n ?? tile.name}
         {!tile.mic && !big && <MicOffIcon />}
       </span>
+      {!tile.local && !big && (
+        <button className="vol" onClick={() => mgr.setVolume(tile.identity, nextVol)} aria-label={t("media.volumeOf", { name, level: Math.round(tile.vol * 100) })} title={t("media.volumeOf", { name, level: Math.round(tile.vol * 100) })}>
+          {tile.vol >= 1 ? "🔊" : tile.vol > 0 ? "🔉" : "🔇"}
+        </button>
+      )}
     </div>
   );
 }
@@ -40,7 +47,7 @@ export function SpotlightDock() {
     <p role="status">{spot.me ? t("spot.onAir") : t("spot.speaker", { name: spot.name })}</p>
     {!consent && <p>{t("spot.listen")}</p>}
     {tiles.filter((tile) => Number(tile.identity) === spot.id).map((tile) => <div key={tile.identity}>
-      <TileView tile={tile} />
+      <TileView tile={tile} mgr={spotlightMedia} />
       {tile.screen && <ShareView tile={tile} />}
     </div>)}
   </section>;

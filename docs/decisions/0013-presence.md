@@ -14,10 +14,12 @@ In a busy office you need to reach somebody who is not next to you without openi
 - **Minimap**: the client redraws a thumbnail of the already baked map four times a second (not per frame, not through React state) with the people it already knows about (its area of interest) and **per-area head counts** from the server (`ac`). Counts are computed every 2 s and sent only when they change, so the minimap shows busy places across the office without an office-wide position feed. Clicking it runs there.
 - **Cues**: synthesised chimes for waves, knocks and direct messages (no audio assets), and opt-in desktop notifications that only fire while the tab is hidden and never include message text.
 - **Touch pad**: an on-screen direction pad and run toggle shown on coarse-pointer devices.
+- **Announcements**: administrators send a one-line banner to everybody online through `POST /api/admin/announce` (admin API: authenticated, rate limited, audited). The audit row records that an announcement was made, never its text, and the text is not stored.
+- **Per-person volume**: each call tile has a local volume control (100 %, 50 %, muted for me). It only changes playback on that device (LiveKit participant volume) and never affects what others hear or what the SFU forwards.
+- **Keyboard help**: `?` (or the topbar button) lists every shortcut.
 
 ## Consequences
 
 - Performance: head counts cost one pass over the players every 2 s and one short message per player per change; waves, hands and notes are rare control messages. The minimap reuses the baked map canvas.
 - Privacy: notes are presence, like names, and visible to the office; no message text leaves the page in notifications.
 - Maintenance: world tests cover waves (delivery, cooldown, busy, invisible), roster fields, note cleaning, head-count publication and the dance emote; the `presence` browser scenario covers every UI path including the touch pad on an emulated phone.
-

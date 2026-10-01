@@ -1,6 +1,7 @@
 package world
 
 import (
+	"encoding/json"
 	"strconv"
 	"time"
 )
@@ -9,10 +10,11 @@ import (
 // and per-area head counts for the minimap. Everything here runs on the world goroutine.
 
 const (
-	waveCooldown = 2 * time.Second
-	maxNoteRunes = 60
-	countsEvery  = 2 * time.Second
-	danceEmote   = 8 // emote kind rendered as a short dance instead of a bubble
+	waveCooldown     = 2 * time.Second
+	maxNoteRunes     = 60
+	countsEvery      = 2 * time.Second
+	danceEmote       = 8 // emote kind rendered as a short dance instead of a bubble
+	maxAnnounceRunes = 280
 )
 
 // doWave pings another player wherever they are. Busy (do not disturb) and away people are not
@@ -98,4 +100,19 @@ func (w *World) countsMsg() []byte {
 		b = strconv.AppendInt(b, int64(c), 10)
 	}
 	return append(b, ']', '}')
+}
+
+// doAnnounce sends an administrator's banner to everybody connected. Reliable delivery (a
+// congested client is handled like for chat), cleaned to one line of at most maxAnnounceRunes.
+func (w *World) doAnnounce(from, text string) {
+	text = cleanText(text, maxAnnounceRunes)
+	if text == "" {
+		return
+	}
+	b, _ := json.Marshal(map[string]any{"t": "ann", "n": from, "x": text})
+	for _, q := range w.list {
+		if q.out != nil {
+			w.sendShared(q, b)
+		}
+	}
 }

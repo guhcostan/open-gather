@@ -21,6 +21,8 @@ export interface Tile {
   speaking: boolean;
   video: HTMLVideoElement | null;
   screen: HTMLVideoElement | null;
+  /** Playback volume for this person on this device only (1 = normal, 0 = muted for me). */
+  vol: number;
 }
 
 export interface JoinInfo {
@@ -246,12 +248,15 @@ export class MediaManager {
         speaking: p.isSpeaking,
         video: el(cam),
         screen: el(scr),
+        vol: local ? 1 : this.volumes.get(p.identity) ?? 1,
       };
     };
     const list: Tile[] = this.publishing ? [mk(room.localParticipant, true)] : [];
     room.remoteParticipants.forEach((p: RemoteParticipant) => list.push(mk(p, false)));
     // remote audio elements
     room.remoteParticipants.forEach((p) => {
+      const v = this.volumes.get(p.identity);
+      if (v !== undefined && p.getVolume() !== v) p.setVolume(v);
       for (const pub of p.trackPublications.values()) {
         if (pub.kind === Track.Kind.Audio && pub.track && !this.audioEls.has(pub.trackSid)) {
           const a = pub.track.attach() as HTMLAudioElement;
@@ -283,6 +288,16 @@ export class MediaManager {
 
   private audioEls = new Set<string>();
   private vEls = new Map<string, HTMLVideoElement>();
+  private volumes = new Map<string, number>();
+
+  /** Local-only volume for one person (does not affect what anyone else hears). */
+  setVolume(identity: string, v: number) {
+    v = Math.max(0, Math.min(1, v));
+    if (v === 1) this.volumes.delete(identity);
+    else this.volumes.set(identity, v);
+    this.room?.remoteParticipants.get(identity)?.setVolume(v);
+    this.refresh();
+  }
 
   // ---- local controls ----
   async setMic(on: boolean) {
