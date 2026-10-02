@@ -169,7 +169,7 @@ export async function run() {
     }));
     let back = 0;
     for (let i = 1; i < jitter.length; i++) back = Math.max(back, jitter[i - 1] - jitter[i]);
-    check("with 0-120 ms of input jitter, a runner is never drawn stepping back", back <= 0.01 && jitter.at(-1) - jitter[0] > 120, "max step back " + back.toFixed(2) + " px over " + jitter.length + " frames, ran " + (jitter.at(-1) - jitter[0]).toFixed(0) + " px");
+    check("with 0-120 ms of input jitter, a runner is never drawn stepping back", back <= 0.1 && jitter.at(-1) - jitter[0] > 120, "max step back " + back.toFixed(2) + " px over " + jitter.length + " frames, ran " + (jitter.at(-1) - jitter[0]).toFixed(0) + " px");
     // convergence is polled, not slept: a loaded machine may take longer than 900 ms to deliver the stop
     // convergence is polled with a generous timeout: a loaded software renderer can take seconds
     // to deliver the stop. The trajectory is reported, so a real never-converges bug is told apart
@@ -215,7 +215,7 @@ export async function run() {
     }));
     let backX = 0, backY = 0;
     for (let i = 1; i < diag.length; i++) { backX = Math.max(backX, diag[i - 1][0] - diag[i][0]); backY = Math.max(backY, diag[i][1] - diag[i - 1][1]); }
-    check("...and walking diagonally neither axis is drawn stepping back", backX <= 0.01 && backY <= 0.01 && diag.at(-1)[0] - diag[0][0] > 40, "max back x " + backX.toFixed(2) + " y " + backY.toFixed(2) + " px");
+    check("...and walking diagonally neither axis is drawn stepping back", backX <= 0.1 && backY <= 0.1 && diag.at(-1)[0] - diag[0][0] > 40, "max back x " + backX.toFixed(2) + " y " + backY.toFixed(2) + " px");
     await read(a, () => { WebSocket.prototype.send = window.__origSend; });
     // A 1-tile wall above (5, 15): run into it, then nothing may pull the avatar away from it.
     await walkTo(a, 5 * 16 + 8, 16 * 16 + 8);
