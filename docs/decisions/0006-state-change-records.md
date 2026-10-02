@@ -11,7 +11,7 @@ The first implementation sent the position of every moving player to every obser
 Movement is deterministic (direction and speed are constant until an input, a wall or a locked door changes them), so the server publishes a **state record** only when the state changes, and clients keep walking the entity with the same rules:
 
 1. A record is ~[id, x, y, d]: rounded position plus a direction code (`d = facing | (dx+1)<<2 | (dy+1)<<4`).
-2. The server keeps, per moving player, a *shadow* position that follows exactly what a client would extrapolate (static walls only, fixed 1/60 s sub-steps, axis-separated collision).
+2. The server keeps, per moving player, a *shadow* position that follows exactly what a client would extrapolate (static walls only, axis-separated collision; the sub-step rule is now the one in [0017](0017-movement-reconciliation-and-render-on-demand.md)).
 3. A record is sent when the direction changes, when the real position diverges from the shadow by more than 1.5 px (for example a door that is locked for that player), and as a 1 s safety resync.
 4. Anyone who starts seeing an entity (entering a cell of interest, reconnecting, or a hidden tab coming back and sending `sync`) receives its current state.
 5. Clients blend corrections over ~80 ms and snap when they exceed 24 px.

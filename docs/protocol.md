@@ -67,7 +67,7 @@ d = facing | (dx + 1) << 2 | (dy + 1) << 4 | run << 6     facing: 0 down, 1 left
 idle = dx = dy = 0
 ~~~
 
-Clients keep moving the entity with the same rules as the server (speed from `cfg.speed`, times `cfg.run` when the run bit is set, diagonals scaled by 1/sqrt(2), axis-separated collision against the static walls of the map, 1/60 s sub-steps). The server sends a new record when the direction or the run state changes, when reality diverges from that extrapolation, as a 1 s resync, and when you start seeing the entity. The run bit is only set while moving.
+Clients keep moving the entity with the same rules as the server (speed from `cfg.speed`, times `cfg.run` when the run bit is set, diagonals scaled by 1/sqrt(2), axis-separated collision against the static walls of the map, sub-steps of at most 4 px, and a blocked axis moves to the point of contact with the wall; see [decision 0017](decisions/0017-movement-reconciliation-and-render-on-demand.md)). The server sends a new record when the direction or the run state changes, when reality diverges from that extrapolation, as a 1 s resync, and when you start seeing the entity. The run bit is only set while moving.
 
 Avatars are `{sk, hs, hc, sh, pa, pt}` small integers; `pt` is the companion pet (0 none, 1-8). The server clamps unknown values to 0 and drops unknown fields.
 

@@ -13,7 +13,7 @@ export function DebugHud() {
   const mem = (performance as unknown as { memory?: { usedJSHeapSize: number } }).memory;
   return (
     <pre className="debug">
-      {`fps ${st?.fps ?? 0}  frame ${st?.frameMs ?? 0}ms\nrtt ${session.socket?.rtt ?? 0}ms  world msgs/s ${st?.worldMsgs ?? 0}\nentities ${st?.entities ?? 0} (visible ${st?.visible ?? 0})  roster ${roster.size}\n` + (mem ? `heap ${(mem.usedJSHeapSize / 1048576).toFixed(1)} MB` : "")}
+      {`fps ${st?.fps ?? 0}  draws/s ${st?.renders ?? 0}  frame ${st?.frameMs ?? 0}ms\nrtt ${session.socket?.rtt ?? 0}ms  world msgs/s ${st?.worldMsgs ?? 0}\nentities ${st?.entities ?? 0} (visible ${st?.visible ?? 0})  roster ${roster.size}\n` + (mem ? `heap ${(mem.usedJSHeapSize / 1048576).toFixed(1)} MB` : "")}
     </pre>
   );
 }

@@ -223,52 +223,56 @@ func (w *World) flushRoster() {
 // flush sends p's coalesced world delta unless its queue is congested, in
 // which case pending positions keep being overwritten by newer ones.
 func (w *World) flush(p *Player) {
-	if p.out == nil || (len(p.pendPos) == 0 && len(p.pendLeave) == 0) {
+	if p.out == nil || len(p.pend) == 0 {
 		return
 	}
 	if len(p.out) > cap(p.out)/2 {
 		w.St.Skipped.Add(1)
 		return
 	}
-	b := make([]byte, 0, 40+len(p.pendPos)*22+len(p.pendLeave)*8)
+	nPos := 0
+	for i := range p.pend {
+		if !p.pend[i].leave {
+			nPos++
+		}
+	}
+	b := make([]byte, 0, 40+nPos*22+(len(p.pend)-nPos)*8)
 	b = append(b, `{"t":"w","k":`...)
 	b = strconv.AppendUint(b, w.tickN, 10)
-	if len(p.pendPos) > 0 {
+	if nPos > 0 {
 		b = append(b, `,"m":[`...)
 		first := true
-		for id, r := range p.pendPos {
+		for i := range p.pend {
+			it := &p.pend[i]
+			if it.leave {
+				continue
+			}
 			if !first {
 				b = append(b, ',')
 			}
 			first = false
-			b = append(b, '[')
-			b = strconv.AppendUint(b, uint64(id), 10)
-			b = append(b, ',')
-			b = strconv.AppendInt(b, int64(r.x), 10)
-			b = append(b, ',')
-			b = strconv.AppendInt(b, int64(r.y), 10)
-			b = append(b, ',')
-			b = strconv.AppendInt(b, int64(r.d), 10)
-			b = append(b, ']')
+			b = append(b, it.e.encoded(it.r)...)
 		}
 		b = append(b, ']')
-		w.St.PosSent.Add(int64(len(p.pendPos)))
+		w.St.PosSent.Add(int64(nPos))
 	}
-	if len(p.pendLeave) > 0 {
+	if nPos < len(p.pend) {
 		b = append(b, `,"l":[`...)
 		first := true
-		for id := range p.pendLeave {
+		for i := range p.pend {
+			if !p.pend[i].leave {
+				continue
+			}
 			if !first {
 				b = append(b, ',')
 			}
 			first = false
-			b = strconv.AppendUint(b, uint64(id), 10)
+			b = strconv.AppendUint(b, uint64(p.pend[i].id), 10)
 		}
 		b = append(b, ']')
 	}
 	b = append(b, '}')
-	clear(p.pendPos)
-	clear(p.pendLeave)
+	clearPending(p)
 	select {
 	case p.out <- b:
 		w.St.FramesOut.Add(1)
@@ -276,6 +280,24 @@ func (w *World) flush(p *Player) {
 	default:
 		w.St.Skipped.Add(1)
 	}
+}
+
+// encoded returns p's state record r as "[id,x,y,d]". Every observer of p gets the same record
+// in a tick, so it is formatted once and reused (the cache is only valid for that record).
+func (p *Player) encoded(r posRec) []byte {
+	if len(p.enc) > 0 && p.encFor == r {
+		return p.enc
+	}
+	b := append(p.enc[:0], '[')
+	b = strconv.AppendUint(b, uint64(p.ID), 10)
+	b = append(b, ',')
+	b = strconv.AppendInt(b, int64(r.x), 10)
+	b = append(b, ',')
+	b = strconv.AppendInt(b, int64(r.y), 10)
+	b = append(b, ',')
+	b = strconv.AppendInt(b, int64(r.d), 10)
+	p.enc, p.encFor = append(b, ']'), r
+	return p.enc
 }
 
 // tick advances the simulation one step. Exposed to tests through handle/tick.

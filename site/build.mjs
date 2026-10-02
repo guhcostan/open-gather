@@ -45,6 +45,8 @@ const DESCRIPTIONS = {
   "proximity-and-media": "How proximity conversations form in Tilework: hysteresis, small groups, no chains, isolated rooms, scoped LiveKit tokens and revocation.",
   "privacy-and-security": "What Tilework stores and never stores, how media access is enforced by the server and the SFU, and the security limits still open.",
   status: "Tilework status and roadmap: what has been tested in real browsers and on a public host, what was measured locally and what has not been run.",
+  roadmap: "What Tilework plans next: breakout rooms, a stage, audio-only areas set by administrators, a lounge, hosted-plan prerequisites and the evidence still missing.",
+  "business-model": "How Tilework plans to sustain itself: AGPL open source for everyone, plus hosted instances in Team, Business and Enterprise plans with seats.",
 };
 const PAGES = NAV.flatMap((g) => g.items.map(([slug, title, file]) => ({ slug, title: title.replace(/^\d+ · /, ""), file, group: g.group, src: path.resolve(DOCS, file) })));
 const byFile = new Map(PAGES.map((p) => [p.src, p.slug]));

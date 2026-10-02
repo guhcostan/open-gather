@@ -49,6 +49,47 @@ func TestShadowMatchesTheServerWhileRunning(t *testing.T) {
 	}
 }
 
+// The client walks in small per-frame steps and stops touching a wall. The server must stop at
+// the same spot, or every run into a wall ends with the avatar pulled back a few pixels.
+func TestRunningIntoAWallStopsTouchingIt(t *testing.T) {
+	for _, run := range []bool{false, true} {
+		h := newHarness(t)
+		p := h.add(1, "member", 5*16+8, 15*16+8) // below the y=14 wall (a 1-tile wall, open floor above)
+		h.send(p, ev{kind: evInput, seq: 1, dy: -1, b: run})
+		h.run(time.Second)
+		if want := 15*16 + boxHalfH; p.Y != want {
+			t.Fatalf("run=%v: stops touching the wall at y=%v, got %v", run, want, p.Y)
+		}
+		if p.iy != p.Y {
+			t.Fatalf("run=%v: clients extrapolate to the same contact point (%v vs %v)", run, p.iy, p.Y)
+		}
+	}
+}
+
+// A starved VM can deliver a tick late. Movement is integrated over real time, so the late
+// tick must cover the whole gap; clamping it made the client (which kept walking) snap back.
+func TestALateTickDoesNotLoseDistance(t *testing.T) {
+	h := newHarness(t)
+	p := h.add(1, "member", 3*16+8, sy)
+	h.send(p, ev{kind: evInput, seq: 1, dx: 1, b: true})
+	h.now = h.now.Add(600 * time.Millisecond)
+	h.w.tick(h.now)
+	if got, want := p.X-(3*16+8), 144*0.6; got < want-0.5 || got > want+0.5 {
+		t.Fatalf("a 600 ms tick moves a runner %.1f px, got %.1f", want, got)
+	}
+}
+
+func TestALateTickDoesNotTunnelThroughAWall(t *testing.T) {
+	h := newHarness(t)
+	p := h.add(1, "member", 5*16+8, 15*16+8)
+	h.send(p, ev{kind: evInput, seq: 1, dy: -1, b: true})
+	h.now = h.now.Add(900 * time.Millisecond)
+	h.w.tick(h.now)
+	if p.Y != 15*16+boxHalfH {
+		t.Fatalf("a long step stops at the wall, got y=%v", p.Y)
+	}
+}
+
 func TestWalkToATileRunsAroundWallsAndArrives(t *testing.T) {
 	h := newHarness(t)
 	p := h.add(1, "member", 9*16+8, 20*16+8) // social area; reception is behind a wall
@@ -112,5 +153,29 @@ func TestWalkToIsCancelledByInputAndRefusesForbiddenPlaces(t *testing.T) {
 	h.send(p, ev{kind: evGoto, id: 77})
 	if p.destOn {
 		t.Fatal("cannot walk to somebody who is not there")
+	}
+}
+
+// A leave and a fresh state for the same entity in one tick replace each other: the client gets
+// whichever came last, never both.
+func TestLeaveAndReturnInOneTickKeepOnlyTheLast(t *testing.T) {
+	h := newHarness(t)
+	a := h.add(1, "member", sx, sy)
+	b := h.add(2, "member", sx+20, sy)
+	h.run(200 * time.Millisecond)
+	drain(a)
+	h.w.queueLeave(a, b.ID)
+	h.w.queuePos(a, b)
+	h.w.flush(a)
+	got := frames(a)
+	if !strings.Contains(got, `"m":[[2,`) || strings.Contains(got, `"l":`) {
+		t.Fatalf("leave then return must send only the state: %s", got)
+	}
+	h.w.queuePos(a, b)
+	h.w.queueLeave(a, b.ID)
+	h.w.flush(a)
+	got = frames(a)
+	if !strings.Contains(got, `"l":[2]`) || strings.Contains(got, `"m":`) {
+		t.Fatalf("return then leave must send only the leave: %s", got)
 	}
 }

@@ -140,6 +140,85 @@ export async function run() {
     }));
 
     // ---- double-click to walk ----
+    // ---- prediction under network jitter, and at walls ----
+    // Every input leaves the page 0-120 ms late (in order), like a bad Wi-Fi. While "right" is held
+    // at run speed, the own avatar must never be drawn stepping back, and it must end where the server says.
+    await walkTo(a, 4 * 16 + 8, 28 * 16 + 8);
+    await read(a, () => {
+      const orig = WebSocket.prototype.send;
+      let last = 0;
+      window.__origSend = orig;
+      WebSocket.prototype.send = function (d) {
+        const at = Math.max(last, performance.now() + Math.random() * 120);
+        last = at;
+        setTimeout(() => orig.call(this, d), at - performance.now());
+      };
+    });
+    const jitter = await read(a, () => new Promise((resolve) => {
+      const v = window.__tilework.view;
+      v.toggleRun(true);
+      v.setDirection(1, 0);
+      const xs = [];
+      const t0 = performance.now();
+      const tick = (now) => {
+        xs.push(v.ents.get(v.meId).x);
+        if (now - t0 < 1300) requestAnimationFrame(tick);
+        else { v.setDirection(0, 0); v.toggleRun(false); resolve(xs); }
+      };
+      requestAnimationFrame(tick);
+    }));
+    let back = 0;
+    for (let i = 1; i < jitter.length; i++) back = Math.max(back, jitter[i - 1] - jitter[i]);
+    await sleep(900);
+    const mine = await read(a, () => { const v = window.__tilework.view, e = v.ents.get(v.meId); return { x: e.x, y: e.y }; });
+    const theirs = await read(b, (id) => { const e = window.__tilework.view.ents.get(id); return { x: e.x, y: e.y }; }, a.id);
+    check("with 0-120 ms of input jitter, a runner is never drawn stepping back", back <= 0.01 && jitter.at(-1) - jitter[0] > 120, "max step back " + back.toFixed(2) + " px over " + jitter.length + " frames, ran " + (jitter.at(-1) - jitter[0]).toFixed(0) + " px");
+    check("...and stops where the server and other people see it", dist(mine, theirs) < 1, dist(mine, theirs).toFixed(2) + " px");
+    await read(a, () => { WebSocket.prototype.send = window.__origSend; });
+    // the same on a diagonal at walking speed, where each axis moves slowest (51 px/s): both axes monotonic
+    await walkTo(a, 6 * 16 + 8, 30 * 16 + 8);
+    await read(a, () => {
+      const orig = WebSocket.prototype.send;
+      let last = 0;
+      WebSocket.prototype.send = function (d) {
+        const at = Math.max(last, performance.now() + Math.random() * 120);
+        last = at;
+        setTimeout(() => orig.call(this, d), at - performance.now());
+      };
+    });
+    const diag = await read(a, () => new Promise((resolve) => {
+      const v = window.__tilework.view;
+      v.setDirection(1, -1);
+      const pts = [];
+      const t0 = performance.now();
+      const tick = (now) => {
+        const e = v.ents.get(v.meId);
+        pts.push([e.x, e.y]);
+        if (now - t0 < 1300) requestAnimationFrame(tick); else { v.setDirection(0, 0); resolve(pts); }
+      };
+      requestAnimationFrame(tick);
+    }));
+    let backX = 0, backY = 0;
+    for (let i = 1; i < diag.length; i++) { backX = Math.max(backX, diag[i - 1][0] - diag[i][0]); backY = Math.max(backY, diag[i][1] - diag[i - 1][1]); }
+    check("...and walking diagonally neither axis is drawn stepping back", backX <= 0.01 && backY <= 0.01 && diag.at(-1)[0] - diag[0][0] > 40, "max back x " + backX.toFixed(2) + " y " + backY.toFixed(2) + " px");
+    await read(a, () => { WebSocket.prototype.send = window.__origSend; });
+    // A 1-tile wall above (5, 15): run into it, then nothing may pull the avatar away from it.
+    await walkTo(a, 5 * 16 + 8, 16 * 16 + 8);
+    const wall = await read(a, async () => {
+      const v = window.__tilework.view, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      v.toggleRun(true);
+      v.setDirection(0, -1);
+      await wait(700);
+      v.setDirection(0, 0);
+      v.toggleRun(false);
+      const e = v.ents.get(v.meId), at = e.y;
+      await wait(900);
+      return { at, after: e.y, x: e.x };
+    });
+    const seenAtWall = await read(b, (id) => window.__tilework.view.ents.get(id).y, a.id);
+    check("running into a wall stops touching it, with no pull-back afterwards", wall.at === 15 * 16 + 3 && wall.after === wall.at, "y " + wall.at + " -> " + wall.after);
+    check("...and others see it touching the wall too", Math.abs(seenAtWall - wall.after) < 0.5, "observer y " + seenAtWall.toFixed(2));
+
     await walkTo(a, 4 * 16 + 8, 27 * 16 + 8);
     const target = { tx: 12, ty: 29 };
     const box = await read(a, (t) => {

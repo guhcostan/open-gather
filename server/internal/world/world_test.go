@@ -30,13 +30,13 @@ func (f *fakeMedia) Revoke(room, id string) {
 }
 
 type harness struct {
-	t   *testing.T
+	t   testing.TB
 	w   *World
 	now time.Time
 	fm  *fakeMedia
 }
 
-func newHarness(t *testing.T) *harness {
+func newHarness(t testing.TB) *harness {
 	t.Helper()
 	cm, err := gamemap.Compile(gamemap.Default())
 	if err != nil {
@@ -125,12 +125,12 @@ func TestAOIEnterLeave(t *testing.T) {
 	a := h.add(1, "member", 2*16, 2*16)
 	b := h.add(2, "member", 58*16, 33*16) // far corner
 	h.run(100 * time.Millisecond)
-	if _, ok := a.pendPos[2]; ok {
+	if _, ok := pendingPos(a, 2); ok {
 		t.Fatal("far player must not be in a's interest area")
 	}
 	h.teleport(b, 3*16, 3*16)
 	h.w.flush(a)
-	if _, ok := a.pendPos[2]; !ok && len(a.out) == 0 {
+	if _, ok := pendingPos(a, 2); !ok && len(a.out) == 0 {
 		t.Fatal("expected b to enter a's interest area")
 	}
 	// Drain frames and look for b's id in a "w" frame.
@@ -315,8 +315,8 @@ func TestSlowClientIsCoalescedNotUnbounded(t *testing.T) {
 	if len(a.out) > cap(a.out) {
 		t.Fatal("queue overflow")
 	}
-	if len(a.pendPos) > 1 {
-		t.Fatalf("stale positions must be coalesced: %d pending", len(a.pendPos))
+	if nPendingPos(a) > 1 {
+		t.Fatalf("stale positions must be coalesced: %d pending", nPendingPos(a))
 	}
 	if h.w.St.PosCoalesced.Load() == 0 && h.w.St.Skipped.Load() == 0 {
 		t.Fatal("expected backpressure counters to move")
@@ -423,7 +423,7 @@ func TestCellCrossingStillNotifiesWithoutStateRecords(t *testing.T) {
 	if countRecords(drain(a), "2") == 0 {
 		t.Fatal("entering someone's area of interest must deliver a fresh state even if b sent no records")
 	}
-	if _, ok := b.pendPos[1]; ok {
+	if _, ok := pendingPos(b, 1); ok {
 		t.Fatal("unexpected pending state")
 	}
 }
@@ -593,4 +593,22 @@ func TestEvictRemovesThePlayerEndsTheCallAndTellsTheConnection(t *testing.T) {
 	}
 	// evicting somebody who is not there is a no-op
 	h.w.handle(ev{kind: evEvict, id: 77}, h.now)
+}
+
+// pendingPos is the state record queued for id in p's next world frame, if any.
+func pendingPos(p *Player, id uint32) (posRec, bool) {
+	if i := p.pendIdx.find(p.pend, id); i >= 0 && !p.pend[i].leave {
+		return p.pend[i].r, true
+	}
+	return posRec{}, false
+}
+
+func nPendingPos(p *Player) int {
+	n := 0
+	for _, it := range p.pend {
+		if !it.leave {
+			n++
+		}
+	}
+	return n
 }

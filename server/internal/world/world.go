@@ -445,8 +445,7 @@ func (w *World) handle(e ev, now time.Time) {
 		w.doLocate(p, e.id)
 	case evSync:
 		// The tab was hidden (no extrapolation ran): resend the current state of everything in view.
-		clear(p.pendPos)
-		clear(p.pendLeave)
+		clearPending(p)
 		w.unsubAll(p)
 		w.resub(p)
 	case evToken:
@@ -491,7 +490,7 @@ func (w *World) doJoin(e ev, now time.Time) {
 			return
 		}
 		p = &Player{ID: info.ID, Name: info.Name, Avatar: info.Avatar, Role: info.Role, Status: StatusAvailable,
-			area: -1, pendPos: map[uint32]posRec{}, pendLeave: map[uint32]struct{}{}, chatTokens: 5, portalOn: -1}
+			area: -1, chatTokens: 5, portalOn: -1}
 		p.sx0, p.sy0, p.sx1, p.sy1 = 0, 0, -1, -1
 		p.X, p.Y = w.spawnFor(p, info)
 		p.lastAdv = now
@@ -516,8 +515,7 @@ func (w *World) doJoin(e ev, now time.Time) {
 			close(old)
 		}
 		p.Name, p.Avatar, p.Role = info.Name, info.Avatar, info.Role
-		clear(p.pendPos)
-		clear(p.pendLeave)
+		clearPending(p)
 		w.unsubAll(p) // re-subscribed below so the client gets a fresh full snapshot
 		w.rUpd[p.ID] = struct{}{}
 	}
@@ -905,22 +903,72 @@ func (w *World) advance(p *Player, now time.Time) {
 	if dt <= 0 || (p.Dx == 0 && p.Dy == 0) {
 		return
 	}
-	if dt > 0.25 {
-		dt = 0.25
+	if dt > maxAdvance {
+		dt = maxAdvance
 	}
+	w.move(p, &p.X, &p.Y, w.speedOf(p)*dt, false)
+}
+
+// Movement rules shared with the web client (WorldView.moveBody): the distance is walked in
+// sub-steps no longer than subStepPx, so no wall can be skipped, and a blocked axis moves to
+// the point of contact. The result does not depend on how the distance was split (ticks on the
+// server, frames on the client), which is what keeps prediction and the server in agreement.
+const (
+	subStepPx  = 4.0
+	maxAdvance = 1.0 // seconds; only a stalled process gets near this
+)
+
+// move walks (x, y) dist pixels along the player's input. static uses only the map's walls (the
+// extrapolation clients run); otherwise room access applies and p.area follows the walk.
+func (w *World) move(p *Player, x, y *float64, dist float64, static bool) {
 	vx, vy := float64(p.Dx), float64(p.Dy)
 	if vx != 0 && vy != 0 {
 		vx *= 0.70710678
 		vy *= 0.70710678
 	}
-	step := w.speedOf(p) * dt
-	if nx := p.X + vx*step; vx != 0 && w.canStand(p, nx, p.Y) {
-		p.X = nx
+	n := int(math.Ceil(dist / subStepPx))
+	if n < 1 {
+		n = 1
 	}
-	if ny := p.Y + vy*step; vy != 0 && w.canStand(p, p.X, ny) {
-		p.Y = ny
+	step := dist / float64(n)
+	for i := 0; i < n; i++ {
+		if vx != 0 {
+			nx := *x + vx*step
+			if w.stand(p, nx, *y, static) {
+				*x = nx
+			} else if c := contact(nx, vx, boxHalfW); (vx > 0 && c > *x || vx < 0 && c < *x) && w.stand(p, c, *y, static) {
+				*x = c
+			}
+		}
+		if vy != 0 {
+			ny := *y + vy*step
+			if w.stand(p, *x, ny, static) {
+				*y = ny
+			} else if c := contact(ny, vy, boxHalfH); (vy > 0 && c > *y || vy < 0 && c < *y) && w.stand(p, *x, c, static) {
+				*y = c
+			}
+		}
+		if !static {
+			p.area = w.m.AreaIndexAt(int(*x)/gamemap.TilePx, int(*y)/gamemap.TilePx)
+		}
 	}
-	p.area = w.m.AreaIndexAt(int(p.X)/gamemap.TilePx, int(p.Y)/gamemap.TilePx)
+}
+
+func (w *World) stand(p *Player, x, y float64, static bool) bool {
+	if static {
+		return w.staticCanStand(x, y)
+	}
+	return w.canStand(p, x, y)
+}
+
+// contact is the coordinate where a box of half size half, moving in direction v, touches the
+// tile edge it would cross when reaching c.
+func contact(c, v, half float64) float64 {
+	const T = gamemap.TilePx
+	if v > 0 {
+		return math.Floor((c+half-0.001)/T)*T - half
+	}
+	return (math.Floor((c-half)/T)+1)*T + half
 }
 
 func (w *World) spawnFor(p *Player, info UserInfo) (float64, float64) {
@@ -980,20 +1028,36 @@ func (p *Player) subscribed(cx, cy int) bool {
 	return cx >= p.sx0 && cx <= p.sx1 && cy >= p.sy0 && cy <= p.sy1
 }
 
-func (w *World) queuePosRec(to *Player, id uint32, r posRec) {
-	if _, dup := to.pendPos[id]; dup {
-		w.St.PosCoalesced.Add(1)
+func (w *World) queuePosRec(to *Player, e *Player, r posRec) {
+	it := pendItem{e: e, id: e.ID, r: r}
+	if i := to.pendIdx.find(to.pend, e.ID); i >= 0 {
+		if !to.pend[i].leave {
+			w.St.PosCoalesced.Add(1)
+		}
+		to.pend[i] = it
+		return
 	}
-	to.pendPos[id] = r
-	delete(to.pendLeave, id)
+	to.pend = append(to.pend, it)
+	to.pendIdx.add(to.pend, e.ID, int32(len(to.pend)-1))
 }
 
 // queuePos sends e's CURRENT state (used when e enters someone's view).
-func (w *World) queuePos(to *Player, e *Player) { w.queuePosRec(to, e.ID, e.rec()) }
+func (w *World) queuePos(to *Player, e *Player) { w.queuePosRec(to, e, e.rec()) }
 
 func (w *World) queueLeave(to *Player, id uint32) {
-	delete(to.pendPos, id)
-	to.pendLeave[id] = struct{}{}
+	it := pendItem{id: id, leave: true}
+	if i := to.pendIdx.find(to.pend, id); i >= 0 {
+		to.pend[i] = it
+		return
+	}
+	to.pend = append(to.pend, it)
+	to.pendIdx.add(to.pend, id, int32(len(to.pend)-1))
+}
+
+// clearPending forgets what was queued for p (sent, or replaced by a full resubscription).
+func clearPending(p *Player) {
+	p.pendIdx.reset()
+	p.pend = p.pend[:0]
 }
 
 // insertVisible puts p into the entity grid and tells interested clients.
@@ -1045,7 +1109,7 @@ func (w *World) publish(p *Player, send bool) {
 			r := p.rec()
 			for _, s := range nc.subs {
 				if s != p && !s.subscribed(ocx, ocy) {
-					w.queuePosRec(s, p.ID, r) // newcomers always get a fresh state
+					w.queuePosRec(s, p, r) // newcomers always get a fresh state
 				}
 			}
 		}
@@ -1057,7 +1121,7 @@ func (w *World) publish(p *Player, send bool) {
 	}
 	for _, s := range w.cells[p.cy*w.cols+p.cx].subs {
 		if s != p {
-			w.queuePosRec(s, p.ID, p.last)
+			w.queuePosRec(s, p, p.last)
 		}
 	}
 }
@@ -1072,8 +1136,6 @@ func (w *World) sendState(p *Player, now time.Time) {
 		w.sendSelf(p, false) // the guided player is moved by the server: tell its own client
 	}
 }
-
-const shadowStep = 1.0 / 60.0
 
 func (w *World) staticCanStand(x, y float64) bool {
 	const T = gamemap.TilePx
@@ -1099,25 +1161,10 @@ func (w *World) advanceShadow(p *Player, now time.Time) {
 	if dt <= 0 || (p.Dx == 0 && p.Dy == 0) {
 		return
 	}
-	if dt > 0.25 {
-		dt = 0.25
+	if dt > maxAdvance {
+		dt = maxAdvance
 	}
-	vx, vy := float64(p.Dx), float64(p.Dy)
-	if vx != 0 && vy != 0 {
-		vx *= 0.70710678
-		vy *= 0.70710678
-	}
-	n := int(math.Ceil(dt / shadowStep))
-	h := dt / float64(n)
-	step := w.speedOf(p) * h
-	for i := 0; i < n; i++ {
-		if nx := p.ix + vx*step; vx != 0 && w.staticCanStand(nx, p.iy) {
-			p.ix = nx
-		}
-		if ny := p.iy + vy*step; vy != 0 && w.staticCanStand(p.ix, ny) {
-			p.iy = ny
-		}
-	}
+	w.move(p, &p.ix, &p.iy, w.speedOf(p)*dt, true)
 }
 
 func (w *World) rect(p *Player) (x0, y0, x1, y1 int) {

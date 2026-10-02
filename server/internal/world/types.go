@@ -82,6 +82,13 @@ type posRec struct {
 	d    uint8
 }
 
+type pendItem struct {
+	e     *Player // nil for a leave
+	id    uint32
+	r     posRec
+	leave bool
+}
+
 type group struct {
 	id      uint32
 	room    string
@@ -114,12 +121,18 @@ type Player struct {
 	sx1, sy1 int
 
 	// connection
-	out       chan []byte
-	kick      func(reason KickReason)
-	gen       uint64
-	gone      time.Time // when the connection dropped (zero = connected)
-	pendPos   map[uint32]posRec
-	pendLeave map[uint32]struct{}
+	out  chan []byte
+	kick func(reason KickReason)
+	gen  uint64
+	gone time.Time // when the connection dropped (zero = connected)
+	// What this client gets in its next world frame: one item per entity (latest wins), in the
+	// order they were queued. pendIdx finds an entity's item; flush walks the slice.
+	pend    []pendItem
+	pendIdx pendIndex
+	// The encoded form of this player's state record ("[id,x,y,d]") for encFor, shared by every
+	// observer's frame in the tick instead of being formatted once per observer.
+	enc    []byte
+	encFor posRec
 
 	// media / proximity
 	consent    bool

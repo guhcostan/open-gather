@@ -15,7 +15,7 @@ const PORT = process.env.TILEWORK_TEST_PORT ?? "18080";
 process.env.TILEWORK_APP = process.env.TILEWORK_API = EXTERNAL || `http://127.0.0.1:${PORT}`;
 process.env.TILEWORK_LK_HTTP ??= "http://127.0.0.1:7880";
 
-const all = ["proximity", "consent", "rooms", "access", "editor", "social", "admin", "a11y", "security", "resilience", "features", "spotlight", "movement", "presence", "offices"];
+const all = ["proximity", "consent", "rooms", "access", "editor", "social", "admin", "a11y", "security", "resilience", "features", "spotlight", "movement", "presence", "offices", "idle"];
 const wanted = process.argv.slice(2).length ? process.argv.slice(2) : EXTERNAL ? ["proximity", "consent", "rooms"] : all;
 
 const children = [];

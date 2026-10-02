@@ -36,7 +36,8 @@ Each office has one `World` that owns all state in a single goroutine (see [deci
 
 - **React** owns the UI (panels, dialogs, chat). **PixiJS** owns the world and runs its own ticker, so movement and animation never pass through React renders.
 - The static map is baked into a **single texture** (one draw call for the background). Avatars are procedural pixel art cached per look. Only entities inside the camera are drawn. The look itself is described in [Art style](art-style.md).
-- **Prediction and extrapolation**: the local player moves immediately and reconciles with server acknowledgements; remote players keep walking along their last known direction with the same collision rules as the server, and corrections are blended over ~80 ms.
+- **Prediction and extrapolation**: the local player moves immediately and reconciles with server acknowledgements (the whole error, applied to inputs still in flight too, and hidden by a fading visual offset); remote players keep walking along their last known direction with the same movement rule as the server, and corrections are blended over ~80 ms. Client and server walk in sub-steps of at most 4 px and stop at the point of contact with a wall, so they agree however time is split ([0017](decisions/0017-movement-reconciliation-and-render-on-demand.md)).
+- **Render on demand**: the PixiJS frame loop runs every display frame but draws only when something on screen changed (and at 4 FPS otherwise, as a safety net).
 - Internal resolution is capped on high-density displays, hidden tabs stop rendering (calls continue), and an **economy mode** limits the frame rate to 30 and lowers resolution.
 
 ## Media
