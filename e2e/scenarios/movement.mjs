@@ -171,15 +171,24 @@ export async function run() {
     for (let i = 1; i < jitter.length; i++) back = Math.max(back, jitter[i - 1] - jitter[i]);
     check("with 0-120 ms of input jitter, a runner is never drawn stepping back", back <= 0.01 && jitter.at(-1) - jitter[0] > 120, "max step back " + back.toFixed(2) + " px over " + jitter.length + " frames, ran " + (jitter.at(-1) - jitter[0]).toFixed(0) + " px");
     // convergence is polled, not slept: a loaded machine may take longer than 900 ms to deliver the stop
+    // convergence is polled with a generous timeout: a loaded software renderer can take seconds
+    // to deliver the stop. The trajectory is reported, so a real never-converges bug is told apart
+    // from a slow machine.
     const tc0 = Date.now();
     let mine = null, theirs = null, gap = Infinity;
-    await waitFor(async () => {
-      mine = await read(a, () => { const v = window.__tilework.view, e = v.ents.get(v.meId); return { x: e.x, y: e.y }; });
-      theirs = await read(b, (id) => { const e = window.__tilework.view.ents.get(id); return { x: e.x, y: e.y }; }, a.id);
-      gap = dist(mine, theirs);
-      return gap < 1;
-    }, { timeout: 10000, every: 250, what: "observer converges on the stopped runner" });
-    check("...and stops where the server and other people see it", gap < 1, gap.toFixed(2) + " px after " + ((Date.now() - tc0) / 1000).toFixed(1) + " s");
+    const gtrail = [];
+    let converged = false;
+    try {
+      await waitFor(async () => {
+        mine = await read(a, () => { const v = window.__tilework.view, e = v.ents.get(v.meId); return { x: e.x, y: e.y }; });
+        theirs = await read(b, (id) => { const e = window.__tilework.view.ents.get(id); return { x: e.x, y: e.y }; }, a.id);
+        gap = dist(mine, theirs);
+        gtrail.push(+gap.toFixed(1));
+        return gap < 1;
+      }, { timeout: 20000, every: 500, what: "observer converges on the stopped runner" });
+      converged = true;
+    } catch { /* reported below with the trajectory */ }
+    check("...and stops where the server and other people see it", converged && gap < 1, gap.toFixed(2) + " px after " + ((Date.now() - tc0) / 1000).toFixed(1) + " s, trail " + gtrail.join("->") + ", mine " + JSON.stringify(mine) + " theirs " + JSON.stringify(theirs));
     await read(a, () => { WebSocket.prototype.send = window.__origSend; });
     // the same on a diagonal at walking speed, where each axis moves slowest (51 px/s): both axes monotonic
     await walkTo(a, 6 * 16 + 8, 30 * 16 + 8);

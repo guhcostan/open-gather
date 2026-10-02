@@ -490,7 +490,7 @@ func (w *World) doJoin(e ev, now time.Time) {
 			return
 		}
 		p = &Player{ID: info.ID, Name: info.Name, Avatar: info.Avatar, Role: info.Role, Status: StatusAvailable,
-			area: -1, chatTokens: 5, portalOn: -1}
+			area: -1, chatTokens: 5, portalOn: -1, ackSent: ^uint32(0)}
 		p.sx0, p.sy0, p.sx1, p.sy1 = 0, 0, -1, -1
 		p.X, p.Y = w.spawnFor(p, info)
 		p.lastAdv = now
@@ -621,6 +621,7 @@ func (w *World) doInput(p *Player, seq uint32, dx, dy int8, run bool, now time.T
 	if dx < -1 || dx > 1 || dy < -1 || dy > 1 {
 		return
 	}
+	p.ackSeq = seq
 	runChanged := run != p.run
 	if runChanged {
 		w.advance(p, now) // integrate at the old speed up to the switch
@@ -659,16 +660,33 @@ func (w *World) doInput(p *Player, seq uint32, dx, dy int8, run bool, now time.T
 		p.shadowAt = now
 		w.sendState(p, now) // direction changes are the events clients cannot predict
 	}
-	if p.out != nil && len(p.out) < cap(p.out)/2 {
-		b := append(w.buf[:0], `{"t":"a","s":`...)
-		b = strconv.AppendUint(b, uint64(seq), 10)
-		b = append(b, `,"x":`...)
-		b = strconv.AppendFloat(b, p.X, 'f', 1, 64)
-		b = append(b, `,"y":`...)
-		b = strconv.AppendFloat(b, p.Y, 'f', 1, 64)
-		b = append(b, '}')
-		w.buf = b
-		w.sendCopy(p, b)
+	w.sendAck(p, seq)
+}
+
+// sendAck queues the authoritative position at the time of input seq (best effort, like the
+// other frames). The acknowledgement is the only channel that keeps the owner's predicted
+// position on the truth, so a send skipped for congestion is retried on later ticks instead of
+// being lost: without it a lost ack leaves the owner diverged with no recovery.
+func (w *World) sendAck(p *Player, seq uint32) {
+	if p.out == nil {
+		return
+	}
+	b := append(w.buf[:0], `{"t":"a","s":`...)
+	b = strconv.AppendUint(b, uint64(seq), 10)
+	b = append(b, `,"x":`...)
+	b = strconv.AppendFloat(b, p.X, 'f', 1, 64)
+	b = append(b, `,"y":`...)
+	b = strconv.AppendFloat(b, p.Y, 'f', 1, 64)
+	b = append(b, '}')
+	w.buf = b
+	c := make([]byte, len(b)) // the scratch buffer is reused: queue a copy, like sendCopy
+	copy(c, b)
+	select {
+	case p.out <- c:
+		p.ackSent = seq
+		w.St.FramesOut.Add(1)
+		w.St.BytesOut.Add(int64(len(b)))
+	default:
 	}
 }
 

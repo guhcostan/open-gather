@@ -111,6 +111,8 @@ type Player struct {
 	run      bool // the player holds the run key (or has "always run" on)
 	lastAdv  time.Time
 	last     posRec
+	ackSeq   uint32    // sequence of the latest movement input
+	ackSent  uint32    // sequence of the latest input an acknowledgement was queued for
 	ix, iy   float64   // what clients extrapolate to (dead-reckoning shadow)
 	sentAt   time.Time // last time a state record was published
 	shadowAt time.Time

@@ -144,6 +144,7 @@ export class WorldView {
   private mArea = -1;
   private seq = 0;
   private hist = new Map<number, { x: number; y: number }>();
+  private lastAck = 0; // newest acknowledgement sequence applied
   private lastBeat = 0;
   private lastLocal = 0; // performance.now() the local position was integrated to
   // visual offset that hides reconciliation: the avatar is drawn at (mx+vox, my+voy)
@@ -411,6 +412,7 @@ export class WorldView {
     this.my = y;
     this.vox = this.voy = 0;
     this.hist.clear();
+    this.lastAck = 0;
     this.speed = speed;
     this.runMul = runMul;
     this.mArea = this.areaIndex(x, y);
@@ -471,6 +473,7 @@ export class WorldView {
     this.my = y;
     this.vox = this.voy = 0;
     this.dx = this.dy = 0;
+    this.lastAck = 0;
     this.hist.clear();
     this.keys.clear();
     this.mArea = this.areaIndex(x, y);
@@ -609,8 +612,16 @@ export class WorldView {
    * The avatar is drawn where it was and the offset fades, so jitter never shows as a step back.
    */
   applyAck(a: Ack) {
-    const h = this.hist.get(a.s);
-    if (!h) return;
+    let h = this.hist.get(a.s);
+    if (!h) {
+      // No record of this input: its acknowledgement arrived after newer ones already
+      // cleared it (a delayed message after a stall). The effects of every input up to this
+      // one are already in the live position, so compare against that — but only for acks
+      // newer than anything applied so far.
+      if (a.s <= this.lastAck) return;
+      h = { x: this.mx, y: this.my };
+    }
+    this.lastAck = Math.max(this.lastAck, a.s);
     for (const k of this.hist.keys()) if (k <= a.s) this.hist.delete(k);
     const ex = a.x - h.x;
     const ey = a.y - h.y;

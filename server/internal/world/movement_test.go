@@ -179,3 +179,40 @@ func TestLeaveAndReturnInOneTickKeepOnlyTheLast(t *testing.T) {
 		t.Fatalf("return then leave must send only the leave: %s", got)
 	}
 }
+
+// An acknowledgement dropped for congestion is retried on later ticks, not lost: without it a
+// lost ack leaves the owner's prediction diverged with no recovery (the ack is the only channel
+// that keeps it on the truth).
+func TestUnsentAckIsRetriedAfterCongestion(t *testing.T) {
+	h := newHarness(t)
+	p := h.add(1, "member", sx, sy)
+	drain(p)
+	for len(p.out) < cap(p.out) { // completely full: even a best-effort send is dropped
+		p.out <- []byte("{}")
+	}
+	h.send(p, ev{kind: evInput, seq: 7, dx: 1})
+	for _, f := range drain(p) {
+		if strings.Contains(f, `"t":"a"`) {
+			t.Fatal("a congested queue must skip the ack, retrying later")
+		}
+	}
+	if p.ackSeq != 7 || p.ackSent == 7 {
+		t.Fatalf("the input is recorded with its ack pending (seq %d sent %d)", p.ackSeq, p.ackSent)
+	}
+	h.run(time.Second / 15) // the queue is free again: the ack for the latest input goes out
+	found := false
+	for _, f := range drain(p) {
+		if strings.Contains(f, `"t":"a","s":7`) {
+			found = true
+		}
+	}
+	if !found {
+		t.Fatal("the ack is retried on a later tick, not lost")
+	}
+	h.run(time.Second) // and it is sent once, not every tick
+	for _, f := range drain(p) {
+		if strings.Contains(f, `"t":"a"`) {
+			t.Fatal("the ack must not repeat once queued")
+		}
+	}
+}

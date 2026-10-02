@@ -347,6 +347,9 @@ func (w *World) tick(now time.Time) {
 	w.flushRoster()
 	w.publishCounts(now)
 	for _, p := range w.list {
+		if p.ackSent != p.ackSeq {
+			w.sendAck(p, p.ackSeq) // an acknowledgement lost to congestion, retried, not lost
+		}
 		w.flush(p)
 	}
 	w.St.Players.Store(int64(len(w.list)))

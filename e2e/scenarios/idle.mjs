@@ -65,16 +65,24 @@ export async function run() {
     check("...and the picture really changed", shot0 !== shot1);
     // my own walk is drawn too. Draws are counted over the exact walk window in the page: the old
     // wall-clock window included 200 ms standing still afterwards, which fails a slow renderer by arithmetic.
+    // Frames and draws are both counted in the page over the exact walk window: on a slow software
+    // renderer the display rate itself drops, so draws are judged against the frames that ran.
     const walk = await read(a, () => new Promise((resolve) => {
       const v = window.__tilework.view;
-      const r0 = v.rendersTotal, f0 = v.stats.fps, t0 = performance.now();
+      const r0 = v.rendersTotal, t0 = performance.now();
+      let frames = 0;
       v.setDirection(1, 0);
-      setTimeout(() => {
-        v.setDirection(0, 0);
-        resolve({ draws: (v.rendersTotal - r0) / ((performance.now() - t0) / 1000), fps: f0 });
-      }, 800);
+      const tick = () => {
+        frames++;
+        if (performance.now() - t0 < 800) requestAnimationFrame(tick);
+        else {
+          v.setDirection(0, 0);
+          resolve({ draws: v.rendersTotal - r0, frames });
+        }
+      };
+      requestAnimationFrame(tick);
     }));
-    check("my own walk is drawn at full rate", walk.draws >= Math.min(45, walk.fps * 0.8), walk.draws.toFixed(1) + " draws/s at " + walk.fps + " fps");
+    check("my own walk is drawn at full rate", walk.frames > 10 && walk.draws >= walk.frames * 0.8, walk.draws + " draws over " + walk.frames + " frames");
     await sleep(800);
     const before = await a.page.screenshot({ encoding: "base64" });
     await read(b, () => window.__tilework.session.setStatus?.("busy"));
