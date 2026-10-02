@@ -13,9 +13,9 @@ const GPU_ARGS = process.env.PERF_SOFTWARE_GL ? [] : ["--use-gl=angle", "--use-a
 
 async function measure(browser, name, eco, size, ctx) {
   const u = await joinAs(browser, name, { viewport: size });
-  await u.page.evaluate((eco) => { localStorage.setItem("og.settings", JSON.stringify({ eco, maxVideos: 6, audioOnly: false, debug: false })); }, eco);
+  await u.page.evaluate((eco) => { localStorage.setItem("tilework.settings", JSON.stringify({ eco, maxVideos: 6, audioOnly: false, debug: false })); }, eco);
   await u.page.reload({ waitUntil: "domcontentloaded" });
-  await waitFor(() => u.page.evaluate(() => window.__og?.state?.meId > 0 && window.__og.state.conn === "open"), { what: "reconnect" });
+  await waitFor(() => u.page.evaluate(() => window.__tilework?.state?.meId > 0 && window.__tilework.state.conn === "open"), { what: "reconnect" });
   const gl = await u.page.evaluate(() => {
     const c = document.createElement("canvas");
     const g = c.getContext("webgl");
@@ -38,7 +38,7 @@ async function measure(browser, name, eco, size, ctx) {
   const samples = [];
   while (Date.now() - t0 < SECONDS * 1000) {
     await sleep(1000);
-    samples.push(await u.page.evaluate(() => ({ ...window.__og.view.stats, heap: performance.memory ? performance.memory.usedJSHeapSize / 1048576 : 0 })));
+    samples.push(await u.page.evaluate(() => ({ ...window.__tilework.view.stats, heap: performance.memory ? performance.memory.usedJSHeapSize / 1048576 : 0 })));
   }
   const m1 = await metric();
   stop = true;

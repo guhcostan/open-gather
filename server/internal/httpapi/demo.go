@@ -6,7 +6,7 @@ import (
 	"errors"
 	"time"
 
-	"opengather/internal/gamemap"
+	"tilework/internal/gamemap"
 )
 
 // demoInfo tells the client whether this is a public demo and when its content is next reset.

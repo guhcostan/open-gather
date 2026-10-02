@@ -1,6 +1,6 @@
 # Publishes the server image (web client included) to GitHub Container Registry:
-#   ghcr.io/guhcostan/open-gather:latest   on every push to main
-#   ghcr.io/guhcostan/open-gather:vX.Y.Z   on version tags
+#   ghcr.io/guhcostan/tilework:latest   on every push to main
+#   ghcr.io/guhcostan/tilework:vX.Y.Z   on version tags
 name: Docker image
 on:
   push:

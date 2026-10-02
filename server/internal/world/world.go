@@ -13,8 +13,8 @@ import (
 	"time"
 	"unicode"
 
-	"opengather/internal/gamemap"
-	"opengather/internal/media"
+	"tilework/internal/gamemap"
+	"tilework/internal/media"
 )
 
 // Media is the subset of the SFU integration the world needs.

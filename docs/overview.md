@@ -1,12 +1,12 @@
 # Overview
 
-**Open Gather** is an open source 2D virtual office in the spirit of the classic Gather experience. Your team walks around a pixel-art map, meets colleagues, talks by proximity, joins meeting rooms and shares screens, all in the browser.
+**Tilework** is an open source 2D virtual office in the spirit of the classic Gather experience. Your team walks around a pixel-art map, meets colleagues, talks by proximity, joins meeting rooms and shares screens, all in the browser.
 
-The name is **provisional**, and the project has no affiliation with the original Gather product. It uses only original code and assets (or compatible licences).
+Tilework is an independent open source alternative to Gather, with no affiliation with the original product. It uses only original code and assets (or compatible licences).
 
 ## What makes it different: efficiency
 
-Most virtual offices are heavy. Open Gather is designed around a budget:
+Most virtual offices are heavy. Tilework is designed around a budget:
 
 - **Server**: one Go process runs an authoritative world per office, with a spatial index and areas of interest, so a player is never compared against everyone else.
 - **Network**: movement is sent as small, batched, incremental updates at 10-15 Hz. Slow clients get the newest position instead of a growing backlog.

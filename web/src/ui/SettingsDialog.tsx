@@ -19,7 +19,7 @@ export function SettingsDialog({ onClose }: { onClose: () => void }) {
     const r = await fetch("/api/profile", { method: "PUT", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: name.trim(), avatar }) });
     if (!r.ok) return toast(t("settings.profileError"));
     saveAvatar(avatar);
-    localStorage.setItem("og.name", name.trim());
+    localStorage.setItem("tilework.name", name.trim());
     toast(t("settings.profileSaved"));
   };
   return (

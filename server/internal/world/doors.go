@@ -4,7 +4,7 @@ import (
 	"strconv"
 	"time"
 
-	"opengather/internal/gamemap"
+	"tilework/internal/gamemap"
 )
 
 // Locked doors. Somebody standing inside a meeting room can lock it. From then on nobody who was

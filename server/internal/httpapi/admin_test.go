@@ -14,10 +14,10 @@ import (
 	"testing"
 	"time"
 
-	"opengather/internal/config"
-	"opengather/internal/gamemap"
-	"opengather/internal/media"
-	"opengather/internal/store"
+	"tilework/internal/config"
+	"tilework/internal/gamemap"
+	"tilework/internal/media"
+	"tilework/internal/store"
 )
 
 type rig struct {

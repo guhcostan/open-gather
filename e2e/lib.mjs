@@ -2,9 +2,9 @@
 import puppeteer from "puppeteer-core";
 import crypto from "node:crypto";
 
-export const APP = process.env.OG_APP ?? "http://127.0.0.1:5173";
-export const API = process.env.OG_API ?? "http://127.0.0.1:8080";
-export const LK = process.env.OG_LK_HTTP ?? "http://127.0.0.1:7880";
+export const APP = process.env.TILEWORK_APP ?? "http://127.0.0.1:5173";
+export const API = process.env.TILEWORK_API ?? "http://127.0.0.1:8080";
+export const LK = process.env.TILEWORK_LK_HTTP ?? "http://127.0.0.1:7880";
 const KEY = process.env.LIVEKIT_API_KEY ?? "devkey";
 const SECRET = process.env.LIVEKIT_API_SECRET ?? "secret";
 const CHROME = process.env.CHROME ?? "/Applications/Google Chrome.app/Contents/MacOS/Google Chrome";
@@ -24,12 +24,12 @@ export function summary() {
 
 /** Tests share one office: wait until players from a previous run have left (reconnect grace). */
 export async function waitForEmptyOffice() {
-  await waitFor(async () => (await metrics()).og_players === 0, { timeout: 30000, every: 500, what: "empty office" });
+  await waitFor(async () => (await metrics()).tilework_players === 0, { timeout: 30000, every: 500, what: "empty office" });
 }
 
 export async function launch(extra = [], { waitEmpty = true } = {}) {
-  // OG_SHARED_OFFICE=1: a public instance (the demo) may have real visitors and no /metrics; do not wait.
-  if (waitEmpty && !process.env.OG_SHARED_OFFICE) await waitForEmptyOffice();
+  // TILEWORK_SHARED_OFFICE=1: a public instance (the demo) may have real visitors and no /metrics; do not wait.
+  if (waitEmpty && !process.env.TILEWORK_SHARED_OFFICE) await waitForEmptyOffice();
   return puppeteer.launch({
     executablePath: CHROME,
     headless: true,
@@ -58,9 +58,9 @@ export async function joinAs(browser, name, { path = "/", avatar = null, viewpor
   // CI runners render in software (SwiftShader) on 2 cores; a smaller canvas keeps the browsers near 30 fps.
   const ctx = await browser.createBrowserContext();
   const page = await ctx.newPage();
-  if (cookie) await ctx.setCookie({ name: "og_session", value: cookie, url: APP, httpOnly: true, sameSite: "Lax" });
+  if (cookie) await ctx.setCookie({ name: "tilework_session", value: cookie, url: APP, httpOnly: true, sameSite: "Lax" });
   await page.setViewport(viewport);
-  if (avatar) await page.evaluateOnNewDocument((a) => localStorage.setItem("og.avatar", JSON.stringify(a)), avatar);
+  if (avatar) await page.evaluateOnNewDocument((a) => localStorage.setItem("tilework.avatar", JSON.stringify(a)), avatar);
   const logs = [];
   // livekit-client logs these two as errors when WE close a call on purpose (user-initiated abort of its data channels)
   const benign = /DataChannel error on (lossy|reliable): User-Initiated Abort|publisher data channel '(DATA_TRACK_)?(LOSSY|RELIABLE)' closed unexpectedly|error reading from signal stream/i; // the last one: LiveKit's signal socket dropped on a loaded runner; the client reconnects on its own
@@ -72,17 +72,17 @@ export async function joinAs(browser, name, { path = "/", avatar = null, viewpor
     await page.type("input", name);
     await page.click("button.primary");
   }
-  await waitFor(() => page.evaluate(() => window.__og?.state?.meId > 0 && window.__og.state.conn === "open"), { timeout: 30000, what: name + " connected" });
-  return { ctx, page, name, logs, id: await page.evaluate(() => window.__og.state.meId) };
+  await waitFor(() => page.evaluate(() => window.__tilework?.state?.meId > 0 && window.__tilework.state.conn === "open"), { timeout: 30000, what: name + " connected" });
+  return { ctx, page, name, logs, id: await page.evaluate(() => window.__tilework.state.meId) };
 }
 
-export const pos = (u) => u.page.evaluate(() => window.__og.view.position());
-export const others = (u) => u.page.evaluate(() => window.__og.view.debugEntities());
-export const st = (u) => u.page.evaluate(() => ({ conv: window.__og.state.conv, mic: window.__og.state.mic, cam: window.__og.state.cam, status: window.__og.state.status, consent: window.__og.state.consent }));
+export const pos = (u) => u.page.evaluate(() => window.__tilework.view.position());
+export const others = (u) => u.page.evaluate(() => window.__tilework.view.debugEntities());
+export const st = (u) => u.page.evaluate(() => ({ conv: window.__tilework.state.conv, mic: window.__tilework.state.mic, cam: window.__tilework.state.cam, status: window.__tilework.state.status, consent: window.__tilework.state.consent }));
 
 /** BFS over the map's solid grid, then walk waypoint by waypoint using the real input path. */
 export async function walkTo(u, tx, ty, { timeout = 60000 } = {}) {
-  const grid = await u.page.evaluate(() => ({ w: window.__og.view.map.w, h: window.__og.view.map.h, solid: window.__og.view.map.solid, deny: [...window.__og.view.deny] }));
+  const grid = await u.page.evaluate(() => ({ w: window.__tilework.view.map.w, h: window.__tilework.view.map.h, solid: window.__tilework.view.map.solid, deny: [...window.__tilework.view.deny] }));
   const T = 16;
   const p0 = await pos(u);
   const start = [Math.floor(p0.x / T), Math.floor(p0.y / T)];
@@ -109,7 +109,7 @@ export async function walkTo(u, tx, ty, { timeout = 60000 } = {}) {
   }
   // land exactly at the requested pixel inside the goal tile
   await steer(u, tx, ty, 5000, "landing timeout (" + u.name + ")").catch(() => {});
-  await u.page.evaluate(() => window.__og.view.setDirection(0, 0));
+  await u.page.evaluate(() => window.__tilework.view.setDirection(0, 0));
 }
 
 /**
@@ -120,7 +120,7 @@ export async function walkTo(u, tx, ty, { timeout = 60000 } = {}) {
  */
 async function steer(u, wx, wy, timeoutMs, what) {
   const r = await u.page.evaluate((wx, wy, timeoutMs) => new Promise((resolve) => {
-    const v = window.__og.view;
+    const v = window.__tilework.view;
     const speed = 72; // world.Config.Speed, px/s
     const t0 = performance.now();
     let last = t0;
@@ -133,7 +133,7 @@ async function steer(u, wx, wy, timeoutMs, what) {
       const dy = Math.abs(wy - p.y) > tol ? Math.sign(wy - p.y) : 0;
       if (!dx && !dy) { v.setDirection(0, 0); resolve({ ok: true }); return; }
       if (now - t0 > timeoutMs) {
-        resolve({ ok: false, hidden: document.hidden, conn: window.__og.state.conn, pos: p, fps: v.stats.fps });
+        resolve({ ok: false, hidden: document.hidden, conn: window.__tilework.state.conn, pos: p, fps: v.stats.fps });
         return;
       }
       v.setDirection(dx, dy);
@@ -175,7 +175,7 @@ export const lkParticipants = async (room) => ((await lk("ListParticipants", { r
 /** Sum of RTP bytes on the LiveKit peer connection (single-PC mode: publisher.pc carries both directions). */
 export const rtpBytes = (u, dir, kind) =>
   u.page.evaluate(async (dir, kind) => {
-    const pm = window.__og.media.room.engine.pcManager;
+    const pm = window.__tilework.media.room.engine.pcManager;
     const pc = pm.subscriber?.pc ?? pm.publisher.pc;
     let total = 0;
     (await pc.getStats()).forEach((s) => {

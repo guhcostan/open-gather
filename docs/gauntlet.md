@@ -1,6 +1,6 @@
 # The gauntlet loop
 
-How changes are built and reviewed in this repository. Every change, by a person or an agent, runs it before it is called done. The procedure for agents lives in [`.agents/skills/gauntlet/SKILL.md`](https://github.com/guhcostan/open-gather/blob/main/.agents/skills/gauntlet/SKILL.md); this page is the why.
+How changes are built and reviewed in this repository. Every change, by a person or an agent, runs it before it is called done. The procedure for agents lives in [`.agents/skills/gauntlet/SKILL.md`](https://github.com/guhcostan/tilework/blob/main/.agents/skills/gauntlet/SKILL.md); this page is the why.
 
 ## What it is
 

@@ -15,14 +15,14 @@ import (
 	"sync"
 	"time"
 
-	"opengather/internal/config"
-	"opengather/internal/gamemap"
-	"opengather/internal/media"
-	"opengather/internal/store"
-	"opengather/internal/world"
+	"tilework/internal/config"
+	"tilework/internal/gamemap"
+	"tilework/internal/media"
+	"tilework/internal/store"
+	"tilework/internal/world"
 )
 
-const cookieName = "og_session"
+const cookieName = "tilework_session"
 
 type Server struct {
 	cfg   *config.Config

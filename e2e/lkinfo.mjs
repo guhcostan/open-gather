@@ -1,5 +1,5 @@
 // Prints the participants and published tracks of SFU rooms (debug helper for media load tests).
-// usage: OG_LK_HTTP=http://127.0.0.1:17880 node lkinfo.mjs [roomPrefix]
+// usage: TILEWORK_LK_HTTP=http://127.0.0.1:17880 node lkinfo.mjs [roomPrefix]
 import { lk } from "./lib.mjs";
 const prefix = process.argv[2] ?? "";
 const rooms = (await lk("ListRooms", {}, "")).rooms ?? [];

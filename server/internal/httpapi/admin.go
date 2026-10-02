@@ -8,7 +8,7 @@ import (
 	"strings"
 	"unicode/utf8"
 
-	"opengather/internal/store"
+	"tilework/internal/store"
 )
 
 // adminSession authenticates the caller and requires the admin role. It writes the error response itself.

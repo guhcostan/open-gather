@@ -16,8 +16,8 @@ This guide runs the full development stack on one machine: LiveKit, the Go serve
 ## Run it
 
 ~~~bash
-git clone https://github.com/guhcostan/open-gather.git
-cd open-gather
+git clone https://github.com/guhcostan/tilework.git
+cd tilework
 ./scripts/dev.sh
 ~~~
 
@@ -47,7 +47,7 @@ The browser suite drives real Chrome instances (fake camera and microphone) agai
 cd e2e && pnpm install
 node run.mjs                     # all scenarios
 node run.mjs proximity rooms     # some of them
-OG_EXTERNAL_URL=http://127.0.0.1:8080 node run.mjs   # against a running stack, e.g. Docker Compose
+TILEWORK_EXTERNAL_URL=http://127.0.0.1:8080 node run.mjs   # against a running stack, e.g. Docker Compose
 ~~~
 
 Scenarios: proximity, consent, rooms, access, editor, social, security, resilience (see [Status](status.md) for what each proves).
@@ -66,20 +66,20 @@ Everything is configured through environment variables.
 
 | Variable | Default | Purpose |
 | --- | --- | --- |
-| `OG_ENV` | `dev` | `dev` or `production` |
-| `OG_ADDR` | `:8080` | HTTP listen address |
-| `OG_DB` | `data/opengather.db` | SQLite file (WAL mode) |
-| `OG_STATIC_DIR` | empty | Directory with the built web app to serve |
-| `OG_ALLOWED_ORIGINS` | empty | WebSocket origin patterns; **required in production** |
-| `OG_OFFICE_SLUG` / `OG_OFFICE_NAME` | `default` | Single-office deployment identity |
-| `OG_SESSION_DAYS` | `30` | Session cookie lifetime |
-| `OG_TICK_HZ` | `15` | World tick rate, 5 to 30 |
-| `OG_AOI_CELLS` | `2` | Area-of-interest radius in 128 px cells |
-| `OG_MAX_PLAYERS` | `2000` | Hard cap per office |
-| `OG_MAX_GROUP` | `8` | Maximum people in a proximity group |
-| `OG_JOIN_RATE` | `20` | Join requests per second per IP (raise only for load tests) |
-| `OG_MEDIA_TOKEN_TTL_SECONDS` | `30` | Validity of a media join token |
-| `OG_MEDIA_RECONCILE_SECONDS` | `10` | How often SFU rooms are compared with the world membership |
+| `TILEWORK_ENV` | `dev` | `dev` or `production` |
+| `TILEWORK_ADDR` | `:8080` | HTTP listen address |
+| `TILEWORK_DB` | `data/tilework.db` | SQLite file (WAL mode) |
+| `TILEWORK_STATIC_DIR` | empty | Directory with the built web app to serve |
+| `TILEWORK_ALLOWED_ORIGINS` | empty | WebSocket origin patterns; **required in production** |
+| `TILEWORK_OFFICE_SLUG` / `TILEWORK_OFFICE_NAME` | `default` | Single-office deployment identity |
+| `TILEWORK_SESSION_DAYS` | `30` | Session cookie lifetime |
+| `TILEWORK_TICK_HZ` | `15` | World tick rate, 5 to 30 |
+| `TILEWORK_AOI_CELLS` | `2` | Area-of-interest radius in 128 px cells |
+| `TILEWORK_MAX_PLAYERS` | `2000` | Hard cap per office |
+| `TILEWORK_MAX_GROUP` | `8` | Maximum people in a proximity group |
+| `TILEWORK_JOIN_RATE` | `20` | Join requests per second per IP (raise only for load tests) |
+| `TILEWORK_MEDIA_TOKEN_TTL_SECONDS` | `30` | Validity of a media join token |
+| `TILEWORK_MEDIA_RECONCILE_SECONDS` | `10` | How often SFU rooms are compared with the world membership |
 | `LIVEKIT_URL` | empty | Public `ws(s)://` URL browsers use; empty disables media |
 | `LIVEKIT_API_URL` | derived | `http(s)://` URL the server uses for admin calls |
 | `LIVEKIT_API_KEY` / `LIVEKIT_API_SECRET` | empty | LiveKit credentials |
@@ -89,7 +89,7 @@ Everything is configured through environment variables.
 See the endpoint table in [WebSocket protocol](protocol.md#http-endpoints). The binary also has three one-shot commands:
 
 ~~~bash
-opengather -invite admin       # print a new invite path (bootstrap the first production administrator)
-opengather -backup out.db      # consistent online backup of the SQLite database
-opengather -healthcheck        # exit 0 if /readyz answers (used by the container health check)
+tilework -invite admin       # print a new invite path (bootstrap the first production administrator)
+tilework -backup out.db      # consistent online backup of the SQLite database
+tilework -healthcheck        # exit 0 if /readyz answers (used by the container health check)
 ~~~

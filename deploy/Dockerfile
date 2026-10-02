@@ -16,15 +16,15 @@ WORKDIR /s
 COPY server/go.mod server/go.sum ./
 RUN go mod download
 COPY server/ ./
-RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/opengather ./cmd/opengather \
+RUN CGO_ENABLED=0 GOOS=$TARGETOS GOARCH=$TARGETARCH go build -trimpath -ldflags="-s -w" -o /out/tilework ./cmd/tilework \
  && mkdir /data
 
 FROM gcr.io/distroless/static-debian12:nonroot
-COPY --from=server /out/opengather /app/opengather
+COPY --from=server /out/tilework /app/tilework
 COPY --from=web /w/dist /app/web
 COPY --from=server --chown=65532:65532 /data /data
-ENV OG_STATIC_DIR=/app/web OG_DB=/data/opengather.db OG_ADDR=:8080
+ENV TILEWORK_STATIC_DIR=/app/web TILEWORK_DB=/data/tilework.db TILEWORK_ADDR=:8080
 VOLUME /data
 EXPOSE 8080
 USER nonroot
-ENTRYPOINT ["/app/opengather"]
+ENTRYPOINT ["/app/tilework"]

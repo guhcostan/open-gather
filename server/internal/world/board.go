@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"opengather/internal/gamemap"
+	"tilework/internal/gamemap"
 )
 
 // Shared whiteboards. A board belongs to a whiteboard prop (key "x,y" of its top-left tile). People next

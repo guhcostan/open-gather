@@ -5,7 +5,7 @@ import (
 	"strconv"
 	"time"
 
-	"opengather/internal/gamemap"
+	"tilework/internal/gamemap"
 )
 
 // Social features that are decided on the server: emotes, interactive objects, guided walking

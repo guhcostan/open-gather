@@ -8,8 +8,8 @@ import (
 	"testing"
 	"time"
 
-	"opengather/internal/config"
-	"opengather/internal/gamemap"
+	"tilework/internal/config"
+	"tilework/internal/gamemap"
 )
 
 func demoRig(t *testing.T) *rig {

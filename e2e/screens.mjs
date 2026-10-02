@@ -1,6 +1,6 @@
 // Captures clean in-game screenshots (world only: no UI overlays, no area labels) for the README and site.
 // Needs a running game server that serves the built client. Example:
-//   OG_APP=http://127.0.0.1:8091 OG_API=http://127.0.0.1:8091 node screens.mjs
+//   TILEWORK_APP=http://127.0.0.1:8091 TILEWORK_API=http://127.0.0.1:8091 node screens.mjs
 import path from "node:path";
 import { launch, joinAs, walkTo, sleep } from "./lib.mjs";
 
@@ -23,15 +23,15 @@ try {
       const st = document.createElement("style");
       st.textContent = ".topbar,.side,.bar,.toast,.debug,.dock{display:none!important}";
       document.head.append(st);
-      window.__og.view.areaLabels.forEach((l) => (l.text.alpha = 0));
-      window.__og.view.banner.alpha = 0;
+      window.__tilework.view.areaLabels.forEach((l) => (l.text.alpha = 0));
+      window.__tilework.view.banner.alpha = 0;
     });
   await clean(marina);
 
   await Promise.all([walkTo(marina, c8(21), c8(19)), walkTo(bruno, c8(24), c8(20)), walkTo(carla, c8(13), c8(17)), walkTo(diego, c8(24), c8(4)), walkTo(elisa, c8(9), c8(9))]);
-  await marina.page.evaluate(() => window.__og.view.setDirection(1, 0));
+  await marina.page.evaluate(() => window.__tilework.view.setDirection(1, 0));
   await sleep(120);
-  await marina.page.evaluate(() => window.__og.view.setDirection(0, 0));
+  await marina.page.evaluate(() => window.__tilework.view.setDirection(0, 0));
   await sleep(700);
   await marina.page.screenshot({ path: path.join(OUT, "game-social.png") });
 

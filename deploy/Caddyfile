@@ -1,9 +1,9 @@
 {$APP_DOMAIN} {
 	encode zstd gzip
-	# metrics stay on the internal network (scrape opengather:8080/metrics from inside)
+	# metrics stay on the internal network (scrape tilework:8080/metrics from inside)
 	@internal path /metrics
 	respond @internal 404
-	reverse_proxy opengather:8080
+	reverse_proxy tilework:8080
 }
 
 {$LIVEKIT_DOMAIN} {

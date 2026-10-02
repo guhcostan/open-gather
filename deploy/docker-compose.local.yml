@@ -2,20 +2,21 @@
 # Camera/microphone work on http://localhost because browsers treat localhost as a secure context.
 # Never expose this stack to the internet. For a real deployment use docker-compose.yml.
 #   docker compose -f deploy/docker-compose.local.yml up --build
-name: opengather-local
+name: tilework-local
 services:
-  opengather:
+  tilework:
     build: { context: .., dockerfile: deploy/Dockerfile }
     environment:
-      OG_ENV: dev
-      OG_ADDR: ":8080"
-      OG_ALLOWED_ORIGINS: "localhost:*,127.0.0.1:*"
+      TILEWORK_ENV: dev
+      TILEWORK_ADDR: ":8080"
+      TILEWORK_DB: "${TILEWORK_DB:-/data/tilework.db}"
+      TILEWORK_ALLOWED_ORIGINS: "localhost:*,127.0.0.1:*"
       LIVEKIT_URL: ws://localhost:7880
       LIVEKIT_API_URL: http://livekit:7880
       LIVEKIT_API_KEY: devkey
       LIVEKIT_API_SECRET: secret
     ports: ["127.0.0.1:8080:8080"]
-    volumes: ["og-data:/data"]
+    volumes: ["tilework-data:/data"]
     depends_on: [livekit]
   livekit:
     image: livekit/livekit-server:v1.13.7
@@ -25,4 +26,5 @@ services:
       - "7881:7881"
       - "7882:7882/udp"
 volumes:
-  og-data:
+  tilework-data:
+    name: "${TILEWORK_DATA_VOLUME:-${COMPOSE_PROJECT_NAME:-tilework-local}_tilework-data}"

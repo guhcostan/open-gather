@@ -64,7 +64,7 @@ class Session {
         this.setStatus("away");
       }
     }, 15000);
-    (window as unknown as { __og: unknown }).__og = { view, media, spotlightMedia, boardModel, get state() { return getState(); }, session: this };
+    (window as unknown as { __tilework: unknown }).__tilework = { view, media, spotlightMedia, boardModel, get state() { return getState(); }, session: this };
   }
 
   stop() {
@@ -117,7 +117,7 @@ class Session {
         const s = getState();
         if (s.consent) this.socket?.send({ t: "consent", b: true });
         if (s.status !== "available") this.socket?.send({ t: "st", v: s.status });
-        const note = localStorage.getItem("og.note");
+        const note = localStorage.getItem("tilework.note");
         if (note) this.socket?.send({ t: "note", text: note }); // the note lives in memory on the server
         break;
       }
@@ -246,7 +246,7 @@ class Session {
   }
   setConsent(b: boolean) {
     setState({ consent: b });
-    localStorage.setItem("og.consent", b ? "1" : "0");
+    localStorage.setItem("tilework.consent", b ? "1" : "0");
     this.socket?.send({ t: "consent", b });
   }
   chat(scope: "o" | "g" | "d", text: string, to?: number) {
@@ -269,8 +269,8 @@ class Session {
     this.hand(!(pending ?? !!s.roster.get(s.meId)?.h));
   }
   note(text: string) {
-    if (text) localStorage.setItem("og.note", text);
-    else localStorage.removeItem("og.note");
+    if (text) localStorage.setItem("tilework.note", text);
+    else localStorage.removeItem("tilework.note");
     this.socket?.send({ t: "note", text });
   }
   toggleRun() { this.view?.toggleRun(); }

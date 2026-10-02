@@ -11,7 +11,7 @@ Putting everyone in the office into one WebRTC room would expose each person to 
 There are two kinds of SFU room, both **small and created on demand**:
 
 1. **Meeting room**: one per map area of kind `room`, with an explicit access rule (open, members only, admins only, or a list). Name: `<instance>.o<office>.r.<area>`.
-2. **Proximity group**: an ephemeral room of at most 8 people (`OG_MAX_GROUP`). Name: `<instance>.o<office>.g<id>`. The `<instance>` part is a random id created once per database, so two installations can share one LiveKit server without touching each other's rooms (see [0008](0008-token-lifetime-and-reconciliation.md)).
+2. **Proximity group**: an ephemeral room of at most 8 people (`TILEWORK_MAX_GROUP`). Name: `<instance>.o<office>.g<id>`. The `<instance>` part is a random id created once per database, so two installations can share one LiveKit server without touching each other's rooms (see [0008](0008-token-lifetime-and-reconciliation.md)).
 
 A person is in at most one group at a time. The world server decides the composition and only then issues an SFU token for that room.
 

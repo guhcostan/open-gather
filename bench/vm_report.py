@@ -35,6 +35,14 @@ def host(samples, ctr):
     mem = min((s["mem_avail_mb"] for s in samples), default=None)
     return cpu, steal, tx, rx, c, m, mem
 
+def container(samples, service):
+    # Archived samples retain their original container names; new runs use Tilework.
+    current = "tilework-" + service + "-1"
+    if any(current in s["ctr"] for s in samples):
+        return current
+    legacy = "opengather" if service == "tilework" else service
+    return "opengather-" + legacy + "-1"
+
 def main(d):
     rows_a, rows_m = [], []
     for f in sorted(glob.glob(os.path.join(d, "*.json"))):
@@ -51,15 +59,16 @@ def main(d):
                 pass  # a partial line (sampler killed mid-write, or an older sampler's "--" from docker)
         if "Bots" in r:  # loadgen
             w = window(samples, r["WindowStart"], r["WindowEnd"])
-            cpu, steal, tx, rx, c, m, mem = host(w, "opengather-opengather-1")
-            caddy = stats([s["ctr"].get("opengather-caddy-1", {}).get("cpu") for s in w])
+            cpu, steal, tx, rx, c, m, mem = host(w, container(w, "tilework"))
+            caddy_ctr = container(w, "caddy")
+            caddy = stats([s["ctr"].get(caddy_ctr, {}).get("cpu") for s in w])
             rows_a.append((r["Bots"], f"| {label} | {r['Joined']}/{r['Failed']} | {fmt(cpu[0])} / {fmt(cpu[1])} | {fmt(steal[0])} | "
                 f"{fmt(share(c[0], caddy[0]), 0)} / {fmt(share(caddy[0], c[0]), 0)} | {fmt(m[1], 0)} | {fmt(mem, 0)} | {r['TickMeanMs']:.2f} | {r['TickMaxMs']:.1f} | "
                 f"{fmt(tx[0], 2)} | {r['ServerKBPerSec'] / max(r['Joined'], 1):.2f} | {r['LatStartP50']:.0f} / {r['LatStartP95']:.0f} / {r['LatStartP99']:.0f} | "
                 f"{int(r.get('Kicked', 0))} | {len(w)} |"))
         elif "Participants" in r:  # mediagen (see bench/mediagen)
             w = window(samples, r["WindowStart"], r["WindowEnd"])
-            cpu, steal, tx, rx, c, m, mem = host(w, "opengather-livekit-1")
+            cpu, steal, tx, rx, c, m, mem = host(w, container(w, "livekit"))
             rows_m.append((r["Participants"], f"| {label} | {r['Connected']}/{r['Participants']} | {r['SubscribedAudio']} / {r['SubscribedVideo']} / {r['SubscribedScr']} | "
                 f"{fmt(cpu[0])} / {fmt(cpu[1])} | {fmt(steal[0])} | "
                 f"{fmt(m[1], 0)} | {fmt(mem, 0)} | {fmt(rx[0], 1)} / {fmt(tx[0], 1)} | {r['ReceivedMbpsTotal']:.1f} | {r['LossPct']:.2f} | "

@@ -8,12 +8,12 @@ import net from "node:net";
 import { fileURLToPath } from "node:url";
 
 const root = path.resolve(path.dirname(fileURLToPath(import.meta.url)), "..");
-// OG_EXTERNAL_URL=http://127.0.0.1:8080 runs the scenarios against an already running stack (for example
+// TILEWORK_EXTERNAL_URL=http://127.0.0.1:8080 runs the scenarios against an already running stack (for example
 // the Docker Compose one). Scenarios that restart the server or spawn the local binary are skipped there.
-const EXTERNAL = process.env.OG_EXTERNAL_URL ?? "";
-const PORT = process.env.OG_TEST_PORT ?? "18080";
-process.env.OG_APP = process.env.OG_API = EXTERNAL || `http://127.0.0.1:${PORT}`;
-process.env.OG_LK_HTTP ??= "http://127.0.0.1:7880";
+const EXTERNAL = process.env.TILEWORK_EXTERNAL_URL ?? "";
+const PORT = process.env.TILEWORK_TEST_PORT ?? "18080";
+process.env.TILEWORK_APP = process.env.TILEWORK_API = EXTERNAL || `http://127.0.0.1:${PORT}`;
+process.env.TILEWORK_LK_HTTP ??= "http://127.0.0.1:7880";
 
 const all = ["proximity", "consent", "rooms", "access", "editor", "social", "admin", "a11y", "security", "resilience", "features", "spotlight", "movement", "presence", "offices"];
 const wanted = process.argv.slice(2).length ? process.argv.slice(2) : EXTERNAL ? ["proximity", "consent", "rooms"] : all;
@@ -25,7 +25,7 @@ const portOpen = (p) => new Promise((res) => { const s = net.connect(p, "127.0.0
 if (!process.env.SKIP_BUILD && !EXTERNAL) {
   console.log("# building web + server");
   execFileSync("pnpm", ["build"], { cwd: path.join(root, "web"), stdio: "inherit" });
-  execFileSync("go", ["build", "-o", "../bin/opengather", "./cmd/opengather"], { cwd: path.join(root, "server"), stdio: "inherit" });
+  execFileSync("go", ["build", "-o", "../bin/tilework", "./cmd/tilework"], { cwd: path.join(root, "server"), stdio: "inherit" });
 }
 
 if (!EXTERNAL && !(await portOpen(7880))) {
@@ -34,12 +34,12 @@ if (!EXTERNAL && !(await portOpen(7880))) {
   for (let i = 0; i < 50 && !(await portOpen(7880)); i++) await sleep(200);
 }
 
-const dir = fs.mkdtempSync(path.join(os.tmpdir(), "og-e2e-"));
+const dir = fs.mkdtempSync(path.join(os.tmpdir(), "tilework-e2e-"));
 const ctx = { dir, server: null, async startServer() {
-  const child = spawn(path.join(root, "bin/opengather"), [], {
-    env: { ...process.env, OG_ENV: "dev", OG_ADDR: `127.0.0.1:${PORT}`, OG_DB: path.join(dir, "e2e.db"), OG_STATIC_DIR: path.join(root, "web/dist"),
-      OG_ALLOWED_ORIGINS: `127.0.0.1:${PORT}`, LIVEKIT_URL: "ws://127.0.0.1:7880", LIVEKIT_API_KEY: "devkey", LIVEKIT_API_SECRET: "secret",
-      OG_JOIN_RATE: "5000", OG_MEDIA_TOKEN_TTL_SECONDS: process.env.OG_MEDIA_TOKEN_TTL_SECONDS ?? "20", OG_MEDIA_RECONCILE_SECONDS: process.env.OG_MEDIA_RECONCILE_SECONDS ?? "3" },
+  const child = spawn(path.join(root, "bin/tilework"), [], {
+    env: { ...process.env, TILEWORK_ENV: "dev", TILEWORK_ADDR: `127.0.0.1:${PORT}`, TILEWORK_DB: path.join(dir, "e2e.db"), TILEWORK_STATIC_DIR: path.join(root, "web/dist"),
+      TILEWORK_ALLOWED_ORIGINS: `127.0.0.1:${PORT}`, LIVEKIT_URL: "ws://127.0.0.1:7880", LIVEKIT_API_KEY: "devkey", LIVEKIT_API_SECRET: "secret",
+      TILEWORK_JOIN_RATE: "5000", TILEWORK_MEDIA_TOKEN_TTL_SECONDS: process.env.TILEWORK_MEDIA_TOKEN_TTL_SECONDS ?? "20", TILEWORK_MEDIA_RECONCILE_SECONDS: process.env.TILEWORK_MEDIA_RECONCILE_SECONDS ?? "3" },
     stdio: ["ignore", fs.openSync(path.join(dir, "server.log"), "a"), fs.openSync(path.join(dir, "server.log"), "a")],
   });
   ctx.server = child;
@@ -57,7 +57,7 @@ console.log("# server logs:", path.join(dir, "server.log"));
 let ok = true;
 try {
   // Bootstrap the office admin (the first member of an office becomes admin).
-  const r = await fetch(process.env.OG_API + "/api/join", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "Admin", avatar: { sk: 2, hs: 2, hc: 0, sh: 6, pa: 0 } }) });
+  const r = await fetch(process.env.TILEWORK_API + "/api/join", { method: "POST", headers: { "Content-Type": "application/json" }, body: JSON.stringify({ name: "Admin", avatar: { sk: 2, hs: 2, hc: 0, sh: 6, pa: 0 } }) });
   const cookie = r.headers.get("set-cookie").split(";")[0].split("=")[1];
   ctx.adminCookie = cookie;
   ctx.adminId = (await r.json()).id;

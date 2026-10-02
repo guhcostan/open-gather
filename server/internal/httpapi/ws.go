@@ -10,8 +10,8 @@ import (
 
 	"github.com/coder/websocket"
 
-	"opengather/internal/store"
-	"opengather/internal/world"
+	"tilework/internal/store"
+	"tilework/internal/world"
 )
 
 type inMsg struct {

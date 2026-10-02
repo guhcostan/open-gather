@@ -53,7 +53,7 @@ const cast = await page.evaluate(async (sheets, S) => {
 fs.writeFileSync(path.join(A, "cast.png"), Buffer.from(cast.split(",")[1], "base64"));
 
 // ---- walk.gif: 4 directions walking, Marina ----
-const frames = fs.mkdtempSync(path.join(os.tmpdir(), "og-walk-"));
+const frames = fs.mkdtempSync(path.join(os.tmpdir(), "tilework-walk-"));
 const cyc = [1, 0, 2, 0];
 const W = 4 * (18 * S + 32) + 32;
 for (let f = 0; f < 4; f++) {
@@ -82,7 +82,7 @@ await page.setContent(`
   <div style="position:absolute;inset:0;background:linear-gradient(90deg,#1b1830f2 0%,#1b1830e6 42%,#1b183055 100%)"></div>
   <div style="position:absolute;left:72px;top:118px;color:#f2eefc">
     <div style="display:inline-block;background:#ffb84d;color:#2a1d05;font-weight:800;letter-spacing:1px;font-size:20px;padding:6px 14px;border-radius:8px">ALPHA · AGPL-3.0</div>
-    <div style="font-size:104px;font-weight:900;letter-spacing:-3px;line-height:1;margin-top:22px">Open <span style="color:#3cc9b0">Gather</span></div>
+    <div style="font-size:104px;font-weight:900;letter-spacing:-3px;line-height:1;margin-top:22px">Tile<span style="color:#3cc9b0">work</span></div>
     <div style="font-size:36px;margin-top:22px;color:#cfc9ea;line-height:1.25;max-width:660px">A lightweight, open source virtual office.</div>
     <div style="font-size:24px;margin-top:20px;color:#a49fc4">Proximity chat · Real SFU · Go + PixiJS</div>
   </div>

@@ -1,13 +1,13 @@
 // UX capture for the critic (not part of the default suite): run "node run.mjs capture-pet".
 // Records the owner walking an L with a pet and writes frames plus one contact sheet to
-// a fresh folder inside $OG_CAPTURE_DIR (default /tmp/og-capture). Look at the sheet.
+// a fresh folder inside $TILEWORK_CAPTURE_DIR (default /tmp/tilework-capture). Look at the sheet.
 import fs from "node:fs";
 import path from "node:path";
 import { execFileSync } from "node:child_process";
 import { launch, joinAs, walkTo, sleep } from "../lib.mjs";
 
 export async function run() {
-  const base = process.env.OG_CAPTURE_DIR ?? "/tmp/og-capture";
+  const base = process.env.TILEWORK_CAPTURE_DIR ?? "/tmp/tilework-capture";
   fs.mkdirSync(base, { recursive: true });
   const dir = fs.mkdtempSync(path.join(base, "pet-"));
   const browser = await launch();
@@ -19,7 +19,7 @@ export async function run() {
     await owner.page.addStyleTag({ content: ".topbar,.side,.social-controls,.bar,.minimap,.toast,.dock{display:none!important}" });
     await sleep(1500);
     const walk = owner.page.evaluate(async () => {
-      const v = window.__og.view, wait = (ms) => new Promise((r) => setTimeout(r, ms));
+      const v = window.__tilework.view, wait = (ms) => new Promise((r) => setTimeout(r, ms));
       v.setDirection(1, 0); await wait(1200);
       v.setDirection(0, 1); await wait(500);
       v.setDirection(-1, 0); await wait(800);

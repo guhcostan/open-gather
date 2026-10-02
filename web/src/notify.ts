@@ -35,7 +35,7 @@ export function chime(kind: keyof typeof TUNES) {
 export function desktopNotify(title: string, body: string) {
   if (!document.hidden || !getState().settings.notify || !("Notification" in window) || Notification.permission !== "granted") return;
   try {
-    const n = new Notification(title, { body, tag: "og-" + title, silent: true });
+    const n = new Notification(title, { body, tag: "tilework-" + title, silent: true });
     n.onclick = () => {
       window.focus();
       n.close();

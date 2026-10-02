@@ -1,10 +1,11 @@
 // Package config loads runtime configuration from environment variables.
-// OG_ENV=dev enables developer conveniences; OG_ENV=production refuses to
+// TILEWORK_ENV=dev enables developer conveniences; TILEWORK_ENV=production refuses to
 // start with insecure defaults.
 package config
 
 import (
 	"errors"
+	"fmt"
 	"os"
 	"strconv"
 	"strings"
@@ -63,34 +64,41 @@ func envInt(k string, d int) int {
 func (c *Config) Dev() bool { return c.Env != "production" }
 
 func Load() (*Config, error) {
+	// Reject retired configuration so a production upgrade cannot silently use dev defaults.
+	for _, entry := range os.Environ() {
+		key, value, _ := strings.Cut(entry, "=")
+		if strings.HasPrefix(key, "OG_") && value != "" {
+			return nil, fmt.Errorf("rename environment variable %s to TILEWORK_%s before starting Tilework", key, strings.TrimPrefix(key, "OG_"))
+		}
+	}
 	c := &Config{
-		Env:            env("OG_ENV", "dev"),
-		Addr:           env("OG_ADDR", ":8080"),
-		DBPath:         env("OG_DB", "data/opengather.db"),
-		StaticDir:      env("OG_STATIC_DIR", ""),
-		OfficeSlug:     env("OG_OFFICE_SLUG", "default"),
-		OfficeName:     env("OG_OFFICE_NAME", "Office"),
-		MetricsToken:   env("OG_METRICS_TOKEN", ""),
-		SessionTTL:     time.Duration(envInt("OG_SESSION_DAYS", 30)) * 24 * time.Hour,
+		Env:            env("TILEWORK_ENV", "dev"),
+		Addr:           env("TILEWORK_ADDR", ":8080"),
+		DBPath:         env("TILEWORK_DB", "data/tilework.db"),
+		StaticDir:      env("TILEWORK_STATIC_DIR", ""),
+		OfficeSlug:     env("TILEWORK_OFFICE_SLUG", "default"),
+		OfficeName:     env("TILEWORK_OFFICE_NAME", "Office"),
+		MetricsToken:   env("TILEWORK_METRICS_TOKEN", ""),
+		SessionTTL:     time.Duration(envInt("TILEWORK_SESSION_DAYS", 30)) * 24 * time.Hour,
 		LiveKitURL:     env("LIVEKIT_URL", ""),
 		LiveKitAPIURL:  env("LIVEKIT_API_URL", ""),
 		LiveKitKey:     env("LIVEKIT_API_KEY", ""),
 		LiveKitSecret:  env("LIVEKIT_API_SECRET", ""),
-		TickHz:         envInt("OG_TICK_HZ", 15),
-		AOICells:       envInt("OG_AOI_CELLS", 2),
-		MaxPlayers:     envInt("OG_MAX_PLAYERS", 2000),
-		MaxGroup:       envInt("OG_MAX_GROUP", 8),
-		JoinRate:       envInt("OG_JOIN_RATE", 20),
-		MediaTTL:       time.Duration(envInt("OG_MEDIA_TOKEN_TTL_SECONDS", 30)) * time.Second,
-		MediaReconcile: time.Duration(envInt("OG_MEDIA_RECONCILE_SECONDS", 10)) * time.Second,
-		Demo:           env("OG_DEMO", "") == "1" || env("OG_DEMO", "") == "true",
-		DemoReset:      time.Duration(envInt("OG_DEMO_RESET_HOURS", 6)) * time.Hour,
+		TickHz:         envInt("TILEWORK_TICK_HZ", 15),
+		AOICells:       envInt("TILEWORK_AOI_CELLS", 2),
+		MaxPlayers:     envInt("TILEWORK_MAX_PLAYERS", 2000),
+		MaxGroup:       envInt("TILEWORK_MAX_GROUP", 8),
+		JoinRate:       envInt("TILEWORK_JOIN_RATE", 20),
+		MediaTTL:       time.Duration(envInt("TILEWORK_MEDIA_TOKEN_TTL_SECONDS", 30)) * time.Second,
+		MediaReconcile: time.Duration(envInt("TILEWORK_MEDIA_RECONCILE_SECONDS", 10)) * time.Second,
+		Demo:           env("TILEWORK_DEMO", "") == "1" || env("TILEWORK_DEMO", "") == "true",
+		DemoReset:      time.Duration(envInt("TILEWORK_DEMO_RESET_HOURS", 6)) * time.Hour,
 	}
-	if o := env("OG_ALLOWED_ORIGINS", ""); o != "" {
+	if o := env("TILEWORK_ALLOWED_ORIGINS", ""); o != "" {
 		c.AllowedOrigins = strings.Split(o, ",")
 	}
 	if c.Env != "dev" && c.Env != "production" {
-		return nil, errors.New("OG_ENV must be dev or production")
+		return nil, errors.New("TILEWORK_ENV must be dev or production")
 	}
 	if c.LiveKitAPIURL == "" && c.LiveKitURL != "" {
 		u := c.LiveKitURL
@@ -99,7 +107,7 @@ func Load() (*Config, error) {
 		c.LiveKitAPIURL = u
 	}
 	if c.TickHz < 5 || c.TickHz > 30 {
-		return nil, errors.New("OG_TICK_HZ must be within 5..30")
+		return nil, errors.New("TILEWORK_TICK_HZ must be within 5..30")
 	}
 	if c.Env == "production" {
 		if c.LiveKitKey == "" || c.LiveKitSecret == "" || c.LiveKitURL == "" {
@@ -112,10 +120,10 @@ func Load() (*Config, error) {
 			return nil, errors.New("production requires LIVEKIT_URL to use wss://")
 		}
 		if c.MetricsToken != "" && len(c.MetricsToken) < 16 {
-			return nil, errors.New("OG_METRICS_TOKEN must have at least 16 characters")
+			return nil, errors.New("TILEWORK_METRICS_TOKEN must have at least 16 characters")
 		}
 		if len(c.AllowedOrigins) == 0 {
-			return nil, errors.New("production requires OG_ALLOWED_ORIGINS (e.g. office.example.com)")
+			return nil, errors.New("production requires TILEWORK_ALLOWED_ORIGINS (e.g. office.example.com)")
 		}
 	}
 	return c, nil

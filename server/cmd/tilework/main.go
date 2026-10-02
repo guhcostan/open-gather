@@ -15,15 +15,15 @@ import (
 	"syscall"
 	"time"
 
-	"opengather/internal/config"
-	"opengather/internal/gamemap"
-	"opengather/internal/httpapi"
-	"opengather/internal/media"
-	"opengather/internal/store"
+	"tilework/internal/config"
+	"tilework/internal/gamemap"
+	"tilework/internal/httpapi"
+	"tilework/internal/media"
+	"tilework/internal/store"
 )
 
 func main() {
-	healthcheck := flag.Bool("healthcheck", false, "probe /healthz on OG_ADDR and exit (for container health checks)")
+	healthcheck := flag.Bool("healthcheck", false, "probe /healthz on TILEWORK_ADDR and exit (for container health checks)")
 	inviteRole := flag.String("invite", "", "print a new invite link path for this role (admin|member) and exit; use it to bootstrap the first admin")
 	inviteUses := flag.Int("invite-uses", 1, "max uses of the invite created with -invite")
 	inviteHours := flag.Int("invite-hours", 24, "validity in hours of the invite created with -invite")

@@ -10,7 +10,7 @@ set -u
 cd "$(dirname "$0")/.."
 root=$PWD
 fails=0
-log_dir=$(mktemp -d "${TMPDIR:-/tmp}/og-gauntlet.XXXXXX")
+log_dir=$(mktemp -d "${TMPDIR:-/tmp}/tilework-gauntlet.XXXXXX")
 mkdir -p .gauntlet
 record=.gauntlet/last-gates.log
 fingerprint() {

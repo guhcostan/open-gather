@@ -1,16 +1,16 @@
 <p align="center">
-  <img src="site/assets/banner.png" alt="Open Gather: a lightweight, open source virtual office" width="100%">
+  <img src="site/assets/banner.png" alt="Tilework: a lightweight, open source virtual office" width="100%">
 </p>
 
 <p align="center">
   <a href="LICENSE"><img alt="License: AGPL-3.0" src="https://img.shields.io/badge/license-AGPL--3.0-3cc9b0?style=flat-square"></a>
-  <a href="https://github.com/guhcostan/open-gather/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/guhcostan/open-gather/ci.yml?branch=main&style=flat-square&label=CI"></a>
-  <a href="https://github.com/guhcostan/open-gather/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/guhcostan/open-gather?style=flat-square&color=ffb84d"></a>
-  <a href="https://github.com/guhcostan/open-gather/pkgs/container/open-gather"><img alt="Docker image on GHCR" src="https://img.shields.io/badge/docker-ghcr.io%2Fguhcostan%2Fopen--gather-2496ED?style=flat-square&logo=docker&logoColor=white"></a>
+  <a href="https://github.com/guhcostan/tilework/actions/workflows/ci.yml"><img alt="CI" src="https://img.shields.io/github/actions/workflow/status/guhcostan/tilework/ci.yml?branch=main&style=flat-square&label=CI"></a>
+  <a href="https://github.com/guhcostan/tilework/stargazers"><img alt="GitHub stars" src="https://img.shields.io/github/stars/guhcostan/tilework?style=flat-square&color=ffb84d"></a>
+  <a href="https://github.com/guhcostan/tilework/pkgs/container/tilework"><img alt="Docker image on GHCR" src="https://img.shields.io/badge/docker-ghcr.io%2Fguhcostan%2Ftilework-2496ED?style=flat-square&logo=docker&logoColor=white"></a>
   <img alt="Status: alpha" src="https://img.shields.io/badge/status-alpha-ffb84d?style=flat-square">
 </p>
 
-<h1 align="center">Open Gather</h1>
+<h1 align="center">Tilework</h1>
 
 <p align="center">
   <b>A lightweight, open source, self-hosted 2D virtual office.</b><br>
@@ -19,25 +19,25 @@
 
 <p align="center">
   <a href="https://office.152-67-49-137.sslip.io"><b>Live demo</b></a> ·
-  <a href="https://guhcostan.github.io/open-gather/">Website</a> ·
-  <a href="https://guhcostan.github.io/open-gather/docs/">Docs</a> ·
+  <a href="https://guhcostan.github.io/tilework/">Website</a> ·
+  <a href="https://guhcostan.github.io/tilework/docs/">Docs</a> ·
   <a href="#quick-start">Quick start</a> ·
   <a href="docs/faq.md">FAQ</a> ·
   <a href="#status">Status</a> ·
   <a href="#contributing">Contributing</a>
 </p>
 
-Open Gather is a virtual office for remote and hybrid teams in the spirit of the classic Gather experience: everyone has a pixel-art avatar on a shared 2D map, and a call starts when you walk up to someone and ends when you walk away. It runs in the browser, you host it yourself with one Docker Compose file (one Go binary, SQLite and a LiveKit media server), and it needs no paid service.
+Tilework is an open source alternative to Gather for remote and hybrid teams: everyone has a pixel-art avatar on a shared 2D map, and a call starts when you walk up to someone and ends when you walk away. It runs in the browser, you host it yourself with one Docker Compose file (one Go binary, SQLite and a LiveKit media server), and it needs no paid service.
 
 **Try it now:** the **[live demo](https://office.152-67-49-137.sslip.io)** runs on a free Oracle Cloud VM (1 GB of RAM, so be gentle). No sign-up beyond a name; anyone can join, and the map, office chat and whiteboards reset every 6 hours. Open it in two browser profiles and walk the avatars together to see a call start.
 
-> **MVP / alpha.** The whole loop works and is tested in real browsers: avatars, movement, proximity audio and video through a real SFU, private meeting rooms, screen sharing, chat, invites, an admin map editor and a Docker install. **Capacity is not established yet**: on the free 1 GB demo VM a single run over the internet stayed smooth at 100 bots and saturated at 500, and only small calls (4 people with video, 20 in audio groups) ran clean. Read [Status](#status) before you rely on anything. "Open Gather" is a **provisional name** and the project is not affiliated with the original Gather product.
+> **MVP / alpha.** The whole loop works and is tested in real browsers: avatars, movement, proximity audio and video through a real SFU, private meeting rooms, screen sharing, chat, invites, an admin map editor and a Docker install. **Capacity is not established yet**: on the free 1 GB demo VM a single run over the internet stayed smooth at 100 bots and saturated at 500, and only small calls (4 people with video, 20 in audio groups) ran clean. Read [Status](#status) before you rely on anything. Tilework is an independent open source alternative to Gather and is not affiliated with the original Gather product.
 
 ⭐ **If you would like a virtual office you can own, star the repository.** It is the simplest way to help other teams find it and to tell us this is worth building.
 
-## Why Open Gather
+## Why Tilework
 
-Virtual offices are usually heavy on the browser, the server and the bill. Open Gather is built around an efficiency budget:
+Virtual offices are usually heavy on the browser, the server and the bill. Tilework is built around an efficiency budget:
 
 - **A world server that does less work.** One Go goroutine owns each office. A spatial grid and areas of interest mean a player is only ever compared with the people near them, updates are batched at 10-15 Hz, and because walking is deterministic the server sends *state changes* instead of a position stream (about 5x less traffic than the first version in our local runs, see [decision 0006](docs/decisions/0006-state-change-records.md)).
 - **Slow clients cannot hurt fast ones.** Queues are bounded; stale positions are overwritten while chat and control messages are kept.
@@ -99,19 +99,19 @@ Three ways in, from zero effort to hacking on the code.
 **2. Self-host with Docker.** Evaluate the whole stack locally (the first person to join becomes the administrator):
 
 ~~~bash
-git clone https://github.com/guhcostan/open-gather.git
-cd open-gather
+git clone https://github.com/guhcostan/tilework.git
+cd tilework
 docker compose -f deploy/docker-compose.local.yml up --build
 # open http://localhost:8080
 ~~~
 
-For a real server, the production Compose file uses the prebuilt image `ghcr.io/guhcostan/open-gather` (linux/amd64 and linux/arm64) and adds automatic HTTPS (Caddy), a LiveKit media server and invite-only joins. Follow the [self-hosting guide](deploy/README.md); it also shows how to try it without owning a domain.
+For a real server, the production Compose file uses the prebuilt image `ghcr.io/guhcostan/tilework` (linux/amd64 and linux/arm64) and adds automatic HTTPS (Caddy), a LiveKit media server and invite-only joins. Follow the [self-hosting guide](deploy/README.md); it also shows how to try it without owning a domain.
 
 **3. Develop.** You need **Go**, **Node.js with pnpm** and a **LiveKit server** binary (on macOS: `brew install livekit`).
 
 ~~~bash
-git clone https://github.com/guhcostan/open-gather.git
-cd open-gather
+git clone https://github.com/guhcostan/tilework.git
+cd tilework
 ./scripts/dev.sh
 ~~~
 
@@ -139,7 +139,7 @@ More in the [getting started guide](docs/getting-started.md), including every en
 
 **Is anything recorded?** No. Audio, video and screen shares only pass through the media server, direct and conversation chat are never stored, and nothing is captured before you opt in. The office chat keeps its last 500 messages. See [Privacy and security](docs/privacy-and-security.md).
 
-More answers in the [FAQ](docs/faq.md). AI assistants and tools can read a summary of the whole project at [llms.txt](https://guhcostan.github.io/open-gather/llms.txt) or every doc page in one file at [llms-full.txt](https://guhcostan.github.io/open-gather/llms-full.txt).
+More answers in the [FAQ](docs/faq.md). AI assistants and tools can read a summary of the whole project at [llms.txt](https://guhcostan.github.io/tilework/llms.txt) or every doc page in one file at [llms-full.txt](https://guhcostan.github.io/tilework/llms-full.txt).
 
 ## Architecture
 
@@ -168,10 +168,11 @@ World state, durable data and media transport are deliberately separate, so the 
 
 ## Status
 
-Last updated 2026-10-01. Everything below was executed on macOS (Apple M1 Pro), Go 1.26.5, Google Chrome with fake camera and microphone, LiveKit 1.13.7. Details and the exact counts: [Status](docs/status.md).
+Last updated 2026-10-02. Everything below was executed on macOS (Apple M1 Pro), Go 1.26.5, Google Chrome with fake camera and microphone, LiveKit 1.13.7. Details and the exact counts: [Status](docs/status.md).
 
 | Area | State |
 | --- | --- |
+| Tilework identity: app, site, module, CLI, configuration, metrics and deployment names | **renamed and verified locally**; see [Status](docs/status.md#tilework-rename) and [migration instructions](deploy/README.md#upgrading-to-tilework) |
 | Go tests (world rules, proximity groups, dead reckoning, map reload, store, media tokens and reconciliation), also with the race detector | **pass** |
 | Real-browser suite (Chrome + real LiveKit): proximity calls with real audio/video RTP, consent and busy, private rooms, screen share, invites and admin-only actions, map editor, chat and profile, token replay/tamper/expiry attacks, reconnection and restart persistence, member administration, an automated accessibility audit (axe-core), reactions/objects/follow/portals/lockable rooms/whiteboards, spotlight broadcasts with real RTP, running and walk-to, pets, shared-screen view controls, waves, raised hands, status notes, the minimap and the touch pad, administrator announcements, the shortcuts help, per-person call volume and private offices (assign, knock, let in, shared call) | **pass** |
 | Gauntlet regression checks: chat composer survives repeated sends; small-screen chat controls and expanded reactions are clickable; pet trail, catch-up and resting visibility | Local results and limitations in [Status](docs/status.md); [review procedure](docs/gauntlet.md) |

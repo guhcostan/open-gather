@@ -10,7 +10,7 @@ try {
   const bruno = await joinAs(browser, "Bruno" + tag);
   check("both users connected", ana.id > 0 && bruno.id > 0 && ana.id !== bruno.id);
 
-  const readRoster = () => ana.page.evaluate(() => [...window.__og.state.roster.values()].map((p) => p.n).sort());
+  const readRoster = () => ana.page.evaluate(() => [...window.__tilework.state.roster.values()].map((p) => p.n).sort());
   // The roster is pushed over the WebSocket; on a slow browser Bruno's entry can land after joinAs returns.
   await waitFor(async () => (await readRoster()).includes("Bruno" + tag), { what: "Bruno in Ana's roster" }).catch(() => {});
   const roster = await readRoster();
@@ -21,9 +21,9 @@ try {
 
   // Movement sync: Ana walks right for a while; Bruno must see it, ~within interpolation delay.
   const a0 = await pos(ana);
-  await ana.page.evaluate(() => window.__og.view.setDirection(1, 0));
+  await ana.page.evaluate(() => window.__tilework.view.setDirection(1, 0));
   await sleep(700);
-  await ana.page.evaluate(() => window.__og.view.setDirection(0, 0));
+  await ana.page.evaluate(() => window.__tilework.view.setDirection(0, 0));
   await sleep(500);
   const a1 = await pos(ana);
   const seenByBruno = (await others(bruno)).find((e) => e.id === ana.id);
@@ -32,14 +32,14 @@ try {
 
   // Dead reckoning: Bruno only receives state changes, yet must track a 2 s walk closely.
   let maxErr = 0;
-  await ana.page.evaluate(() => window.__og.view.setDirection(-1, 0));
+  await ana.page.evaluate(() => window.__tilework.view.setDirection(-1, 0));
   for (let i = 0; i < 18; i++) {
     await sleep(100);
     const real = await pos(ana);
     const seen = (await others(bruno)).find((e) => e.id === ana.id);
     if (seen) maxErr = Math.max(maxErr, Math.hypot(seen.x - real.x, seen.y - real.y));
   }
-  await ana.page.evaluate(() => window.__og.view.setDirection(0, 0));
+  await ana.page.evaluate(() => window.__tilework.view.setDirection(0, 0));
   await sleep(600);
   const realEnd = await pos(ana);
   const seenEnd = (await others(bruno)).find((e) => e.id === ana.id);
@@ -49,7 +49,7 @@ try {
   // Go to the social area, opt in to media, approach each other.
   await walkTo(ana, 20 * 16 + 8, 28 * 16 + 8);
   await walkTo(bruno, 26 * 16 + 8, 28 * 16 + 8);
-  await Promise.all([ana, bruno].map((u) => u.page.evaluate(() => window.__og.session.setConsent(true))));
+  await Promise.all([ana, bruno].map((u) => u.page.evaluate(() => window.__tilework.session.setConsent(true))));
   await sleep(1200);
   check("far apart: no conversation yet", (await st(ana)).conv === null && (await st(bruno)).conv === null);
 
@@ -58,8 +58,8 @@ try {
   await waitFor(async () => (await st(ana)).conv?.state === "live" && (await st(bruno)).conv?.state === "live", { timeout: 15000, what: "both live in conversation" });
   check("proximity conversation formed with LiveKit connected", true, `${Date.now() - t0} ms after approach`);
 
-  await waitFor(() => ana.page.evaluate(() => window.__og.media.tiles.length === 2), { what: "2 tiles" });
-  const room = await ana.page.evaluate(() => window.__og.media.currentRoom);
+  await waitFor(() => ana.page.evaluate(() => window.__tilework.media.tiles.length === 2), { what: "2 tiles" });
+  const room = await ana.page.evaluate(() => window.__tilework.media.currentRoom);
   await waitFor(async () => (await lkParticipants(room)).length === 2, { what: "SFU has 2 participants" });
   check("SFU room contains exactly both identities", (await lkParticipants(room)).sort().join() === [ana.id, bruno.id].sort().join());
 
@@ -71,8 +71,8 @@ try {
   check("Ana receives real audio RTP from Bruno", bytes > 2000, `${bytes} bytes`);
 
   // Bruno turns on camera -> Ana gets a video tile
-  await bruno.page.evaluate(() => window.__og.media.setCam(true));
-  await waitFor(() => ana.page.evaluate(() => window.__og.media.tiles.some((t) => !t.local && t.cam)), { timeout: 15000, what: "Ana sees Bruno video" });
+  await bruno.page.evaluate(() => window.__tilework.media.setCam(true));
+  await waitFor(() => ana.page.evaluate(() => window.__tilework.media.tiles.some((t) => !t.local && t.cam)), { timeout: 15000, what: "Ana sees Bruno video" });
   const vb = await waitFor(async () => {
     const n = await rtpBytes(ana, "inbound", "video");
     return n > 5000 ? n : 0;
@@ -81,11 +81,11 @@ try {
 
   // Per-person volume, local to Ana: 100% -> 50% -> muted for me -> 100%.
   await ana.page.click(".dock .tile .vol");
-  const half = await waitFor(() => ana.page.evaluate((id) => window.__og.media.room.remoteParticipants.get(String(id))?.getVolume() === 0.5, bruno.id), { what: "half volume" }).catch(() => false);
+  const half = await waitFor(() => ana.page.evaluate((id) => window.__tilework.media.room.remoteParticipants.get(String(id))?.getVolume() === 0.5, bruno.id), { what: "half volume" }).catch(() => false);
   await ana.page.click(".dock .tile .vol");
-  const muted = await waitFor(() => ana.page.evaluate((id) => window.__og.media.room.remoteParticipants.get(String(id))?.getVolume() === 0, bruno.id), { what: "muted for me" }).catch(() => false);
+  const muted = await waitFor(() => ana.page.evaluate((id) => window.__tilework.media.room.remoteParticipants.get(String(id))?.getVolume() === 0, bruno.id), { what: "muted for me" }).catch(() => false);
   await ana.page.click(".dock .tile .vol");
-  check("Ana can turn Bruno down or mute him for herself only", !!half && !!muted && (await ana.page.evaluate((id) => window.__og.media.room.remoteParticipants.get(String(id))?.getVolume(), bruno.id)) === 1);
+  check("Ana can turn Bruno down or mute him for herself only", !!half && !!muted && (await ana.page.evaluate((id) => window.__tilework.media.room.remoteParticipants.get(String(id))?.getVolume(), bruno.id)) === 1);
 
   // Walk away: hysteresis + dwell, then server revokes SFU access.
   const before = await metrics();
@@ -93,8 +93,8 @@ try {
   await waitFor(async () => (await st(ana)).conv === null && (await st(bruno)).conv === null, { timeout: 15000, what: "conversation ends" });
   check("moving away ends the conversation for both", true);
   // revocation runs in the background with retries: give it a few seconds on a loaded machine
-  const after = await waitFor(async () => { const m = await metrics(); return m.og_media_revocations_total - before.og_media_revocations_total >= 2 ? m : null; }, { timeout: 8000, what: "revocations" }).catch(() => metrics());
-  check("server revoked SFU access for both", after.og_media_revocations_total - before.og_media_revocations_total >= 2, `revocations +${after.og_media_revocations_total - before.og_media_revocations_total}`);
+  const after = await waitFor(async () => { const m = await metrics(); return m.tilework_media_revocations_total - before.tilework_media_revocations_total >= 2 ? m : null; }, { timeout: 8000, what: "revocations" }).catch(() => metrics());
+  check("server revoked SFU access for both", after.tilework_media_revocations_total - before.tilework_media_revocations_total >= 2, `revocations +${after.tilework_media_revocations_total - before.tilework_media_revocations_total}`);
   check("SFU room is empty after leaving", (await lkParticipants(room)).length === 0);
   check("media capture stopped after leaving (mic/cam off)", (await st(ana)).mic === false && (await st(bruno)).cam === false);
 
