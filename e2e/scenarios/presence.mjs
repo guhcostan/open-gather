@@ -42,6 +42,18 @@ export async function run(ctx) {
     await a.page.keyboard.press("h");
     await waitFor(() => read(b, (id) => !window.__og.state.roster.get(id)?.h && !window.__og.view.ents.get(id)?.hand, a.id), { what: "hand lowered" });
     check("pressing H again lowers it", true);
+    // two quick presses (before the server's echo) are a raise and a lower, not two raises
+    await a.page.keyboard.press("h");
+    await a.page.keyboard.press("h");
+    await sleep(1500);
+    check("H pressed twice quickly leaves the hand down", await read(b, (id) => !window.__og.state.roster.get(id)?.h, a.id) && await read(a, () => !window.__og.state.roster.get(window.__og.state.meId)?.h));
+    // the on-screen hand button does the same as H
+    await a.page.click('.reaction-row button[aria-label^="Raise hand"]');
+    await waitFor(() => read(b, (id) => window.__og.state.roster.get(id)?.h === 1, a.id), { what: "hand raised by the button" });
+    await waitFor(() => a.page.$('.reaction-row button[aria-label^="Lower hand"][aria-pressed="true"]'), { what: "button shows the raised hand" });
+    await a.page.click('.reaction-row button[aria-label^="Lower hand"]');
+    await waitFor(() => read(b, (id) => !window.__og.state.roster.get(id)?.h, a.id), { what: "hand lowered by the button" });
+    check("the hand button raises and lowers the hand for others", true);
     await a.page.click(".status-menu > .btn");
     await a.page.type(".note-form input", "Deep work until 4");
     await a.page.click(".note-form button[type=submit]");

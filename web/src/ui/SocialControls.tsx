@@ -62,7 +62,7 @@ export function SocialControls() {
           {EMOTES.map((emoji, i) => <button key={i} className="chip" aria-label={t(`emote.${i + 1}` as Key)} title={`${i + 1} · ${t(`emote.${i + 1}` as Key)}`} onClick={() => { session.emote(i + 1); done(); }}>{emoji}</button>)}
           <button className={"chip run-toggle" + (running ? " on" : "")} aria-pressed={running} aria-label={t("run.toggle")} title={t("run.hint")} onClick={() => { session.toggleRun(); done(); }}>🏃</button>
           <button className="chip" aria-label={t("dance.action")} title={t("dance.action")} onClick={() => { session.emote(8); done(); }}>💃</button>
-          <button className={"chip" + (handUp ? " on" : "")} aria-pressed={handUp} aria-label={handUp ? t("hand.lower") : t("hand.raise")} title={handUp ? t("hand.lower") : t("hand.raise")} onClick={() => { session.hand(!handUp); done(); }}>✋</button>
+          <button className={"chip" + (handUp ? " on" : "")} aria-pressed={handUp} aria-label={handUp ? t("hand.lower") : t("hand.raise")} title={handUp ? t("hand.lower") : t("hand.raise")} onClick={() => { session.toggleHand(); done(); }}>✋</button>
         </div>}
         {wave && (
           <div className="wave-card" role="alert">

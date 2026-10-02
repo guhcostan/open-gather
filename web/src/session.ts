@@ -18,6 +18,9 @@ class Session {
   private idleTimer = 0;
   private lastActivity = Date.now();
   private autoAway = false;
+  /** The hand state last asked for while the server has not confirmed it yet (null: follow the server). */
+  private handWanted: boolean | null = null;
+  private handAskedAt = 0;
   private cleanup: (() => void)[] = [];
 
   async start(host: HTMLElement) {
@@ -29,7 +32,7 @@ class Session {
       onArea: (name) => setState({ currentArea: name }),
       onResume: () => this.socket?.send({ t: "sync" }),
       onEmote: (kind) => this.emote(kind),
-      onHand: () => this.hand(!getState().roster.get(getState().meId)?.h),
+      onHand: () => this.toggleHand(),
       onInteract: (prop) => { view.setDirection(0, 0); this.socket?.send({ t: "use", x: prop.x, y: prop.y }); },
       onNearby: (nearby) => setState({ nearby }),
     });
@@ -101,6 +104,7 @@ class Session {
     if (!view) return;
     switch (m.t) {
       case "hello": {
+        this.handWanted = null; // a new connection starts from what the server knows
         const roster = new Map<number, Person>(m.roster.map((p) => [p.id, p]));
         // The server replays the persisted office chat on every connect; other scopes are kept as they are.
         const history: ChatMsg[] = (m.chat ?? []).map((c) => ({ id: ++this.chatId, sc: "o", from: c.f, text: c.x, ts: c.ts, n: c.n }));
@@ -130,6 +134,7 @@ class Session {
         setState({ roster });
         view.setPeople(roster);
         const me = roster.get(getState().meId);
+        if (me && this.handWanted !== null && !!me.h === this.handWanted) this.handWanted = null; // confirmed
         if (me && me.s !== "offline" && me.s !== getState().status) setState({ status: me.s as Status });
         break;
       }
@@ -255,7 +260,14 @@ class Session {
   /** Run next to another person (server-side path finding). */
   goToPerson(id: number) { this.socket?.send({ t: "go", id }); }
   wave(id: number) { this.socket?.send({ t: "wave", id }); }
-  hand(up: boolean) { this.socket?.send({ t: "hand", b: up }); }
+  hand(up: boolean) { this.handWanted = up; this.handAskedAt = Date.now(); this.socket?.send({ t: "hand", b: up }); }
+  /** H key and the hand button: invert what was last asked for, so quick presses do not repeat a raise. */
+  toggleHand() {
+    const s = getState();
+    // a request the server never confirmed (dropped by the rate limit) stops counting after a second
+    const pending = Date.now() - this.handAskedAt < 1000 ? this.handWanted : null;
+    this.hand(!(pending ?? !!s.roster.get(s.meId)?.h));
+  }
   note(text: string) {
     if (text) localStorage.setItem("og.note", text);
     else localStorage.removeItem("og.note");
