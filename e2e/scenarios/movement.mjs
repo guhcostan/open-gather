@@ -81,8 +81,8 @@ export async function run() {
     }
     walkGaps.sort((x, y) => x - y);
     const med = walkGaps[walkGaps.length >> 1] ?? 0, minGap = walkGaps[0] ?? 0;
-    const [, ox, oy, px, py] = S[S.length - 1];
-    const rest = Math.hypot(px - ox, py - oy);
+    const tail = S.filter(([t]) => t > S[S.length - 1][0] - 600).map(([, ox, oy, px, py]) => Math.hypot(px - ox, py - oy)).sort((x, y) => x - y);
+    const rest = tail[tail.length >> 1] ?? 0; // median over the final 600 ms, not one frame: a single sample can catch the pet mid-settle on a slow machine
     check("the pet follows behind while walking, not glued to the owner", med >= 14 && med <= 30 && minGap >= 10, "median " + med.toFixed(1) + " px, min " + minGap.toFixed(1) + " px");
     check("the pet walks the owner's trail and never cuts the corner", offTrail <= 3, "max " + offTrail.toFixed(1) + " px off the trail");
     check("the pet never outruns a walking owner (no jumps when turning)", fastest <= 72 * 1.35, fastest.toFixed(0) + " px/s");
@@ -169,11 +169,17 @@ export async function run() {
     }));
     let back = 0;
     for (let i = 1; i < jitter.length; i++) back = Math.max(back, jitter[i - 1] - jitter[i]);
-    await sleep(900);
-    const mine = await read(a, () => { const v = window.__tilework.view, e = v.ents.get(v.meId); return { x: e.x, y: e.y }; });
-    const theirs = await read(b, (id) => { const e = window.__tilework.view.ents.get(id); return { x: e.x, y: e.y }; }, a.id);
     check("with 0-120 ms of input jitter, a runner is never drawn stepping back", back <= 0.01 && jitter.at(-1) - jitter[0] > 120, "max step back " + back.toFixed(2) + " px over " + jitter.length + " frames, ran " + (jitter.at(-1) - jitter[0]).toFixed(0) + " px");
-    check("...and stops where the server and other people see it", dist(mine, theirs) < 1, dist(mine, theirs).toFixed(2) + " px");
+    // convergence is polled, not slept: a loaded machine may take longer than 900 ms to deliver the stop
+    const tc0 = Date.now();
+    let mine = null, theirs = null, gap = Infinity;
+    await waitFor(async () => {
+      mine = await read(a, () => { const v = window.__tilework.view, e = v.ents.get(v.meId); return { x: e.x, y: e.y }; });
+      theirs = await read(b, (id) => { const e = window.__tilework.view.ents.get(id); return { x: e.x, y: e.y }; }, a.id);
+      gap = dist(mine, theirs);
+      return gap < 1;
+    }, { timeout: 10000, every: 250, what: "observer converges on the stopped runner" });
+    check("...and stops where the server and other people see it", gap < 1, gap.toFixed(2) + " px after " + ((Date.now() - tc0) / 1000).toFixed(1) + " s");
     await read(a, () => { WebSocket.prototype.send = window.__origSend; });
     // the same on a diagonal at walking speed, where each axis moves slowest (51 px/s): both axes monotonic
     await walkTo(a, 6 * 16 + 8, 30 * 16 + 8);

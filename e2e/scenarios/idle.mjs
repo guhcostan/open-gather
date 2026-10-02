@@ -63,9 +63,18 @@ export async function run() {
     const shot1 = await a.page.screenshot({ encoding: "base64" });
     check("a person walking in view is drawn on every frame it changes", moving.seen > 20 && moving.drawn === moving.seen, moving.drawn + " of " + moving.seen + " changed frames drawn");
     check("...and the picture really changed", shot0 !== shot1);
-    // my own walk, a status change of somebody else, and an emote are drawn too
-    const walk = await window_(browser, a, 1000, () => read(a, () => { const v = window.__tilework.view; v.setDirection(1, 0); setTimeout(() => v.setDirection(0, 0), 800); }));
-    check("my own walk is drawn at full rate", walk.draws >= Math.min(45, fps * 0.8), walk.draws.toFixed(1) + " draws/s");
+    // my own walk is drawn too. Draws are counted over the exact walk window in the page: the old
+    // wall-clock window included 200 ms standing still afterwards, which fails a slow renderer by arithmetic.
+    const walk = await read(a, () => new Promise((resolve) => {
+      const v = window.__tilework.view;
+      const r0 = v.rendersTotal, f0 = v.stats.fps, t0 = performance.now();
+      v.setDirection(1, 0);
+      setTimeout(() => {
+        v.setDirection(0, 0);
+        resolve({ draws: (v.rendersTotal - r0) / ((performance.now() - t0) / 1000), fps: f0 });
+      }, 800);
+    }));
+    check("my own walk is drawn at full rate", walk.draws >= Math.min(45, walk.fps * 0.8), walk.draws.toFixed(1) + " draws/s at " + walk.fps + " fps");
     await sleep(800);
     const before = await a.page.screenshot({ encoding: "base64" });
     await read(b, () => window.__tilework.session.setStatus?.("busy"));
