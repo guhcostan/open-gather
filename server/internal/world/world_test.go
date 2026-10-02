@@ -9,8 +9,8 @@ import (
 	"testing"
 	"time"
 
-	"opengather/internal/gamemap"
-	"opengather/internal/media"
+	"tilework/internal/gamemap"
+	"tilework/internal/media"
 )
 
 type fakeMedia struct {

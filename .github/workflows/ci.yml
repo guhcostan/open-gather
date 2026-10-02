@@ -31,7 +31,7 @@ jobs:
       - name: Build binaries
         working-directory: server
         run: |
-          go build ./cmd/opengather
+          go build ./cmd/tilework
           go build ./cmd/loadgen
       - name: Build the media benchmark tool
         working-directory: bench/mediagen

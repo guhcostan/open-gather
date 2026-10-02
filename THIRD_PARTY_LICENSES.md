@@ -1,8 +1,8 @@
 # Third-party licenses
 
-Open Gather's own code is **AGPL-3.0-only** (see [LICENSE](LICENSE)); using it commercially is allowed under that license, with no additional restrictions. All dependencies below are permissively licensed (MIT, BSD, ISC, Apache-2.0, 0BSD) and are compatible with distributing the combined work under AGPL-3.0.
+Tilework's own code is **AGPL-3.0-only** (see [LICENSE](LICENSE)); using it commercially is allowed under that license, with no additional restrictions. All dependencies below are permissively licensed (MIT, BSD, ISC, Apache-2.0, 0BSD) and are compatible with distributing the combined work under AGPL-3.0.
 
-Generated on 2026-09-29 from `pnpm licenses list --prod` and the Go module cache (`go list -deps` for `cmd/opengather` and `cmd/loadgen`). Re-generate before every release; license texts ship inside each package.
+Generated on 2026-09-29 from `pnpm licenses list --prod` and the Go module cache (`go list -deps` for `cmd/tilework` and `cmd/loadgen`). Re-generate before every release; license texts ship inside each package.
 
 ## Web client (production dependencies)
 

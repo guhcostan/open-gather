@@ -16,7 +16,7 @@ func TestInteractiveContentAndPortalValidation(t *testing.T) {
 	if err != nil {
 		t.Fatal(err)
 	}
-	if strings.Contains(string(c.JSON), "Welcome to Open Gather!") || strings.Contains(string(c.JSON), "https://example.com/") {
+	if strings.Contains(string(c.JSON), "Welcome to Tilework!") || strings.Contains(string(c.JSON), "https://example.com/") {
 		t.Fatal("object content is not in the public map")
 	}
 	m.Props = append(m.Props, Prop{T: PropPortal, X: 5, Y: 9, To: &Point{X: 0, Y: 0}})

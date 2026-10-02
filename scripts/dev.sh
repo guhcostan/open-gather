@@ -16,18 +16,18 @@ trap cleanup EXIT INT TERM
 livekit-server --dev --bind 127.0.0.1 > $LOG/livekit.log 2>&1 &
 pids+=($!)
 
-( cd server && go build -o ../bin/opengather ./cmd/opengather )
-OG_ENV=dev OG_ADDR=127.0.0.1:8080 OG_DB="${OG_DB:-server/data/dev.db}" \
-  OG_ALLOWED_ORIGINS="localhost:*,127.0.0.1:*" \
+( cd server && go build -o ../bin/tilework ./cmd/tilework )
+TILEWORK_ENV=dev TILEWORK_ADDR=127.0.0.1:8080 TILEWORK_DB="${TILEWORK_DB:-server/data/dev.db}" \
+  TILEWORK_ALLOWED_ORIGINS="localhost:*,127.0.0.1:*" \
   LIVEKIT_URL=ws://127.0.0.1:7880 LIVEKIT_API_KEY=devkey LIVEKIT_API_SECRET=secret \
-  ./bin/opengather > $LOG/server.log 2>&1 &
+  ./bin/tilework > $LOG/server.log 2>&1 &
 pids+=($!)
 
 ( cd web && [ -d node_modules ] || pnpm install )
 ( cd web && pnpm exec vite --host 127.0.0.1 > ../$LOG/vite.log 2>&1 ) &
 pids+=($!)
 
-echo "Open Gather dev stack:"
+echo "Tilework dev stack:"
 echo "  app      http://127.0.0.1:5173"
 echo "  server   http://127.0.0.1:8080  (metrics: /metrics)"
 echo "  livekit  ws://127.0.0.1:7880"

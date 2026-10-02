@@ -2,11 +2,11 @@
 
 Short answers to the questions people ask first. Most answers link to the page with the details and the evidence behind them.
 
-## What is Open Gather?
+## What is Tilework?
 
 An open source, self-hosted 2D virtual office. Your team walks pixel-art avatars around a shared map and audio and video start when people get close, like bumping into someone in a hallway. It also has meeting rooms with access rules, private offices, screen sharing, chat, whiteboards, invites and a map editor. See the [overview](overview.md).
 
-## Is Open Gather an open source alternative to Gather?
+## Is Tilework an open source alternative to Gather?
 
 It is an independent project inspired by the classic Gather (gather.town) experience: a 2D map with proximity video. It is not affiliated with or endorsed by Gather, and it uses none of its code, maps, sprites or branding. Sprites, tiles and the map are drawn by the project's own code, the code is AGPL-3.0, and every third-party dependency is listed in [THIRD_PARTY_LICENSES.md](../THIRD_PARTY_LICENSES.md). If you want a virtual office you can host and inspect yourself, that is exactly the use case.
 
@@ -20,7 +20,7 @@ Open the [public demo](https://office.152-67-49-137.sslip.io), pick a name and a
 
 ## How do I self-host it?
 
-Use the Docker image `ghcr.io/guhcostan/open-gather` (linux/amd64 and linux/arm64) with the production Docker Compose file, which adds Caddy for automatic HTTPS and LiveKit for media. You need two DNS names, a few open ports and an invite for the first administrator. The [self-hosting guide](../deploy/README.md) walks through it, including a trick for trying it without owning a domain.
+Use the Docker image `ghcr.io/guhcostan/tilework` (linux/amd64 and linux/arm64) with the production Docker Compose file, which adds Caddy for automatic HTTPS and LiveKit for media. You need two DNS names, a few open ports and an invite for the first administrator. The [self-hosting guide](../deploy/README.md) walks through it, including a trick for trying it without owning a domain.
 
 ## How many people can one server handle?
 
@@ -56,4 +56,4 @@ It is planned: a dedicated instance per customer, kept updated and backed up, in
 
 ## How can I help?
 
-Try the demo and open an issue with what broke or felt wrong, star the repository on [GitHub](https://github.com/guhcostan/open-gather) so others can find it, or contribute tests, measurements and fixes following [Contributing](contributing.md).
+Try the demo and open an issue with what broke or felt wrong, star the repository on [GitHub](https://github.com/guhcostan/tilework) so others can find it, or contribute tests, measurements and fixes following [Contributing](contributing.md).

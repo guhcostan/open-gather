@@ -5,7 +5,7 @@ import (
 	"testing"
 	"time"
 
-	"opengather/internal/gamemap"
+	"tilework/internal/gamemap"
 )
 
 func frames(p *Player) string { return strings.Join(drain(p), "\n") }
@@ -62,7 +62,7 @@ func TestObjectContentIsHiddenFromTheMapAndServedOnlyNextToTheObject(t *testing.
 	// the welcome note sits at tile (4,5); the reception is open to everybody
 	near := h.add(1, "member", 4*16+8, 6*16+8)
 	far := h.add(2, "member", 12*16+8, 9*16+8)
-	if strings.Contains(string(h.w.m.JSON), "Welcome to Open Gather") {
+	if strings.Contains(string(h.w.m.JSON), "Welcome to Tilework") {
 		t.Fatal("the wire map must not carry the content of interactive objects")
 	}
 	drain(near)
@@ -73,7 +73,7 @@ func TestObjectContentIsHiddenFromTheMapAndServedOnlyNextToTheObject(t *testing.
 	}
 	h.send(near, ev{kind: evUse, x: 4, y: 5})
 	got := frames(near)
-	if !strings.Contains(got, `"t":"obj"`) || !strings.Contains(got, "Welcome to Open Gather") || !strings.Contains(got, `"k":"note"`) {
+	if !strings.Contains(got, `"t":"obj"`) || !strings.Contains(got, "Welcome to Tilework") || !strings.Contains(got, `"k":"note"`) {
 		t.Fatalf("expected the note, got %q", got)
 	}
 	h.send(near, ev{kind: evUse, x: 5, y: 5}) // no object there

@@ -1,6 +1,6 @@
 # Security policy
 
-Open Gather is alpha software and has not had an independent security review. Known limits are listed in [Privacy and security](docs/privacy-and-security.md).
+Tilework is alpha software and has not had an independent security review. Known limits are listed in [Privacy and security](docs/privacy-and-security.md).
 
 ## Reporting a vulnerability
 
@@ -10,4 +10,4 @@ Include what you ran, what you expected and what happened, and the commit or ima
 
 ## Supported versions
 
-Only the latest `main` and the `latest` image on `ghcr.io/guhcostan/open-gather` receive fixes.
+Only the latest `main` and the `latest` image on `ghcr.io/guhcostan/tilework` receive fixes.

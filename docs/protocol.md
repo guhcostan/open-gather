@@ -76,7 +76,7 @@ Avatars are `{sk, hs, hc, sh, pa, pt}` small integers; `pt` is the companion pet
 | Endpoint | Auth | Purpose |
 | --- | --- | --- |
 | `GET /healthz`, `GET /readyz` | none | liveness, readiness (database) |
-| `GET /metrics` | bearer `OG_METRICS_TOKEN`; open in dev; **disabled (404) in production without a token** | Prometheus text |
+| `GET /metrics` | bearer `TILEWORK_METRICS_TOKEN`; open in dev; **disabled (404) in production without a token** | Prometheus text |
 | `POST /api/join` | invite (production) | create a member; `{name, avatar, invite}`; sets the session cookie |
 | `GET /api/me` | cookie | current session or `{"authenticated": false}` |
 | `PUT /api/profile` | cookie | change your name and avatar |

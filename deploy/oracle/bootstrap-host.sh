@@ -1,5 +1,5 @@
 #!/usr/bin/env bash
-# Prepares a fresh Oracle Cloud Ubuntu 24.04 VM for the Open Gather Compose stack. Run ON the VM as a sudoer:
+# Prepares a fresh Oracle Cloud Ubuntu 24.04 VM for the Tilework Compose stack. Run ON the VM as a sudoer:
 #   ssh ubuntu@IP "bash -s" < deploy/oracle/bootstrap-host.sh
 # Idempotent: opens the host firewall (Oracle images reject everything but SSH), adds swap for 1 GB VMs and
 # installs Docker with the Compose plugin.

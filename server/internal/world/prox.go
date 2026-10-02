@@ -6,8 +6,8 @@ import (
 	"strconv"
 	"time"
 
-	"opengather/internal/gamemap"
-	"opengather/internal/media"
+	"tilework/internal/gamemap"
+	"tilework/internal/media"
 )
 
 // Conversation model
@@ -286,15 +286,15 @@ func (w *World) proximityPass(now time.Time) {
 					if d > pc.JoinR || d >= bestD {
 						continue
 					}
-					if og := o.group; og != nil {
-						if og.isRoom || len(og.members) >= pc.MaxGroup {
+					if group := o.group; group != nil {
+						if group.isRoom || len(group.members) >= pc.MaxGroup {
 							continue
 						}
-						gx, gy := og.centroid()
+						gx, gy := group.centroid()
 						if dist(p.X, p.Y, gx, gy) > pc.CentJoin {
 							continue
 						}
-						bestD, bestG, bestP = d, og, nil
+						bestD, bestG, bestP = d, group, nil
 					} else {
 						bestD, bestG, bestP = d, nil, o
 					}

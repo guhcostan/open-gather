@@ -11,7 +11,7 @@ This page states what the current code does and, just as important, what it does
 - **Invites and roles:** hashed, use-limited, expiring invites; administrator-only invite and map endpoints; production joins require an invite. (Store, HTTP and browser tests.)
 - **Sessions:** opaque random tokens, only a SHA-256 hash is stored; the cookie is HttpOnly, SameSite=Lax and Secure outside dev mode.
 - **Input validation:** WebSocket frames are size- and rate-limited; avatars are re-serialised from validated fields; names are bounded; maps are validated and compiled before being accepted; request bodies are size-limited.
-- **Production guard rails:** `OG_ENV=production` refuses to start without a real LiveKit key and a secret of at least 32 characters, a `wss://` media URL and an explicit allowed-origins list. Verified with the built container image.
+- **Production guard rails:** `TILEWORK_ENV=production` refuses to start without a real LiveKit key and a secret of at least 32 characters, a `wss://` media URL and an explicit allowed-origins list. Verified with the built container image.
 - **Logs:** structured JSON. Chat text, tokens and secrets are not logged (invite creation logs who and how many uses, never the token).
 - **Interactive objects:** note/site/image content is validated at map save (notes bounded, only absolute https URLs without credentials) and stripped from the public map; it is sent only to a player standing next to the object and allowed in its area. Embedded sites and images load only after an explicit click, in a sandboxed iframe or referrerless image.
 - **Lockable rooms:** locks are in-memory door state; movement refuses outsiders (admins bypass, admitted visitors pass), so a locked call cannot be joined from outside and media isolation follows automatically. Knocks reach only people inside and expire.
@@ -35,7 +35,7 @@ This page states what the current code does and, just as important, what it does
 - **Up to one reconcile interval (10 s) of exposure** remains for a replayed, unexpired token.
 - **Abuse handling is minimal:** administrators can remove a member (their sessions die and their socket closes at once) and revoke invites, but there is no ban list (a removed person can rejoin with any valid invite), no temporary mute or kick, no reporting flow and no content moderation. Office chat lines of a removed member stay in the last 500 messages until pruned.
 - **The audit log is administrative only** (joins by invite, role changes, removals, invite creation and revocation, map edits). It stores who did what and when, never message content, and keeps the last 2,000 entries per office. It is not tamper-proof: anyone with database access can edit it.
-- **`/metrics`** requires a bearer token (`OG_METRICS_TOKEN`, at least 16 characters) when one is set, is open in dev without one, and is **disabled (404) in production without one**. The Caddyfile also hides it from the public hostname; keep both.
+- **`/metrics`** requires a bearer token (`TILEWORK_METRICS_TOKEN`, at least 16 characters) when one is set, is open in dev without one, and is **disabled (404) in production without one**. The Caddyfile also hides it from the public hostname; keep both.
 - **No independent security review.** Do not run this as a multi-tenant or public service.
 
 ## Reporting a vulnerability

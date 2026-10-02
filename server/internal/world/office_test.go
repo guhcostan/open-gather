@@ -6,7 +6,7 @@ import (
 	"testing"
 	"time"
 
-	"opengather/internal/gamemap"
+	"tilework/internal/gamemap"
 )
 
 // Private offices: a row of small rooms under the social area, behind a hall. Office 1 spans tiles

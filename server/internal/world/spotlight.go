@@ -3,8 +3,8 @@ package world
 import (
 	"time"
 
-	"opengather/internal/gamemap"
-	"opengather/internal/media"
+	"tilework/internal/gamemap"
+	"tilework/internal/media"
 )
 
 // Spotlight. Standing on a spotlight pad, with audio and video enabled and the status Available, puts

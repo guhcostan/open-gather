@@ -6,8 +6,8 @@ const click = (u, selector, text) => u.page.evaluate((selector, text) => {
   b?.click();
   return !!b;
 }, selector, text);
-const cookieOf = async (u) => (await u.ctx.cookies()).find((c) => c.name === "og_session").value;
-const api = (cookie, method, path, body) => fetch(API + path, { method, headers: { "Content-Type": "application/json", Cookie: "og_session=" + cookie }, body: body ? JSON.stringify(body) : undefined });
+const cookieOf = async (u) => (await u.ctx.cookies()).find((c) => c.name === "tilework_session").value;
+const api = (cookie, method, path, body) => fetch(API + path, { method, headers: { "Content-Type": "application/json", Cookie: "tilework_session=" + cookie }, body: body ? JSON.stringify(body) : undefined });
 
 export async function run(ctx) {
   resetChecks();
@@ -31,12 +31,12 @@ export async function run(ctx) {
 
     // ---- promote Mia: she is disconnected, reconnects and gets the new role
     await admin.page.select('.modal select[aria-label="Role of Mia' + t + '"]', "admin");
-    await waitFor(() => mia.page.evaluate(() => window.__og.state.role === "admin" && window.__og.state.conn === "open"), { timeout: 20000, what: "Mia reconnects as admin" });
+    await waitFor(() => mia.page.evaluate(() => window.__tilework.state.role === "admin" && window.__tilework.state.conn === "open"), { timeout: 20000, what: "Mia reconnects as admin" });
     check("a role change reaches the online member without a reload (evict, reconnect, new role)", true);
     check("the new admin now sees the Admin button", await waitFor(() => click(mia, ".topbar button", "Admin"), { timeout: 5000 }).then(() => true).catch(() => false));
     await mia.page.keyboard.press("Escape");
     await admin.page.select('.modal select[aria-label="Role of Mia' + t + '"]', "member");
-    await waitFor(() => mia.page.evaluate(() => window.__og.state.role === "member" && window.__og.state.conn === "open"), { timeout: 20000, what: "Mia back to member" });
+    await waitFor(() => mia.page.evaluate(() => window.__tilework.state.role === "member" && window.__tilework.state.conn === "open"), { timeout: 20000, what: "Mia back to member" });
     check("demoting works the same way", true);
     // earlier scenarios may have minted other admins in this shared office: demote them, so that ours is the last one
     const all = await (await api(ctx.adminCookie, "GET", "/api/admin/members")).json();
@@ -73,9 +73,9 @@ export async function run(ctx) {
     await waitFor(() => rem.page.evaluate(() => !!document.querySelector(".join-card")), { timeout: 20000, what: "removed member lands on the join screen" });
     const note = await rem.page.evaluate(() => document.querySelector(".join-card .error")?.textContent ?? "");
     check("a removed member is disconnected at once and told why", note.includes("removed from this office"), note);
-    const me = await (await fetch(API + "/api/me", { headers: { Cookie: "og_session=" + remCookie } })).json();
+    const me = await (await fetch(API + "/api/me", { headers: { Cookie: "tilework_session=" + remCookie } })).json();
     check("the removed member's session no longer works", me.authenticated === false);
-    await waitFor(() => admin.page.evaluate((n) => ![...window.__og.state.roster.values()].some((p) => p.n === n && p.s !== "offline"), "Rem" + t), { what: "roster no longer shows Rem online" });
+    await waitFor(() => admin.page.evaluate((n) => ![...window.__tilework.state.roster.values()].some((p) => p.n === n && p.s !== "offline"), "Rem" + t), { what: "roster no longer shows Rem online" });
     check("everybody sees the removed member leave", true);
     const ws = await api(remCookie, "GET", "/api/admin/members");
     check("the removed session cannot use the admin API either (401)", ws.status === 401);

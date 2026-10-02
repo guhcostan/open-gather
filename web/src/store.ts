@@ -98,20 +98,20 @@ const initial: State = {
   status: "available",
   office: "",
   mediaAvailable: false,
-  consent: localStorage.getItem("og.consent") === "1",
+  consent: localStorage.getItem("tilework.consent") === "1",
   roster: new Map(),
   conv: null,
   chat: [],
   unread: 0,
-  settings: load<Settings>("og.settings", { eco: false, maxVideos: 6, audioOnly: false, debug: false, sounds: true, notify: false, minimap: true }),
-  prefs: load<MediaPrefs>("og.prefs", { micOn: true, camOn: false, micId: "", camId: "", spkId: "" }),
+  settings: load<Settings>("tilework.settings", { eco: false, maxVideos: 6, audioOnly: false, debug: false, sounds: true, notify: false, minimap: true }),
+  prefs: load<MediaPrefs>("tilework.prefs", { micOn: true, camOn: false, micId: "", camId: "", spkId: "" }),
   mic: false,
   cam: false,
   sharing: false,
   deviceError: "",
   currentArea: "",
   toast: "",
-  myAvatar: load<AvatarSpec>("og.avatar", { sk: 1, hs: 0, hc: 1, sh: 4, pa: 1 }),
+  myAvatar: load<AvatarSpec>("tilework.avatar", { sk: 1, hs: 0, hc: 1, sh: 4, pa: 1 }),
   notice: "",
   demo: null,
   nearby: null,
@@ -148,16 +148,16 @@ export function useStore<T>(sel: (s: State) => T): T {
 
 export function saveSettings(s: Partial<Settings>) {
   const settings = { ...state.settings, ...s };
-  localStorage.setItem("og.settings", JSON.stringify(settings));
+  localStorage.setItem("tilework.settings", JSON.stringify(settings));
   setState({ settings });
 }
 export function savePrefs(p: Partial<MediaPrefs>) {
   const prefs = { ...state.prefs, ...p };
-  localStorage.setItem("og.prefs", JSON.stringify(prefs));
+  localStorage.setItem("tilework.prefs", JSON.stringify(prefs));
   setState({ prefs });
 }
 export function saveAvatar(a: AvatarSpec) {
-  localStorage.setItem("og.avatar", JSON.stringify(a));
+  localStorage.setItem("tilework.avatar", JSON.stringify(a));
   setState({ myAvatar: a });
 }
 

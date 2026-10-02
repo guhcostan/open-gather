@@ -26,33 +26,33 @@ export async function run(ctx) {
     await waitFor(async () => (await toast(a)).includes("You waved at"), { what: "wave confirmation" });
     check("the sender is told the wave arrived", true);
     await click(b, "Walk to them", ".wave-card button");
-    await waitFor(async () => dist(await pos(a), await pos(b)) < 40 && !(await read(b, () => window.__og.view.guided)), { timeout: 30000, what: "walk back to the waver" });
+    await waitFor(async () => dist(await pos(a), await pos(b)) < 40 && !(await read(b, () => window.__tilework.view.guided)), { timeout: 30000, what: "walk back to the waver" });
     check("Walk to them runs to the person who waved", true);
-    await read(b, () => window.__og.session.setStatus("busy"));
+    await read(b, () => window.__tilework.session.setStatus("busy"));
     await sleep(2200); // wave cooldown
     await click(a, "Wave at " + b.name, ".people button");
     await waitFor(async () => (await toast(a)).includes("busy"), { what: "busy answer" });
     check("busy people are not disturbed and the sender learns why", !(await read(b, () => !!document.querySelector(".wave-card"))));
-    await read(b, () => window.__og.session.setStatus("available"));
+    await read(b, () => window.__tilework.session.setStatus("available"));
 
     // ---- raised hand (H) and a status note, seen by the other person ----
     await a.page.keyboard.press("h");
-    await waitFor(() => read(b, (id) => window.__og.state.roster.get(id)?.h === 1 && !!window.__og.view.ents.get(id)?.hand, a.id), { what: "hand raised" });
+    await waitFor(() => read(b, (id) => window.__tilework.state.roster.get(id)?.h === 1 && !!window.__tilework.view.ents.get(id)?.hand, a.id), { what: "hand raised" });
     check("H raises a hand that others see over the avatar and in the roster", true);
     await a.page.keyboard.press("h");
-    await waitFor(() => read(b, (id) => !window.__og.state.roster.get(id)?.h && !window.__og.view.ents.get(id)?.hand, a.id), { what: "hand lowered" });
+    await waitFor(() => read(b, (id) => !window.__tilework.state.roster.get(id)?.h && !window.__tilework.view.ents.get(id)?.hand, a.id), { what: "hand lowered" });
     check("pressing H again lowers it", true);
     // two quick presses (before the server's echo) are a raise and a lower, not two raises
     await a.page.keyboard.press("h");
     await a.page.keyboard.press("h");
     await sleep(1500);
-    check("H pressed twice quickly leaves the hand down", await read(b, (id) => !window.__og.state.roster.get(id)?.h, a.id) && await read(a, () => !window.__og.state.roster.get(window.__og.state.meId)?.h));
+    check("H pressed twice quickly leaves the hand down", await read(b, (id) => !window.__tilework.state.roster.get(id)?.h, a.id) && await read(a, () => !window.__tilework.state.roster.get(window.__tilework.state.meId)?.h));
     // the on-screen hand button does the same as H
     await a.page.click('.reaction-row button[aria-label^="Raise hand"]');
-    await waitFor(() => read(b, (id) => window.__og.state.roster.get(id)?.h === 1, a.id), { what: "hand raised by the button" });
+    await waitFor(() => read(b, (id) => window.__tilework.state.roster.get(id)?.h === 1, a.id), { what: "hand raised by the button" });
     await waitFor(() => a.page.$('.reaction-row button[aria-label^="Lower hand"][aria-pressed="true"]'), { what: "button shows the raised hand" });
     await a.page.click('.reaction-row button[aria-label^="Lower hand"]');
-    await waitFor(() => read(b, (id) => !window.__og.state.roster.get(id)?.h, a.id), { what: "hand lowered by the button" });
+    await waitFor(() => read(b, (id) => !window.__tilework.state.roster.get(id)?.h, a.id), { what: "hand lowered by the button" });
     check("the hand button raises and lowers the hand for others", true);
     await a.page.click(".status-menu > .btn");
     await a.page.type(".note-form input", "Deep work until 4");
@@ -62,15 +62,15 @@ export async function run(ctx) {
 
     // ---- dance (Z) ----
     await a.page.keyboard.press("z");
-    await waitFor(() => read(b, (id) => window.__og.view.ents.get(id)?.danceUntil > performance.now(), a.id), { what: "dance seen" });
+    await waitFor(() => read(b, (id) => window.__tilework.view.ents.get(id)?.danceUntil > performance.now(), a.id), { what: "dance seen" });
     check("Z makes the avatar dance for the people nearby", true);
 
     // ---- minimap ----
-    await waitFor(() => read(a, () => !!document.querySelector(".minimap canvas") && window.__og.state.areaCounts.some((n) => n > 0)), { what: "minimap with counts" });
-    const counts = await read(a, () => window.__og.state.areaCounts);
+    await waitFor(() => read(a, () => !!document.querySelector(".minimap canvas") && window.__tilework.state.areaCounts.some((n) => n > 0)), { what: "minimap with counts" });
+    const counts = await read(a, () => window.__tilework.state.areaCounts);
     check("the minimap shows head counts per area from the server", counts.reduce((x, y) => x + y, 0) >= 2, JSON.stringify(counts));
     const start = await pos(a);
-    const box = await read(a, () => { const r = document.querySelector(".minimap canvas").getBoundingClientRect(); const m = window.__og.view.currentMap(); return { x: r.left + (4.5 * 16) * (r.width / (m.w * 16)), y: r.top + (30.5 * 16) * (r.width / (m.w * 16)) }; });
+    const box = await read(a, () => { const r = document.querySelector(".minimap canvas").getBoundingClientRect(); const m = window.__tilework.view.currentMap(); return { x: r.left + (4.5 * 16) * (r.width / (m.w * 16)), y: r.top + (30.5 * 16) * (r.width / (m.w * 16)) }; });
     await a.page.mouse.click(box.x, box.y);
     await waitFor(async () => { const p = await pos(a); return Math.floor(p.x / 16) === 4 && Math.floor(p.y / 16) === 30; }, { timeout: 20000, what: "minimap walk" });
     check("clicking the minimap runs there", dist(start, await pos(a)) > 16);
@@ -101,19 +101,19 @@ export async function run(ctx) {
     const pctx = await browser.createBrowserContext();
     const phone = await pctx.newPage();
     await phone.emulate({ viewport: { width: 390, height: 844, isMobile: true, hasTouch: true, deviceScaleFactor: 2 }, userAgent: "Mozilla/5.0 (Linux; Android 14) AppleWebKit/537.36 (KHTML, like Gecko) Chrome/140.0 Mobile Safari/537.36" });
-    await phone.goto(process.env.OG_APP + "/", { waitUntil: "domcontentloaded" });
+    await phone.goto(process.env.TILEWORK_APP + "/", { waitUntil: "domcontentloaded" });
     await phone.waitForSelector("input");
     await phone.type("input", "Phone" + sfx);
     await phone.click("button.primary");
-    await waitFor(() => phone.evaluate(() => window.__og?.state?.conn === "open"), { timeout: 30000, what: "phone connected" });
+    await waitFor(() => phone.evaluate(() => window.__tilework?.state?.conn === "open"), { timeout: 30000, what: "phone connected" });
     const pad = await waitFor(() => phone.$(".touchpad .tp-right"), { what: "touch pad" });
-    const p0 = await phone.evaluate(() => window.__og.view.position());
+    const p0 = await phone.evaluate(() => window.__tilework.view.position());
     const r = await pad.boundingBox();
     await phone.touchscreen.touchStart(r.x + r.width / 2, r.y + r.height / 2);
     await sleep(700);
     await phone.touchscreen.touchEnd();
     await sleep(200);
-    const p1 = await phone.evaluate(() => window.__og.view.position());
+    const p1 = await phone.evaluate(() => window.__tilework.view.position());
     check("on a touch screen the on-screen pad walks the avatar", p1.x - p0.x > 10, (p1.x - p0.x).toFixed(1) + " px");
     await pctx.close();
 

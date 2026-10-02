@@ -4,13 +4,13 @@
       <div class="hero-copy">
         <p class="eyebrow">Open source · Self-hosted · Alpha</p>
         <h1>Your team's <span class="teal">virtual office</span>, in pixel art. Light on every resource.</h1>
-        <p class="lead">An open source virtual office for remote teams: walk around a 2D map, bump into teammates and talk with proximity audio and video. Built with Go, PixiJS and LiveKit, and designed from day one to be cheap to host yourself.</p>
+        <p class="lead">Tilework is an open source alternative to Gather for remote teams: walk around a 2D map, bump into teammates and talk with proximity audio and video. Built with Go, PixiJS and LiveKit, and designed from day one to be cheap to host yourself.</p>
         <div class="cta">
           <a class="btn primary" href="{{DEMO}}" rel="noopener">Try the live demo</a>
           <a class="btn" href="docs/self-hosting/">Self-host it</a>
           <a class="btn" href="{{REPO}}" rel="noopener">Star on GitHub</a>
         </div>
-        <p class="note">No sign-up beyond a name. The demo is a free, small server; its map, chat and whiteboards reset every 6 hours. Self-host it with one Docker Compose file or <code>ghcr.io/guhcostan/open-gather</code>.</p>
+        <p class="note">No sign-up beyond a name. The demo is a free, small server; its map, chat and whiteboards reset every 6 hours. Self-host it with one Docker Compose file or <code>ghcr.io/guhcostan/tilework</code>.</p>
         <ul class="chips" aria-label="Stack">
           <li>Go</li><li>React</li><li>PixiJS</li><li>LiveKit</li><li>SQLite</li>
         </ul>
@@ -177,7 +177,7 @@
       <h2>Self-host it</h2>
       <p class="sub">Try the whole stack on your machine with Docker. The first person to join becomes the administrator.</p>
       <div class="code"><button class="copy" type="button" aria-label="Copy code">Copy</button><pre><code>git clone {{REPO}}.git
-cd open-gather
+cd tilework
 docker compose -f deploy/docker-compose.local.yml up --build
 # open http://localhost:8080 in two browser profiles</code></pre></div>
       <p>For a real server, the production Compose file adds automatic HTTPS (Caddy), a LiveKit media server and invite-only joins, using the prebuilt image for amd64 and arm64. To hack on the code, <code>./scripts/dev.sh</code> starts LiveKit, the Go server and Vite.</p>

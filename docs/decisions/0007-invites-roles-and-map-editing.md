@@ -8,8 +8,8 @@ A deployment needs a way to admit people, tell administrators from members, let 
 
 ## Decision
 
-- **One office per deployment** (`OG_OFFICE_SLUG`). Creating an office is installing the stack; multi-office hosting is deliberately left for later.
-- **Invites:** random 192-bit tokens, only the SHA-256 is stored, with a role (`member` or `admin`), a use limit (1-1000) and a validity (at most 90 days). Spending an invite is one atomic `UPDATE ... RETURNING`, so concurrent joins cannot exceed the limit (tested with 40 racing requests). In production `/api/join` requires an invite; in `dev` it also works without one and the first member becomes administrator. The first production administrator is created with `opengather -invite admin`.
+- **One office per deployment** (`TILEWORK_OFFICE_SLUG`). Creating an office is installing the stack; multi-office hosting is deliberately left for later.
+- **Invites:** random 192-bit tokens, only the SHA-256 is stored, with a role (`member` or `admin`), a use limit (1-1000) and a validity (at most 90 days). Spending an invite is one atomic `UPDATE ... RETURNING`, so concurrent joins cannot exceed the limit (tested with 40 racing requests). In production `/api/join` requires an invite; in `dev` it also works without one and the first member becomes administrator. The first production administrator is created with `tilework -invite admin`.
 - **Roles come from the database session, never from the client.** Admin-only endpoints (`POST /api/invites`, `PUT /api/map`) check the role on the server; room access rules (`open`, `members`, `admins`, `list`) are enforced by the world when moving and by token issuing.
 - **Map editing:** an administrator replaces the whole map. The server validates and compiles it (bounds, types, limits, spawn not inside a wall), hot-swaps it into the running world and only then saves it. The map size cannot change at runtime. On swap, room calls are dissolved (area indexes may change) and players standing inside a new wall are moved to the spawn.
 - **Profile:** members change their own name and avatar (`PUT /api/profile`); the change reaches the roster live.

@@ -1,4 +1,4 @@
-module opengather/bench/mediagen
+module tilework/bench/mediagen
 
 go 1.26.5
 

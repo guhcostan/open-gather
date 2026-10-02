@@ -1,6 +1,6 @@
 # Art style
 
-Open Gather looks like a 2000s handheld RPG: a top-down 3/4 view, 16 px tiles, chunky characters with big heads, outlined props with three-tone shading, and white dialog-window menus. The goal is that style, **not** any existing game's assets.
+Tilework looks like a 2000s handheld RPG: a top-down 3/4 view, 16 px tiles, chunky characters with big heads, outlined props with three-tone shading, and white dialog-window menus. The goal is that style, **not** any existing game's assets.
 
 > **Original work only.** Every tile, prop, sprite, colour and UI frame is drawn by code in this repository. We do not use, trace, extract or re-colour assets from Pokémon or any other Nintendo, Game Freak or third-party game, and the project has no affiliation with them. A visual *style* (proportions, palette feel, pixel conventions) can be studied; assets and characters cannot be copied. See also [Contributing](contributing.md).
 
@@ -48,7 +48,7 @@ cd e2e
 node export-art.mjs   # sprite sheets and the baked map (needs only the Vite preview above)
 node art.mjs          # cast, walking GIF and banner (needs Chrome and ffmpeg)
 # in-game shots (needs a game server that serves the built client):
-OG_APP=http://127.0.0.1:8091 OG_API=http://127.0.0.1:8091 node screens.mjs
+TILEWORK_APP=http://127.0.0.1:8091 TILEWORK_API=http://127.0.0.1:8091 node screens.mjs
 ~~~
 
 `web/dev/default-map.json` is a copy of the starter map from the Go server (`gamemap.Default()`); refresh it if that map changes.

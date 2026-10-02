@@ -1,5 +1,5 @@
 #!/usr/bin/env python3
-"""Cost model for a single-node Open Gather deployment.
+"""Cost model for a single-node Tilework deployment.
 
 It contains NO prices. Every price is an input you must fill in from your provider's current price list.
 Traffic inputs default to values measured or assumed in bench/RESULTS.md; override them with your own.

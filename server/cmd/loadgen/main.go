@@ -1,4 +1,4 @@
-// Command loadgen drives many WebSocket bots against an Open Gather server.
+// Command loadgen drives many WebSocket bots against an Tilework server.
 // It measures what a WebSocket load test CAN measure (presence/movement fan-out,
 // propagation latency, reconnect behaviour). It does NOT prove audio/video capacity.
 package main
@@ -42,8 +42,8 @@ var (
 	label       = flag.String("label", "run", "label for the report")
 	out         = flag.String("out", "", "write JSON report to this file")
 	sampleEvery = flag.Duration("sample", 0, "record a time series (heap, goroutines, RSS, CPU) at this interval, e.g. 30s")
-	invite      = flag.String("invite", "", "invite token every bot joins with (production servers require one; mint a multi-use one with opengather -invite member -invite-uses N)")
-	metricsTok  = flag.String("metrics-token", "", "bearer token for /metrics on a production server (prefer $OG_METRICS_TOKEN: flags are visible in the process list)")
+	invite      = flag.String("invite", "", "invite token every bot joins with (production servers require one; mint a multi-use one with tilework -invite member -invite-uses N)")
+	metricsTok  = flag.String("metrics-token", "", "bearer token for /metrics on a production server (prefer $TILEWORK_METRICS_TOKEN: flags are visible in the process list)")
 	metricsURL  = flag.String("metrics-url", "", "where to scrape /metrics when the public URL hides it (e.g. an SSH tunnel); default: -url")
 )
 
@@ -111,7 +111,7 @@ func httpJoin(name string) (string, error) {
 			continue
 		}
 		for _, c := range resp.Cookies() {
-			if c.Name == "og_session" {
+			if c.Name == "tilework_session" {
 				return c.Value, nil
 			}
 		}
@@ -127,7 +127,7 @@ func (b *bot) dial(ctx context.Context) error {
 		scheme = "wss"
 	}
 	h := http.Header{}
-	h.Set("Cookie", "og_session="+b.cookie)
+	h.Set("Cookie", "tilework_session="+b.cookie)
 	h.Set("Origin", *base)
 	c, _, err := websocket.Dial(ctx, scheme+"://"+u.Host+"/ws", &websocket.DialOptions{HTTPHeader: h})
 	if err != nil {
@@ -389,7 +389,7 @@ func scrape() map[string]float64 {
 	rq, _ := http.NewRequest("GET", mu+"/metrics", nil)
 	tok := *metricsTok
 	if tok == "" {
-		tok = os.Getenv("OG_METRICS_TOKEN")
+		tok = os.Getenv("TILEWORK_METRICS_TOKEN")
 	}
 	if tok != "" {
 		rq.Header.Set("Authorization", "Bearer "+tok)
@@ -448,10 +448,10 @@ func histQuantile(before, after map[string]float64, q float64) float64 {
 	type bk struct{ le, n float64 }
 	var bs []bk
 	for k, v := range after {
-		if !strings.HasPrefix(k, "og_tick_seconds_bucket{le=\"") {
+		if !strings.HasPrefix(k, "tilework_tick_seconds_bucket{le=\"") {
 			continue
 		}
-		leS := strings.TrimSuffix(strings.TrimPrefix(k, "og_tick_seconds_bucket{le=\""), "\"}")
+		leS := strings.TrimSuffix(strings.TrimPrefix(k, "tilework_tick_seconds_bucket{le=\""), "\"}")
 		le := math.Inf(1)
 		if leS != "+Inf" {
 			le, _ = strconv.ParseFloat(leS, 64)
@@ -562,7 +562,7 @@ func main() {
 			if *sampleEvery > 0 && time.Since(lastSample) >= *sampleEvery {
 				lastSample = time.Now()
 				m := scrape()
-				sm := sample{TSec: time.Since(start).Seconds(), HeapMB: m["go_heap_alloc_bytes"] / 1048576, Goroutines: m["go_goroutines"], RSSMB: r, CPU: c, Players: m["og_players"], FramesOut: m["og_ws_frames_out_total"]}
+				sm := sample{TSec: time.Since(start).Seconds(), HeapMB: m["go_heap_alloc_bytes"] / 1048576, Goroutines: m["go_goroutines"], RSSMB: r, CPU: c, Players: m["tilework_players"], FramesOut: m["tilework_ws_frames_out_total"]}
 				series = append(series, sm)
 				fmt.Fprintf(os.Stderr, "t=%4.0fs heap=%.1fMB goroutines=%.0f rss=%.1fMB cpu=%.1f%% players=%.0f\n", sm.TSec, sm.HeapMB, sm.Goroutines, sm.RSSMB, sm.CPU, sm.Players)
 			}
@@ -575,17 +575,17 @@ func main() {
 	r := report{Label: *label, Region: *region, Bots: int64(*nBots), Joined: st.joined.Load(), Failed: st.failed.Load(), Disconnects: st.disconnects.Load(), Moving: *moving, DurationS: el}
 	r.WindowStart, r.WindowEnd = float64(start.UnixMilli())/1000, float64(start.UnixMilli())/1000+el
 	d := func(k string) float64 { return m1[k] - m0[k] }
-	r.ServerMsgsPerSec = d("og_ws_frames_out_total") / el
-	r.ServerKBPerSec = d("og_ws_bytes_out_total") / el / 1024
-	r.PosPerSec = d("og_positions_sent_total") / el
-	r.CoalescedPerSec = d("og_positions_coalesced_total") / el
-	r.InputsPerSec = d("og_input_msgs_total") / el
+	r.ServerMsgsPerSec = d("tilework_ws_frames_out_total") / el
+	r.ServerKBPerSec = d("tilework_ws_bytes_out_total") / el / 1024
+	r.PosPerSec = d("tilework_positions_sent_total") / el
+	r.CoalescedPerSec = d("tilework_positions_coalesced_total") / el
+	r.InputsPerSec = d("tilework_input_msgs_total") / el
 	r.ClientKBInPerBot = float64(st.bytesIn.Load()-by0) / el / 1024 / float64(max(1, int(st.joined.Load())))
 	r.ClientMsgsInPerBot = float64(st.framesIn.Load()-f0) / el / float64(max(1, int(st.joined.Load())))
 	r.TickP50ms, r.TickP95ms, r.TickP99ms = histQuantile(m0, m1, 0.5)*1000, histQuantile(m0, m1, 0.95)*1000, histQuantile(m0, m1, 0.99)*1000
-	r.TickMaxMs = m1["og_tick_seconds_max"] * 1000
-	if n := d("og_tick_seconds_count"); n > 0 {
-		r.TickMeanMs = d("og_tick_seconds_sum") / n * 1000
+	r.TickMaxMs = m1["tilework_tick_seconds_max"] * 1000
+	if n := d("tilework_tick_seconds_count"); n > 0 {
+		r.TickMeanMs = d("tilework_tick_seconds_sum") / n * 1000
 	}
 	latMu.Lock()
 	r.LatStartP50, r.LatStartP95, r.LatStartP99 = pct(latStart, .5), pct(latStart, .95), pct(latStart, .99)
@@ -603,7 +603,7 @@ func main() {
 	}
 	r.HeapMB, r.GoSysMB = m1["go_heap_alloc_bytes"]/1048576, m1["go_sys_bytes"]/1048576
 	r.Series = series
-	r.Kicked, r.Skipped, r.Groups = m1["og_clients_kicked_total"], m1["og_flush_skipped_total"], m1["og_conversation_groups"]
+	r.Kicked, r.Skipped, r.Groups = m1["tilework_clients_kicked_total"], m1["tilework_flush_skipped_total"], m1["tilework_conversation_groups"]
 
 	if *storm {
 		cancel() // drop every connection at once

@@ -8,8 +8,8 @@ LiveKit tokens cannot be revoked. Removing a participant from a room does not st
 
 ## Decision
 
-1. Join tokens are valid for **30 seconds** by default (`OG_MEDIA_TOKEN_TTL_SECONDS`). LiveKit's JWT library adds **60 s of clock-skew leeway** (measured in the security test: a token 12 s past its expiry was still accepted), so the effective lifetime is up to 90 s. A token is only needed to *connect*; clients that lose the media connection ask the server for a new one (`tok`).
-2. A **reconciler** runs every **10 seconds** (`OG_MEDIA_RECONCILE_SECONDS`). It lists the SFU rooms of the office, then asks the world which identities belong to which room, and removes everybody else. The SFU is listed first and the world snapshot taken second, so a person who joined legitimately in between is never removed by mistake.
+1. Join tokens are valid for **30 seconds** by default (`TILEWORK_MEDIA_TOKEN_TTL_SECONDS`). LiveKit's JWT library adds **60 s of clock-skew leeway** (measured in the security test: a token 12 s past its expiry was still accepted), so the effective lifetime is up to 90 s. A token is only needed to *connect*; clients that lose the media connection ask the server for a new one (`tok`).
+2. A **reconciler** runs every **10 seconds** (`TILEWORK_MEDIA_RECONCILE_SECONDS`). It lists the SFU rooms of the office, then asks the world which identities belong to which room, and removes everybody else. The SFU is listed first and the world snapshot taken second, so a person who joined legitimately in between is never removed by mistake.
 3. Room names carry a per-installation random prefix (`<instance>.o<office>.…`), and the reconciler only looks at rooms with its own prefix. Without this, two app servers sharing one LiveKit (for example a dev stack and a test run) would evict each other's participants.
 4. Leaving a group still removes the participant immediately (with retries); the reconciler is the safety net.
 

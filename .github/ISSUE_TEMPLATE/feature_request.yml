@@ -16,5 +16,5 @@ body:
   - type: textarea
     id: context
     attributes:
-      label: How do you use (or plan to use) Open Gather?
+      label: How do you use (or plan to use) Tilework?
       description: Team size, self-hosted or not, what you use today. Real use cases decide what gets built next.

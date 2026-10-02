@@ -1,4 +1,4 @@
-module opengather
+module tilework
 
 go 1.26.5
 

@@ -10,48 +10,48 @@ export async function run(ctx) {
     const t = String(Date.now() % 10000);
     const admin = await joinAs(browser, "Admin", { cookie: ctx.adminCookie });
     const mem = await joinAs(browser, "Mem" + t);
-    check("first member of the office is admin, the next is member", admin.id === ctx.adminId && (await admin.page.evaluate(() => window.__og.state.role)) === "admin" && (await mem.page.evaluate(() => window.__og.state.role)) === "member");
-    await Promise.all([admin, mem].map((u) => u.page.evaluate(() => { window.__og.media.join0 = window.__og.media.join.bind(window.__og.media); window.__og.media.join = (i) => { window.__lastJoin = i; return window.__og.media.join0(i); }; })));
+    check("first member of the office is admin, the next is member", admin.id === ctx.adminId && (await admin.page.evaluate(() => window.__tilework.state.role)) === "admin" && (await mem.page.evaluate(() => window.__tilework.state.role)) === "member");
+    await Promise.all([admin, mem].map((u) => u.page.evaluate(() => { window.__tilework.media.join0 = window.__tilework.media.join.bind(window.__tilework.media); window.__tilework.media.join = (i) => { window.__lastJoin = i; return window.__tilework.media.join0(i); }; })));
 
     // --- member is stopped at the door of the admins-only room by the SERVER (bypassing client-side prediction)
     await walkTo(mem, 43 * 16 + 8, 10 * 16 + 8);
-    await mem.page.evaluate(() => window.__og.session.setConsent(true));
-    await mem.page.evaluate(() => { const s = window.__og.session.socket; for (let i = 0; i < 40; i++) setTimeout(() => s.send({ t: "in", s: 1000 + i, x: 1, y: 0 }), i * 60); });
+    await mem.page.evaluate(() => window.__tilework.session.setConsent(true));
+    await mem.page.evaluate(() => { const s = window.__tilework.session.socket; for (let i = 0; i < 40; i++) setTimeout(() => s.send({ t: "in", s: 1000 + i, x: 1, y: 0 }), i * 60); });
     await sleep(2800);
-    await mem.page.evaluate((id) => window.__og.session.locate(id), mem.id);
-    const loc = await waitFor(() => mem.page.evaluate(() => window.__og.view.locate), { what: "server location" });
+    await mem.page.evaluate((id) => window.__tilework.session.locate(id), mem.id);
+    const loc = await waitFor(() => mem.page.evaluate(() => window.__tilework.view.locate), { what: "server location" });
     check("server refuses to move a member into the admins-only room (authoritative collision)", loc.x < 45 * 16, "server x=" + loc.x.toFixed(1) + " (room starts at 720)");
-    await mem.page.evaluate(() => window.__og.session.socket.send({ t: "in", s: 2000, x: 0, y: 0 }));
+    await mem.page.evaluate(() => window.__tilework.session.socket.send({ t: "in", s: 2000, x: 0, y: 0 }));
     check("member has no conversation for the room and cannot request a token", (await st(mem)).conv === null);
-    await mem.page.evaluate(() => window.__og.session.socket.send({ t: "tok" }));
+    await mem.page.evaluate(() => window.__tilework.session.socket.send({ t: "tok" }));
     await sleep(700);
     check("requesting a media token outside any group yields nothing", (await st(mem)).conv === null && (await mem.page.evaluate(() => window.__lastJoin ?? null)) === null);
 
     // --- admin enters and gets the room media group
-    await admin.page.evaluate(() => window.__og.session.setConsent(true));
+    await admin.page.evaluate(() => window.__tilework.session.setConsent(true));
     await walkTo(admin, 47 * 16 + 8, 12 * 16 + 8);
     await waitFor(async () => (await st(admin)).conv?.state === "live", { timeout: 15000, what: "admin live in room" });
     const conv = (await st(admin)).conv;
     check("admin joins the private room call", conv.kind === "r" && conv.name === "Boardroom", JSON.stringify({ k: conv.kind, n: conv.name }));
-    const room = await admin.page.evaluate(() => window.__og.media.currentRoom);
+    const room = await admin.page.evaluate(() => window.__tilework.media.currentRoom);
     const claims = b64json(await admin.page.evaluate(() => window.__lastJoin.token));
     check("token is scoped to exactly this room, this identity and a short validity", claims.video.room === room && claims.sub === String(admin.id) && claims.exp - claims.nbf <= 330 && claims.video.roomJoin === true && !claims.video.roomAdmin, JSON.stringify({ room: claims.video.room, sub: claims.sub, ttl: claims.exp - claims.nbf, admin: claims.video.roomAdmin }));
     check("SFU room contains only the admin", (await lkParticipants(room)).join() === String(admin.id));
 
     // --- a member in a proximity call elsewhere gets a token for THAT group only
     const m2 = await joinAs(browser, "Mem2" + t);
-    await Promise.all([m2].map((u) => u.page.evaluate(() => { window.__og.session.setConsent(true); window.__og.media.join0 = window.__og.media.join.bind(window.__og.media); window.__og.media.join = (i) => { window.__lastJoin = i; return window.__og.media.join0(i); }; })));
+    await Promise.all([m2].map((u) => u.page.evaluate(() => { window.__tilework.session.setConsent(true); window.__tilework.media.join0 = window.__tilework.media.join.bind(window.__tilework.media); window.__tilework.media.join = (i) => { window.__lastJoin = i; return window.__tilework.media.join0(i); }; })));
     await walkTo(mem, 12 * 16 + 8, 24 * 16 + 8);
     await walkTo(m2, 12 * 16 + 40, 24 * 16 + 8);
     await waitFor(async () => (await st(mem)).conv?.state === "live" && (await st(m2)).conv?.state === "live", { timeout: 15000, what: "members converse" });
     const memClaims = b64json(await mem.page.evaluate(() => window.__lastJoin.token));
-    const memRoom = await mem.page.evaluate(() => window.__og.media.currentRoom);
+    const memRoom = await mem.page.evaluate(() => window.__tilework.media.currentRoom);
     check("member token grants only the proximity group room, never the private room", memClaims.video.room === memRoom && memRoom !== room && !memRoom.includes("boardroom"));
     check("private room still contains only the admin while others talk elsewhere", (await lkParticipants(room)).join() === String(admin.id) && (await lkParticipants(memRoom)).length === 2);
 
     // --- screen sharing inside the admin room requires a second participant: use m2? not allowed. Share inside the member call.
     await mem.page.click('.bar button[aria-label="Share screen"]'); // the real control
-    const shared = await waitFor(() => m2.page.evaluate(() => window.__og.media.tiles.some((tl) => !tl.local && tl.screen)), { timeout: 15000, what: "m2 sees screen share" }).catch(() => false);
+    const shared = await waitFor(() => m2.page.evaluate(() => window.__tilework.media.tiles.some((tl) => !tl.local && tl.screen)), { timeout: 15000, what: "m2 sees screen share" }).catch(() => false);
     check("screen share published by one participant is received by the other", !!shared);
     if (shared) {
       // The viewer's dock offers view controls; expanding grows the video to the stage, Escape shrinks it back.
@@ -63,16 +63,16 @@ export async function run(ctx) {
       await m2.page.keyboard.press("Escape");
       await waitFor(async () => !(await m2.page.$(".share.focus")), { what: "share shrinks on Escape" });
       check("a shared screen can be expanded over the map and shrunk with Escape", big > small * 1.8, Math.round(small) + " -> " + Math.round(big) + " px");
-      const badge = await waitFor(() => m2.page.evaluate((id) => window.__og.view.ents.get(id)?.sharing === true, mem.id), { what: "presenter badge" }).catch(() => false);
+      const badge = await waitFor(() => m2.page.evaluate((id) => window.__tilework.view.ents.get(id)?.sharing === true, mem.id), { what: "presenter badge" }).catch(() => false);
       check("the presenter's avatar carries a screen badge on the map", !!badge);
       const enc = await mem.page.evaluate(() => {
-        const pub = [...window.__og.media.room.localParticipant.trackPublications.values()].find((p) => p.source === "screen_share");
+        const pub = [...window.__tilework.media.room.localParticipant.trackPublications.values()].find((p) => p.source === "screen_share");
         const s = pub?.track?.mediaStreamTrack?.getSettings();
         return s ? { w: s.width, h: s.height } : null;
       });
       check("screens are captured at up to 1080p for readable text", !!enc && enc.h >= 720, JSON.stringify(enc));
-      await mem.page.evaluate(() => window.__og.media.setShare(false));
-      const gone = await waitFor(() => m2.page.evaluate((id) => window.__og.view.ents.get(id)?.sharing === false, mem.id), { what: "badge clears" }).catch(() => false);
+      await mem.page.evaluate(() => window.__tilework.media.setShare(false));
+      const gone = await waitFor(() => m2.page.evaluate((id) => window.__tilework.view.ents.get(id)?.sharing === false, mem.id), { what: "badge clears" }).catch(() => false);
       check("stopping the share removes the badge", !!gone);
     }
 
@@ -102,7 +102,7 @@ export async function run(ctx) {
     const sys = await shareAlerts(mem, reject("NotAllowedError", "Permission denied by system"));
     check("the system blocking screen capture is explained, with no other message flashing first", sys.length === 1 && /blocked screen sharing/.test(sys[0]), JSON.stringify(sys));
     const cancel = await shareAlerts(mem, reject("NotAllowedError", "Permission denied"));
-    const asked = await mem.page.evaluate(() => ({ calls: window.__gdm, sharing: window.__og.state.sharing }));
+    const asked = await mem.page.evaluate(() => ({ calls: window.__gdm, sharing: window.__tilework.state.sharing }));
     check("cancelling the picker shows nothing at all", cancel.length === 0 && asked.calls === 1 && !asked.sharing, JSON.stringify({ cancel, asked }));
     const busy = await shareAlerts(mem, reject("NotReadableError", "Could not start video source"));
     check("a capture that cannot start gets a screen-specific message", busy.length === 1 && /screen/i.test(busy[0]) && !/camera/i.test(busy[0]), JSON.stringify(busy));
@@ -110,7 +110,7 @@ export async function run(ctx) {
 
     // --- the reason is visible on a touch phone, where screen capture does not exist
     const phone = await joinAs(browser, "Phone" + t, { viewport: { width: 390, height: 844, isMobile: true, hasTouch: true } });
-    await phone.page.evaluate(() => window.__og.session.setConsent(true));
+    await phone.page.evaluate(() => window.__tilework.session.setConsent(true));
     await waitFor(() => phone.page.$('.bar button[aria-label="Share screen"]'), { what: "share button on the phone" });
     const outside = await shareAlerts(phone, () => {}, "tap");
     check("outside a call, tapping Share screen says to walk up to someone", outside.length === 1 && /Walk up to someone/.test(outside[0]), JSON.stringify(outside));
@@ -124,7 +124,7 @@ export async function run(ctx) {
     await waitFor(async () => (await st(admin)).conv === null, { timeout: 10000, what: "admin leaves room call" });
     await sleep(1500);
     const after = await metrics();
-    check("leaving the private room ends the call and the server revokes SFU access", after.og_media_revocations_total > before.og_media_revocations_total && (await lkParticipants(room)).length === 0);
+    check("leaving the private room ends the call and the server revokes SFU access", after.tilework_media_revocations_total > before.tilework_media_revocations_total && (await lkParticipants(room)).length === 0);
 
     const errs = [admin, mem, m2].flatMap((u) => u.logs).filter((l) => !/getDisplayMedia|display-capture/.test(l));
     check("no console errors", errs.length === 0, errs.slice(0, 2).join(" | "));

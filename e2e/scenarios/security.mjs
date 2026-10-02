@@ -2,7 +2,7 @@
 import { check, summary, resetChecks, launch, joinAs, waitFor, walkTo, st, sleep, lkParticipants, metrics } from "../lib.mjs";
 
 const prefixOf = (room) => room.split(".").slice(0, 2).join(".");
-const TTL = Number(process.env.OG_MEDIA_TOKEN_TTL_SECONDS ?? 20);
+const TTL = Number(process.env.TILEWORK_MEDIA_TOKEN_TTL_SECONDS ?? 20);
 
 export async function run(ctx) {
   resetChecks();
@@ -12,16 +12,16 @@ export async function run(ctx) {
     const a = await joinAs(browser, "Xa" + t);
     const b = await joinAs(browser, "Xb" + t);
     await a.page.evaluate(() => {
-      const m = window.__og.media;
+      const m = window.__tilework.media;
       const j = m.join.bind(m);
       m.join = (i) => { window.__stale = i; window.__RoomCtor = null; return j(i).then(() => { window.__RoomCtor = m.room.constructor; }); };
     });
     await walkTo(a, 12 * 16 + 8, 30 * 16 + 8);
     await walkTo(b, 12 * 16 + 40, 30 * 16 + 8);
-    await Promise.all([a, b].map((u) => u.page.evaluate(() => window.__og.session.setConsent(true))));
+    await Promise.all([a, b].map((u) => u.page.evaluate(() => window.__tilework.session.setConsent(true))));
     await waitFor(async () => (await st(a)).conv?.state === "live" && (await st(b)).conv?.state === "live", { timeout: 20000, what: "conversation" });
     await waitFor(() => a.page.evaluate(() => !!window.__RoomCtor), { what: "room constructor captured" });
-    const room = await a.page.evaluate(() => window.__og.media.currentRoom);
+    const room = await a.page.evaluate(() => window.__tilework.media.currentRoom);
     await a.page.evaluate((r) => { window.__privateRoom = r; }, prefixOf(room) + ".r.boardroom");
     const issued = Date.now();
 
@@ -61,7 +61,7 @@ export async function run(ctx) {
     const evicted = await waitFor(async () => (await lkParticipants(room)).length === 0, { timeout: 15000, every: 250, what: "attacker evicted" }).then(() => true).catch(() => false);
     const rm = await metrics();
     check("the reconciler evicts the replayed connection within seconds", evicted, ((Date.now() - t0) / 1000).toFixed(1) + " s");
-    check("the eviction is counted (og_media_reconcile_removals_total)", rm.og_media_reconcile_removals_total > (before.og_media_reconcile_removals_total ?? 0));
+    check("the eviction is counted (tilework_media_reconcile_removals_total)", rm.tilework_media_reconcile_removals_total > (before.tilework_media_reconcile_removals_total ?? 0));
     await a.page.evaluate(() => window.__attacker?.disconnect());
 
     // Attack 2: change the room inside the token (private room) without the signing secret.
