@@ -53,11 +53,13 @@ Scenario A (no media) up to 1,000 bots and a 500-client reconnect storm, with th
 
 ## Roadmap
 
+What comes next, including features people asked for (breakout rooms, a stage, audio-only areas, a lounge) and what hosted plans need, is in the [Roadmap](roadmap.md). How the project plans to sustain itself: [Business model](business-model.md). The milestones of the first version:
+
 1. Architecture, decisions, repository, local environment. **Done.**
 2. First functional slice with real proximity audio/video. **Done.**
 3. Invites, presence, chat, persistence. **Done** (see limitations above).
 4. Rooms, screen sharing, personalisation, basic editor. **Done.**
-5. Benchmarks and evidence-driven optimisation. **Started:** scenario A and one optimisation done; media scenarios pending.
+5. Benchmarks and evidence-driven optimisation. **Started:** scenarios A, B, D and a scaled C run locally, and presence and media runs on the free Oracle VM with the generator on another machine; the reference server, TURN and repeated runs are pending.
 6. Reproducible self-hosted install and documentation. **Started:** the production Compose stack runs the public demo on a free Oracle VM (scripts in `deploy/oracle/`); multi-arch image published to GHCR. Not tested: TURN relay for UDP-blocked networks (the relay port range is closed on the demo host), load on the demo host.
 
 Deferred on purpose: recording, AI transcription, native apps, marketplace, enterprise integrations and 3D worlds.

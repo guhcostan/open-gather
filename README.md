@@ -170,6 +170,8 @@ World state, durable data and media transport are deliberately separate, so the 
 
 Last updated 2026-10-01. Everything below was executed on macOS (Apple M1 Pro), Go 1.26.5, Google Chrome with fake camera and microphone, LiveKit 1.13.7. Details and the exact counts: [Status](docs/status.md).
 
+Planned next: breakout rooms, a stage, audio-only areas set by administrators and a lounge, see the [Roadmap](docs/roadmap.md). Hosted plans are being planned on top of the open source project: [Business model](docs/business-model.md).
+
 | Area | State |
 | --- | --- |
 | Go tests (world rules, proximity groups, dead reckoning, map reload, store, media tokens and reconciliation), also with the race detector | **pass** |

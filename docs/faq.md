@@ -50,6 +50,10 @@ Yes. Administrators paint walls, place objects, draw meeting rooms with access r
 
 It is alpha software. The whole loop is tested in real browsers and runs on a public host, but TURN through UDP-blocked networks, long soaks and an independent security review have not been done. Read [Status](status.md) before relying on it.
 
+## Will there be a hosted version?
+
+It is planned: a dedicated instance per customer, kept updated and backed up, in Team, Business and Enterprise plans with a number of seats each. The code stays AGPL-3.0 with every feature, so self-hosting remains free. Nothing is on sale yet; see the [Business model](business-model.md).
+
 ## How can I help?
 
 Try the demo and open an issue with what broke or felt wrong, star the repository on [GitHub](https://github.com/guhcostan/open-gather) so others can find it, or contribute tests, measurements and fixes following [Contributing](contributing.md).

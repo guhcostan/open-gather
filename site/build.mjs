@@ -24,7 +24,7 @@ const SUMMARY = "Open source (AGPL-3.0), self-hosted 2D virtual office with pixe
 const NAV = [
   { group: "Get started", items: [["overview", "Overview", "overview.md"], ["getting-started", "Getting started", "getting-started.md"], ["self-hosting", "Self-hosting", "../deploy/README.md"], ["faq", "FAQ", "faq.md"]] },
   { group: "Concepts", items: [["architecture", "Architecture", "architecture.md"], ["proximity-and-media", "Proximity and media", "proximity-and-media.md"], ["art-style", "Art style", "art-style.md"], ["protocol", "WebSocket protocol", "protocol.md"]] },
-  { group: "Operate", items: [["privacy-and-security", "Privacy and security", "privacy-and-security.md"], ["efficiency-and-benchmarks", "Efficiency and benchmarks", "efficiency-and-benchmarks.md"], ["benchmark-results", "Benchmark results", "benchmark-results.md"], ["status", "Status and roadmap", "status.md"]] },
+  { group: "Operate", items: [["privacy-and-security", "Privacy and security", "privacy-and-security.md"], ["efficiency-and-benchmarks", "Efficiency and benchmarks", "efficiency-and-benchmarks.md"], ["benchmark-results", "Benchmark results", "benchmark-results.md"], ["status", "Status", "status.md"], ["roadmap", "Roadmap", "roadmap.md"], ["business-model", "Business model", "business-model.md"]] },
   {
     group: "Decisions",
     items: fs.readdirSync(path.join(DOCS, "decisions")).filter((f) => f.endsWith(".md")).sort().map((f) => {
